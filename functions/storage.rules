@@ -1,0 +1,14 @@
+rules_version = '2';
+
+// Starter rules for doctor credential documents. TODO: confirm retention
+// policy and who else (besides the uploading doctor and administrators)
+// should be able to read these — not specified in the source document.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /doctorCredentials/{doctorId}/{fileName} {
+      allow read: if request.auth != null &&
+        (request.auth.uid == doctorId || request.auth.token.role == "administrator");
+      allow write: if request.auth != null && request.auth.uid == doctorId;
+    }
+  }
+}

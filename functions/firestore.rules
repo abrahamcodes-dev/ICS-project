@@ -1,0 +1,66 @@
+rules_version = '2';
+
+// MINIMAL starter ruleset — Supervisor Development Guide flags security
+// design (Section 12) as an open decision. This is a safe-but-strict
+// starting point, not a finished design. Review before Sprint 3.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function role() {
+      return isSignedIn()
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+        : null;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || role() == "administrator";
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || role() == "administrator";
+    }
+
+    match /availabilitySlots/{slotId} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(resource.data.doctorId) || role() == "doctor";
+    }
+
+    match /appointments/{appointmentId} {
+      allow read, write: if isSignedIn() && (
+        request.auth.uid == resource.data.patientId ||
+        request.auth.uid == resource.data.doctorId
+      );
+    }
+
+    match /consultations/{consultationId} {
+      allow read, write: if isSignedIn() && (
+        request.auth.uid == resource.data.patientId ||
+        request.auth.uid == resource.data.doctorId
+      );
+    }
+
+    match /prescriptions/{prescriptionId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.patientId ||
+        request.auth.uid == resource.data.doctorId
+      );
+      allow create: if role() == "doctor";
+    }
+
+    match /ratings/{ratingId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.patientId;
+    }
+
+    match /chatbotInteractions/{interactionId} {
+      // Written only by Cloud Functions (admin SDK bypasses rules); block direct client writes.
+      allow read, write: if false;
+    }
+  }
+}
