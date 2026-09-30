@@ -6,7 +6,12 @@
     "moduleResolution": "node",
     "strict": true,
     "baseUrl": ".",
-    "paths": { "@shared/*": ["../shared/*"] },
+    "paths": {
+      "@shared/*": [
+        "../shared/*"
+      ]
+    },
     "skipLibCheck": true
-  }
+  },
+  "extends": "expo/tsconfig.base"
 }
