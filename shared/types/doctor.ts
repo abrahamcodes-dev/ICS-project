@@ -1,6 +1,7 @@
 import { BaseUser } from "./user";
 
-export type VerificationStatus = "pending" | "approved" | "rejected";
+export type { DoctorVerificationStatus as VerificationStatus } from "./identity";
+import type { DoctorVerificationStatus as VerificationStatus } from "./identity";
 
 export interface DoctorCredential {
   fileUrl: string;           // Firebase Storage path

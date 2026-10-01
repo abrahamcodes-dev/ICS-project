@@ -1,18 +1,12 @@
 import { onCall } from "firebase-functions/v2/https";
 import { chatbotInteractionsCol } from "../shared/firestoreRefs";
-import { KNOWLEDGE_BASE, FALLBACK_RESPONSE } from "./knowledgeBase";
+import { FALLBACK_RESPONSE } from "./knowledgeBase";
+import { findMatchingRule } from "./findMatchingRule";
+export { findMatchingRule } from "./findMatchingRule";
 
 export const MEDICAL_DISCLAIMER =
   "This information is general guidance only and is not a medical diagnosis. " +
   "Please book a consultation with a verified doctor for personal medical advice.";
-
-// Pure function — exported separately so it is unit-testable without Firebase.
-export function findMatchingRule(query: string) {
-  const normalized = query.toLowerCase();
-  return KNOWLEDGE_BASE.find((rule) =>
-    rule.keywords.some((keyword) => normalized.includes(keyword.toLowerCase()))
-  );
-}
 
 // Sprint 5 — callable used by mobile/src/services/chatbotService.ts.
 // Available to guests (no auth check) per the proposal's guest-accessible chatbot.

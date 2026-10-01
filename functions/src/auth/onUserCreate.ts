@@ -1,3 +1,7 @@
+// LEGACY / INACTIVE: intentionally not exported from src/index.ts.
+// completeRegistration is the backend identity creation authority.
+// Retained for review; do not re-export alongside the registration callable.
+// This source change does not remove any previously deployed trigger.
 // Auth onCreate is still a 1st-gen-only trigger (no v2 equivalent as of
 // firebase-functions v7 — v2 only offers *blocking* auth functions, which
 // behave differently). Importing from the /v1 subpath explicitly.

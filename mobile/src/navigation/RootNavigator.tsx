@@ -9,11 +9,14 @@ import AdminNavigator from "./AdminNavigator";
 // Routes to the correct role-based navigator once auth state is known.
 // Sprint 1 deliverable: Guest -> Login/Register -> role-specific stack.
 export default function RootNavigator() {
-  const { user, loading } = useAuth();
+  const { user, loading, status } = useAuth();
 
   if (loading) return null; // TODO: splash/loading screen
 
-  if (!user) return <NavigationContainer><GuestNavigator /></NavigationContainer>;
+  if (status === "signedOut") return <NavigationContainer><GuestNavigator /></NavigationContainer>;
+  // Incomplete/error/disabled and unapproved-doctor UI belongs to a later checkpoint.
+  if (status !== "ready" || !user || user.status !== "active") return null;
+  if (user.role === "doctor" && user.verificationStatus !== "approved") return null;
 
   switch (user.role) {
     case "patient":

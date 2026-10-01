@@ -1,4 +1,5 @@
 export * from "./user";
+export type { CallADocIdentity, PublicRegistrationRole, PublicRegistrationRequest, TrustedRegistrationContext, AccountStatus } from "./identity";
 export * from "./patient";
 export * from "./doctor";
 export * from "./administrator";

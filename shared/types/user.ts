@@ -1,4 +1,5 @@
-export type UserRole = "patient" | "doctor" | "administrator";
+import type { UserRole } from "./identity";
+export type { UserRole } from "./identity";
 
 export interface BaseUser {
   uid: string;               // Firebase Auth UID

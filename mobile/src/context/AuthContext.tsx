@@ -1,33 +1,33 @@
-import React, { createContext, useEffect, useState } from "react";
+import React, { createContext, useEffect, useRef, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "../services/firebaseConfig";
-import { BaseUser } from "@shared/types";
+import { auth } from "../services/firebaseConfig";
+import { loadOwnIdentity } from "../services/identityService";
+import { onIdentityRefresh, logoutUser } from "../services/authService";
+import { AuthState, initialAuthState, createAuthStateController } from "./authState";
 
-interface AuthContextValue {
-  user: BaseUser | null;
+interface AuthContextValue extends AuthState {
   loading: boolean;
+  refreshIdentity(): Promise<void>;
+  logout(): Promise<void>;
 }
-
-export const AuthContext = createContext<AuthContextValue>({ user: null, loading: true });
-
+export const AuthContext = createContext<AuthContextValue>({
+  ...initialAuthState, loading: true, refreshIdentity: async () => {}, logout: logoutUser,
+});
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<BaseUser | null>(null);
-  const [loading, setLoading] = useState(true);
-
+  const [state, setState] = useState<AuthState>(initialAuthState);
+  const controller = useRef<ReturnType<typeof createAuthStateController> | null>(null);
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (!firebaseUser) {
-        setUser(null);
-        setLoading(false);
-        return;
-      }
-      const snap = await getDoc(doc(db, "users", firebaseUser.uid));
-      setUser(snap.exists() ? (snap.data() as BaseUser) : null);
-      setLoading(false);
-    });
-    return unsubscribe;
+    const current = createAuthStateController({
+      observeAuth: (next, error) => onAuthStateChanged(auth, user => next(user?.uid ?? null), error),
+      observeIdentityRefresh: onIdentityRefresh,
+      currentUid: () => auth.currentUser?.uid ?? null,
+      loadIdentity: loadOwnIdentity,
+    }, setState);
+    controller.current = current;
+    return () => { current.stop(); controller.current = null; };
   }, []);
-
-  return <AuthContext.Provider value={{ user, loading }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{
+    ...state, loading: state.status === "initializing" || state.status === "loadingIdentity",
+    refreshIdentity: async () => { await controller.current?.refresh(); }, logout: logoutUser,
+  }}>{children}</AuthContext.Provider>;
 }

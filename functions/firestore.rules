@@ -1,66 +1,49 @@
 rules_version = '2';
-
-// MINIMAL starter ruleset — Supervisor Development Guide flags security
-// design (Section 12) as an open decision. This is a safe-but-strict
-// starting point, not a finished design. Review before Sprint 3.
 service cloud.firestore {
-  match /databases/{database}/documents {
-
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(uid) {
-      return isSignedIn() && request.auth.uid == uid;
-    }
-
-    function role() {
-      return isSignedIn()
-        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
-        : null;
-    }
-
-    match /users/{userId} {
-      allow read: if isOwner(userId) || role() == "administrator";
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId) || role() == "administrator";
-    }
-
-    match /availabilitySlots/{slotId} {
-      allow read: if isSignedIn();
-      allow write: if isOwner(resource.data.doctorId) || role() == "doctor";
-    }
-
-    match /appointments/{appointmentId} {
-      allow read, write: if isSignedIn() && (
-        request.auth.uid == resource.data.patientId ||
-        request.auth.uid == resource.data.doctorId
-      );
-    }
-
-    match /consultations/{consultationId} {
-      allow read, write: if isSignedIn() && (
-        request.auth.uid == resource.data.patientId ||
-        request.auth.uid == resource.data.doctorId
-      );
-    }
-
-    match /prescriptions/{prescriptionId} {
-      allow read: if isSignedIn() && (
-        request.auth.uid == resource.data.patientId ||
-        request.auth.uid == resource.data.doctorId
-      );
-      allow create: if role() == "doctor";
-    }
-
-    match /ratings/{ratingId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.auth.uid == request.resource.data.patientId;
-    }
-
-    match /chatbotInteractions/{interactionId} {
-      // Written only by Cloud Functions (admin SDK bypasses rules); block direct client writes.
-      allow read, write: if false;
-    }
+ match /databases/{database}/documents {
+  function isSignedIn() { return request.auth != null; }
+  function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
+  function identityPath() { return /databases/$(database)/documents/users/$(request.auth.uid); }
+  function currentIdentity() { return get(identityPath()).data; }
+  function validIdentity(data) {
+   let fields = ['uid', 'email', 'fullName', 'role', 'status', 'createdAt', 'updatedAt', 'schemaVersion'];
+   let allowed = data.get('role', '') == 'doctor' ? fields.concat(['verificationStatus']) : fields;
+   return data.keys().hasAll(allowed) && data.keys().hasOnly(allowed)
+    && data.uid is string && data.uid.size() > 0
+    && data.email is string && data.email.matches('[\\s\\S]*\\S[\\s\\S]*')
+    && data.fullName is string && data.fullName.size() > 0 && data.fullName.size() <= 200
+    && data.fullName.matches('\\S([\\s\\S]*\\S)?')
+    && data.schemaVersion == 1
+    && data.createdAt is string && data.updatedAt is string
+    && data.createdAt.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[.][0-9]{3}Z')
+    && data.updatedAt.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[.][0-9]{3}Z')
+    && data.updatedAt >= data.createdAt;
   }
+  function isActiveUser() {
+   return isSignedIn() && exists(identityPath())
+    && validIdentity(currentIdentity())
+    && currentIdentity().get('uid', '') == request.auth.uid
+    && currentIdentity().get('status', '') == 'active'
+    && currentIdentity().get('role', '') in ['patient', 'doctor', 'administrator']
+    && (currentIdentity().role != 'doctor' || currentIdentity().get('verificationStatus', '') in ['pending', 'approved', 'rejected']);
+  }
+  function isPatient() { return isActiveUser() && currentIdentity().role == 'patient'; }
+  function isDoctor() { return isActiveUser() && currentIdentity().role == 'doctor'; }
+  function isApprovedDoctor() { return isDoctor() && currentIdentity().get('verificationStatus', '') == 'approved'; }
+  function isAdministrator() { return isActiveUser() && currentIdentity().role == 'administrator'; }
+  match /users/{uid} {
+   // Own reads remain available during onboarding and for disabled identities.
+   allow get: if isOwner(uid);
+   allow list, create, update, delete: if false;
+   // Editable profile access will be designed in Checkpoint 3.
+  }
+  match /availabilitySlots/{slotId} {
+   allow read: if isPatient() || isApprovedDoctor() || isAdministrator();
+   allow write: if false;
+  }
+  // Appointments, consultations, prescriptions, ratings, chatbotInteractions,
+  // verification and unknown paths remain closed until their checkpoints.
+  // Admin SDK bypasses rules and requires independent backend authorization.
+  match /{document=**} { allow read, write: if false; }
+ }
 }

@@ -1,4 +1,4 @@
-import { findMatchingRule } from "../src/chatbot/matchRule";
+import { findMatchingRule } from "../src/chatbot/findMatchingRule";
 
 describe("chatbot rule matching", () => {
   it("matches a fever-related query", () => {

@@ -3,15 +3,17 @@
     "target": "ESNext",
     "jsx": "react-native",
     "module": "ESNext",
-    "moduleResolution": "node",
     "strict": true,
-    "baseUrl": ".",
     "paths": {
       "@shared/*": [
         "../shared/*"
       ]
     },
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "types": [
+      "jest",
+      "node"
+    ]
   },
   "extends": "expo/tsconfig.base"
 }

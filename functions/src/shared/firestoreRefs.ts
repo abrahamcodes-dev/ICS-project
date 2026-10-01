@@ -1,6 +1,6 @@
-//import { initializeApp, getApps } from "firebase-admin/app";
-//import { getFirestore } from "firebase-admin/firestore";
-//import { getStorage } from "firebase-admin/storage";
+import { initializeApp, getApps } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
 
 if (getApps().length === 0) {
   initializeApp();
