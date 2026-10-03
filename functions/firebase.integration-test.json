@@ -1,0 +1,15 @@
+{
+  "functions": { "source": ".", "runtime": "nodejs22" },
+  "firestore": { "rules": "firestore.rules", "indexes": "firestore.indexes.json" },
+  "storage": { "rules": "storage.rules" },
+  "emulators": {
+    "auth": { "host": "127.0.0.1", "port": 9105 },
+    "functions": { "host": "127.0.0.1", "port": 5105 },
+    "firestore": { "host": "127.0.0.1", "port": 8105, "websocketPort": 9155 },
+    "storage": { "host": "127.0.0.1", "port": 9205 },
+    "hub": { "host": "127.0.0.1", "port": 4425 },
+    "logging": { "host": "127.0.0.1", "port": 4525 },
+    "ui": { "enabled": false },
+    "singleProjectMode": true
+  }
+}

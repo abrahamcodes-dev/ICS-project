@@ -1,14 +1,119 @@
 rules_version = '2';
-
-// Starter rules for doctor credential documents. TODO: confirm retention
-// policy and who else (besides the uploading doctor and administrators)
-// should be able to read these — not specified in the source document.
+// Identity and credential validators mirror Firestore rules; parity is tested.
+// At most two distinct Firestore documents: canonical identity and credential slot.
 service firebase.storage {
-  match /b/{bucket}/o {
-    match /doctorCredentials/{doctorId}/{fileName} {
-      allow read: if request.auth != null &&
-        (request.auth.uid == doctorId || request.auth.token.role == "administrator");
-      allow write: if request.auth != null && request.auth.uid == doctorId;
-    }
+ match /b/{bucket}/o {
+  function validIdentity(data) {
+   let fields = ['uid', 'email', 'fullName', 'role', 'status', 'createdAt', 'updatedAt', 'schemaVersion'];
+   let allowed = data.get('role', '') == 'doctor' ? fields.concat(['verificationStatus']) : fields;
+   return data.keys().hasAll(allowed) && data.keys().hasOnly(allowed)
+    && data.uid is string && data.uid.size() > 0
+    && data.email is string && data.email.matches('[\\s\\S]*\\S[\\s\\S]*')
+    && data.fullName is string && data.fullName.size() > 0 && data.fullName.size() <= 200
+    && data.fullName.matches('\\S([\\s\\S]*\\S)?')
+    && data.schemaVersion == 1
+    && data.createdAt is string && data.updatedAt is string
+    && data.createdAt.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[.][0-9]{3}Z')
+    && data.updatedAt.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[.][0-9]{3}Z')
+    && data.updatedAt >= data.createdAt;
   }
+  function patientIdentityStrings(data) {
+    let whitespace = '[\\x09-\\x0D\\x{0020}\\x{00A0}\\x{1680}\\x{2000}-\\x{200A}\\x{2028}\\x{2029}\\x{202F}\\x{205F}\\x{3000}\\x{FEFF}]';
+    // Match the identity validator's ECMAScript trim and UTF-16 semantics,
+    // without imposing patient editable-text restrictions on identity names.
+    return data.uid.replace(whitespace, '').size() > 0
+      && data.email.replace(whitespace, '').size() > 0
+      && data.fullName.replace('[\\x{10000}-\\x{10FFFF}]', 'aa').size() <= 200
+      && !data.fullName.matches(whitespace + '[\\s\\S]*|[\\s\\S]*' + whitespace);
+  }
+  function patientText(value, limit) {
+    // Count UTF-16 code units, matching the 3B JavaScript validators.
+    return value is string && value.size() > 0
+      && value.replace('[\\x{10000}-\\x{10FFFF}]', 'aa').size() <= limit
+      && !value.matches('[\\s\\S]*[\\x00-\\x1F\\x7F][\\s\\S]*')
+      // ECMAScript trim whitespace: require already-normalized persisted text.
+      && !value.matches('[\\x{0020}\\x{00A0}\\x{1680}\\x{2000}-\\x{200A}\\x{2028}\\x{2029}\\x{202F}\\x{205F}\\x{3000}\\x{FEFF}][\\s\\S]*|[\\s\\S]*[\\x{0020}\\x{00A0}\\x{1680}\\x{2000}-\\x{200A}\\x{2028}\\x{2029}\\x{202F}\\x{205F}\\x{3000}\\x{FEFF}]');
+  }
+  function leapYear(year) { return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0); }
+  function validCalendarDay(year, month, day) {
+    let days = month == 2 ? (leapYear(year) ? 29 : 28) : (month in [4, 6, 9, 11] ? 30 : 31);
+    return month >= 1 && month <= 12 && day >= 1 && day <= days;
+  }
+  function identityCalendar(value) {
+    let date = value.split('T')[0].split('-');
+    return value.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9][.][0-9]{3}Z')
+      && validCalendarDay(int(date[0]), int(date[1]), int(date[2]));
+  }
+  function doctorReference(value) {
+    return value == null || (value is string && patientText(value, 128)
+      && value != '.' && value != '..'
+      && !value.matches('[\\s\\S]*[/\\\\][\\s\\S]*')
+      && !value.matches('[\\s\\S]*%2[fF][\\s\\S]*|[\\s\\S]*%5[cC][\\s\\S]*'));
+  }
+  function validCredential(data, id) {
+    let fields = ['credentialId', 'doctorUid', 'storagePath', 'category', 'contentType', 'sizeBytes', 'state',
+      'generation', 'checksum', 'requestId', 'schemaVersion', 'createdAt', 'updatedAt', 'expiresAt'];
+    return data.keys().hasAll(fields) && data.keys().hasOnly(fields)
+      && data.credentialId == id && doctorReference(id) && id != null
+      && data.doctorUid is string && doctorReference(data.doctorUid)
+      && data.storagePath == 'doctorCredentials/' + data.doctorUid + '/' + id + '/document'
+      && data.schemaVersion == 1
+      && data.category in ['medical_license', 'professional_certificate', 'identity_document', 'other_supporting_document']
+      && data.contentType in ['application/pdf', 'image/jpeg', 'image/png']
+      && data.sizeBytes is int && data.sizeBytes >= 1 && data.sizeBytes <= 5242880
+      && data.createdAt is timestamp && data.updatedAt is timestamp && data.expiresAt is timestamp
+      && data.updatedAt >= data.createdAt && data.expiresAt >= data.createdAt
+      && data.state in ['prepared', 'ready', 'attached', 'invalid']
+      && (data.generation == null || (data.generation is string && data.generation.matches('[0-9]{1,30}')))
+      && (data.checksum == null || (data.checksum is string && data.checksum.matches('[a-f0-9]{64}')))
+      && doctorReference(data.requestId)
+      && (data.state != 'prepared' || (data.generation == null && data.checksum == null && data.requestId == null))
+      && (!(data.state in ['ready', 'attached']) || (data.generation != null && data.checksum != null))
+      && (data.state != 'ready' || data.requestId == null)
+      && (data.state != 'attached' || data.requestId != null);
+  }
+
+  function identity() { return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data; }
+  function slot(id) { return firestore.get(/databases/(default)/documents/doctorCredentials/$(id)).data; }
+  function activeDoctor(uid) {
+    let data = identity();
+    return request.auth.uid == uid && validIdentity(data) && patientIdentityStrings(data)
+      && identityCalendar(data.createdAt) && identityCalendar(data.updatedAt)
+      && data.uid == uid && data.status == 'active' && data.role == 'doctor'
+      && data.verificationStatus in ['pending', 'rejected', 'approved'];
+  }
+  function activeAdministrator() {
+    let data = identity();
+    return data.uid == request.auth.uid && validIdentity(data) && patientIdentityStrings(data)
+      && identityCalendar(data.createdAt) && identityCalendar(data.updatedAt)
+      && data.status == 'active' && data.role == 'administrator';
+  }
+  function validSlot(data, uid, id) {
+    return validCredential(data, id) && data.doctorUid == uid;
+  }
+  function upload(uid, id) {
+    let data = slot(id);
+    return activeDoctor(uid) && identity().verificationStatus in ['pending', 'rejected']
+      && validSlot(data, uid, id) && data.state == 'prepared' && data.expiresAt > request.time
+      && data.createdAt <= request.time && data.updatedAt <= request.time
+      && request.resource.contentType == data.contentType
+      && request.resource.size == data.sizeBytes && request.resource.size >= 1 && request.resource.size <= 5242880
+      && request.resource.metadata.size() == 0;
+  }
+  function download(uid, id) {
+    let data = slot(id);
+    return validSlot(data, uid, id)
+      && ((activeDoctor(uid) && data.state in ['prepared', 'ready', 'attached'])
+        || (activeAdministrator() && data.state == 'attached' && data.requestId != null))
+      && resource.contentType == data.contentType && resource.size == data.sizeBytes
+      && (data.state == 'prepared' || resource.generation == int(data.generation));
+  }
+  match /doctorCredentials/{uid}/{id}/document {
+    allow get: if request.auth != null && download(uid, id);
+    allow create: if request.auth != null && resource == null && upload(uid, id);
+    allow list, update, delete: if false;
+  }
+  match /{path=**} { allow read, write: if false; }
+
+ }
 }

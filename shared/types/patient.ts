@@ -1,3 +1,4 @@
+/** Legacy UI scaffold only. Persist new domain data using profiles.d.ts; never embed it in users/{uid}. */
 import { BaseUser } from "./user";
 
 // TODO: attributes below are inferred (Section 11, "Derived from document") —

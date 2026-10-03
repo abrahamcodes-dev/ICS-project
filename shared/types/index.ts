@@ -8,3 +8,5 @@ export * from "./consultation";
 export * from "./prescription";
 export * from "./rating";
 export * from "./chatbot";
+export type * from "./profiles";
+export type * from "./verification";

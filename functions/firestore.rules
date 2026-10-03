@@ -31,6 +31,244 @@ service cloud.firestore {
   function isDoctor() { return isActiveUser() && currentIdentity().role == 'doctor'; }
   function isApprovedDoctor() { return isDoctor() && currentIdentity().get('verificationStatus', '') == 'approved'; }
   function isAdministrator() { return isActiveUser() && currentIdentity().role == 'administrator'; }
+
+  // Checkpoint 3C: strict owner-only domain persistence, separate from identities.
+  function patientOwner(uid) {
+    return isOwner(uid) && isPatient()
+      && patientIdentityStrings(currentIdentity())
+      && identityCalendar(currentIdentity().createdAt) && identityCalendar(currentIdentity().updatedAt);
+  }
+  function patientIdentityStrings(data) {
+    let whitespace = '[\\x09-\\x0D\\x{0020}\\x{00A0}\\x{1680}\\x{2000}-\\x{200A}\\x{2028}\\x{2029}\\x{202F}\\x{205F}\\x{3000}\\x{FEFF}]';
+    // Match the identity validator's ECMAScript trim and UTF-16 semantics,
+    // without imposing patient editable-text restrictions on identity names.
+    return data.uid.replace(whitespace, '').size() > 0
+      && data.email.replace(whitespace, '').size() > 0
+      && data.fullName.replace('[\\x{10000}-\\x{10FFFF}]', 'aa').size() <= 200
+      && !data.fullName.matches(whitespace + '[\\s\\S]*|[\\s\\S]*' + whitespace);
+  }
+  function patientText(value, limit) {
+    // Count UTF-16 code units, matching the 3B JavaScript validators.
+    return value is string && value.size() > 0
+      && value.replace('[\\x{10000}-\\x{10FFFF}]', 'aa').size() <= limit
+      && !value.matches('[\\s\\S]*[\\x00-\\x1F\\x7F][\\s\\S]*')
+      // ECMAScript trim whitespace: require already-normalized persisted text.
+      && !value.matches('[\\x{0020}\\x{00A0}\\x{1680}\\x{2000}-\\x{200A}\\x{2028}\\x{2029}\\x{202F}\\x{205F}\\x{3000}\\x{FEFF}][\\s\\S]*|[\\s\\S]*[\\x{0020}\\x{00A0}\\x{1680}\\x{2000}-\\x{200A}\\x{2028}\\x{2029}\\x{202F}\\x{205F}\\x{3000}\\x{FEFF}]');
+  }
+  function patientPhone(value) {
+    return patientText(value, 32) && value.matches('[+]?[0-9 ()-]{3,32}')
+      && value.replace('[^0-9]', '').size() >= 3;
+  }
+  function patientDocument(data, uid, editable) {
+    return data.keys().hasAll(['uid', 'schemaVersion', 'createdAt', 'updatedAt'])
+      && data.keys().hasOnly(['uid', 'schemaVersion', 'createdAt', 'updatedAt'].concat(editable))
+      && data.uid == uid && data.schemaVersion == 1
+      && data.createdAt is timestamp && data.updatedAt is timestamp
+      && data.updatedAt == request.time && data.createdAt <= data.updatedAt;
+  }
+  function patientCreateTime(data) { return data.createdAt == request.time; }
+  function patientUpdateTime(data) {
+    return resource.data.createdAt is timestamp
+      && data.createdAt == resource.data.createdAt
+      && resource.data.updatedAt is timestamp && data.updatedAt >= resource.data.updatedAt;
+  }
+  function patientProfile(data, uid) {
+    return patientDocument(data, uid, ['displayName', 'phoneNumber'])
+      && (!('displayName' in data) || patientText(data.displayName, 200))
+      && (!('phoneNumber' in data) || patientPhone(data.phoneNumber));
+  }
+  function leapYear(year) { return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0); }
+  function validCalendarDay(year, month, day) {
+    let days = month == 2 ? (leapYear(year) ? 29 : 28) : (month in [4, 6, 9, 11] ? 30 : 31);
+    return month >= 1 && month <= 12 && day >= 1 && day <= days;
+  }
+  function identityCalendar(value) {
+    let date = value.split('T')[0].split('-');
+    return value.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9][.][0-9]{3}Z')
+      && validCalendarDay(int(date[0]), int(date[1]), int(date[2]));
+  }
+  function calendarParts(year, month, day) {
+    return validCalendarDay(year, month, day)
+      && (year < request.time.year()
+        || (year == request.time.year() && (month < request.time.month()
+          || (month == request.time.month() && day <= request.time.day()))));
+  }
+  function birthDate(value) {
+    return value is string && value.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
+      && calendarParts(int(value.split('-')[0]), int(value.split('-')[1]), int(value.split('-')[2]));
+  }
+  function joinedHealthList(items) {
+    let joined = items.join('\n');
+    let edge = '[^\\x00-\\x20\\x7F\\x{00A0}\\x{1680}\\x{2000}-\\x{200A}\\x{2028}\\x{2029}\\x{202F}\\x{205F}\\x{3000}\\x{FEFF}]';
+    let entry = edge + '([^\\x00-\\x1F\\x7F]{0,198}' + edge + ')?';
+    // Round-trip equality rejects nonstrings and embedded separators. A single
+    // regex checks every entry without exceeding the Rules expression budget.
+    return joined.split('\n') == items
+      && joined.replace('[\\x{10000}-\\x{10FFFF}]', 'aa').matches(entry + '(\n' + entry + '){0,19}');
+  }
+  function healthList(items) {
+    return items is list && items.size() <= 20
+      && (items.size() == 0 || joinedHealthList(items));
+  }
+
+  function patientHealth(data, uid) {
+    return patientDocument(data, uid, ['dateOfBirth', 'gender', 'knownConditions', 'allergies', 'currentMedications'])
+      && (!('dateOfBirth' in data) || birthDate(data.dateOfBirth))
+      && (!('gender' in data) || patientText(data.gender, 50))
+      && (!('knownConditions' in data) || healthList(data.knownConditions))
+      && (!('allergies' in data) || healthList(data.allergies))
+      && (!('currentMedications' in data) || healthList(data.currentMedications));
+  }
+  match /patientProfiles/{uid} {
+    allow get: if patientOwner(uid);
+    allow create: if patientOwner(uid) && patientProfile(request.resource.data, uid) && patientCreateTime(request.resource.data);
+    allow update: if patientOwner(uid) && patientProfile(request.resource.data, uid) && patientUpdateTime(request.resource.data);
+    allow list, delete: if false;
+  }
+  match /patientHealthProfiles/{uid} {
+    allow get: if patientOwner(uid);
+    allow create: if patientOwner(uid) && patientHealth(request.resource.data, uid) && patientCreateTime(request.resource.data);
+    allow update: if patientOwner(uid) && patientHealth(request.resource.data, uid) && patientUpdateTime(request.resource.data);
+    allow list, delete: if false;
+  }
+
+  // 3D mutations use the secured callable; only private owner gets are allowed.
+  function doctorOwner(uid) {
+    return isOwner(uid) && isDoctor() && patientIdentityStrings(currentIdentity())
+      && identityCalendar(currentIdentity().createdAt) && identityCalendar(currentIdentity().updatedAt);
+  }
+  function doctorReference(value) {
+    return value == null || (value is string && patientText(value, 128)
+      && value != '.' && value != '..'
+      && !value.matches('[\\s\\S]*[/\\\\][\\s\\S]*')
+      && !value.matches('[\\s\\S]*%2[fF][\\s\\S]*|[\\s\\S]*%5[cC][\\s\\S]*'));
+  }
+  function readableDoctorProfile(data, uid) {
+    return data.keys().hasAll(['uid', 'revision', 'activeRequestId', 'approvedRequestId', 'schemaVersion', 'createdAt', 'updatedAt'])
+      && data.keys().hasOnly(['uid', 'professionalName', 'specialty', 'phoneNumber', 'registrationNumber', 'issuingAuthority',
+        'revision', 'activeRequestId', 'approvedRequestId', 'schemaVersion', 'createdAt', 'updatedAt'])
+      && data.uid == uid && data.schemaVersion == 1
+      && data.revision is int && data.revision >= 1 && data.revision <= 9007199254740991
+      && data.createdAt is timestamp && data.updatedAt is timestamp && data.updatedAt >= data.createdAt
+      && doctorReference(data.activeRequestId) && doctorReference(data.approvedRequestId)
+      && (data.activeRequestId == null || data.approvedRequestId == null)
+      && (!('professionalName' in data) || patientText(data.professionalName, 200))
+      && (!('specialty' in data) || patientText(data.specialty, 120))
+      && (!('phoneNumber' in data) || patientPhone(data.phoneNumber))
+      && (!('registrationNumber' in data) || patientText(data.registrationNumber, 120))
+      && (!('issuingAuthority' in data) || patientText(data.issuingAuthority, 200))
+      && ((data.activeRequestId == null && data.approvedRequestId == null)
+        || data.keys().hasAll(['professionalName', 'specialty', 'registrationNumber', 'issuingAuthority']));
+  }
+  match /doctorProfiles/{uid} {
+    allow get: if doctorOwner(uid) && readableDoctorProfile(resource.data, uid);
+    allow list, create, update, delete: if false;
+  }
+
+  function validCredential(data, id) {
+    let fields = ['credentialId', 'doctorUid', 'storagePath', 'category', 'contentType', 'sizeBytes', 'state',
+      'generation', 'checksum', 'requestId', 'schemaVersion', 'createdAt', 'updatedAt', 'expiresAt'];
+    return data.keys().hasAll(fields) && data.keys().hasOnly(fields)
+      && data.credentialId == id && doctorReference(id) && id != null
+      && data.doctorUid is string && doctorReference(data.doctorUid)
+      && data.storagePath == 'doctorCredentials/' + data.doctorUid + '/' + id + '/document'
+      && data.schemaVersion == 1
+      && data.category in ['medical_license', 'professional_certificate', 'identity_document', 'other_supporting_document']
+      && data.contentType in ['application/pdf', 'image/jpeg', 'image/png']
+      && data.sizeBytes is int && data.sizeBytes >= 1 && data.sizeBytes <= 5242880
+      && data.createdAt is timestamp && data.updatedAt is timestamp && data.expiresAt is timestamp
+      && data.updatedAt >= data.createdAt && data.expiresAt >= data.createdAt
+      && data.state in ['prepared', 'ready', 'attached', 'invalid']
+      && (data.generation == null || (data.generation is string && data.generation.matches('[0-9]{1,30}')))
+      && (data.checksum == null || (data.checksum is string && data.checksum.matches('[a-f0-9]{64}')))
+      && doctorReference(data.requestId)
+      && (data.state != 'prepared' || (data.generation == null && data.checksum == null && data.requestId == null))
+      && (!(data.state in ['ready', 'attached']) || (data.generation != null && data.checksum != null))
+      && (data.state != 'ready' || data.requestId == null)
+      && (data.state != 'attached' || data.requestId != null);
+  }
+  match /doctorCredentials/{id} {
+    allow get: if isSignedIn() && credentialReader(resource.data) && validCredential(resource.data, id);
+    allow list, create, update, delete: if false;
+  }
+
+  function strictActive() {
+    return isSignedIn() && workflowIdentity(currentIdentity(), request.auth.uid);
+  }
+  function workflowIdentity(data, uid) {
+    return validIdentity(data) && data.uid == uid && data.status == 'active'
+      && data.role in ['patient', 'doctor', 'administrator']
+      && (data.role != 'doctor' || data.verificationStatus in ['pending', 'approved', 'rejected'])
+      && patientIdentityStrings(data) && identityCalendar(data.createdAt) && identityCalendar(data.updatedAt);
+  }
+  function workflowReader(uid) {
+    let actor = currentIdentity();
+    return workflowIdentity(actor, request.auth.uid)
+      && (actor.role == 'administrator' || (actor.role == 'doctor' && request.auth.uid == uid));
+  }
+  function credentialReader(data) {
+    let actor = currentIdentity();
+    return workflowIdentity(actor, request.auth.uid)
+      && ((actor.role == 'doctor' && request.auth.uid == data.doctorUid)
+        || (actor.role == 'administrator' && data.state == 'attached' && data.requestId != null));
+  }
+  function verificationReference(ref) {
+    return ref.keys().hasOnly(['credentialId', 'category', 'generation', 'checksum'])
+      && ref.credentialId is string && ref.category is string
+      && ref.generation is string && ref.checksum is string;
+  }
+  function referenceAt(refs, index) { return refs.size() <= index || verificationReference(refs[index]); }
+  function validVerification(data, id) {
+    let fields = ['requestId', 'doctorUid', 'profileRevision', 'professional', 'credentials', 'previousRequestId',
+      'state', 'reviewedAt', 'reviewerUid', 'schemaVersion', 'createdAt', 'updatedAt', 'submittedAt'];
+    let allowed = data.state == 'rejected' ? fields.concat(['rejectionReason']) : fields;
+    return data.keys().hasAll(allowed) && data.keys().hasOnly(allowed)
+      && data.requestId == id
+      && data.doctorUid is string && data.doctorUid.size() > 0
+      && data.profileRevision is int && data.profileRevision > 0 && data.profileRevision <= 9007199254740991
+      && data.schemaVersion == 1 && (data.previousRequestId == null || data.previousRequestId is string) && data.previousRequestId != id
+      && data.professional is map
+      && data.professional.keys().hasAll(['professionalName', 'specialty', 'registrationNumber', 'issuingAuthority'])
+      && data.professional.keys().hasOnly(['professionalName', 'specialty', 'registrationNumber', 'issuingAuthority'])
+      // Backend-only writes enforce normalized text and safe path identifiers.
+      // Read rules check the envelope without repeating all content validation.
+      && data.professional.professionalName is string && data.professional.specialty is string
+      && data.professional.registrationNumber is string && data.professional.issuingAuthority is string
+      && data.credentials is list && data.credentials.size() >= 1 && data.credentials.size() <= 5
+      && referenceAt(data.credentials, 0) && referenceAt(data.credentials, 1) && referenceAt(data.credentials, 2)
+      && referenceAt(data.credentials, 3) && referenceAt(data.credentials, 4)
+      && data.createdAt is timestamp && data.submittedAt is timestamp && data.updatedAt is timestamp
+      && data.submittedAt >= data.createdAt && data.updatedAt >= data.submittedAt
+      && ((data.state == 'submitted' && data.reviewedAt == null && data.reviewerUid == null)
+        || (data.state in ['approved', 'rejected'] && data.reviewedAt is timestamp
+          && data.reviewedAt >= data.submittedAt && data.updatedAt >= data.reviewedAt
+          && data.reviewerUid is string && data.reviewerUid.size() > 0 && data.reviewerUid != data.doctorUid))
+      && (data.state != 'rejected' || patientText(data.rejectionReason, 1000));
+  }
+  match /verificationRequests/{id} {
+    allow get: if isSignedIn() && workflowReader(resource.data.doctorUid) && validVerification(resource.data, id);
+    allow list, create, update, delete: if false;
+  }
+  match /verificationAudit/{id} { allow read, write: if false; }
+  function publicDoctor(data, uid) {
+    let target = get(/databases/$(database)/documents/users/$(uid)).data;
+    let approved = get(/databases/$(database)/documents/verificationRequests/$(data.approvedRequestId)).data;
+    let fields = ['uid', 'professionalName', 'specialty', 'approvedRevision', 'approvedRequestId', 'schemaVersion', 'publishedAt', 'updatedAt'];
+    return data.keys().hasAll(fields) && data.keys().hasOnly(fields) && data.uid == uid && data.schemaVersion == 1
+      && patientText(data.professionalName, 200) && patientText(data.specialty, 120)
+      && data.approvedRevision is int && data.approvedRevision > 0 && data.approvedRevision <= 9007199254740991
+      && data.publishedAt is timestamp && data.updatedAt is timestamp && data.updatedAt >= data.publishedAt
+      && validIdentity(target) && patientIdentityStrings(target) && identityCalendar(target.createdAt) && identityCalendar(target.updatedAt)
+      && target.uid == uid && target.role == 'doctor' && target.status == 'active' && target.verificationStatus == 'approved'
+      && approved.requestId == data.approvedRequestId && approved.doctorUid == uid && approved.state == 'approved'
+      && approved.profileRevision == data.approvedRevision && approved.professional.professionalName == data.professionalName
+      && approved.professional.specialty == data.specialty;
+  }
+  match /doctorPublicProfiles/{uid} {
+    allow get: if strictActive() && publicDoctor(resource.data, uid);
+    allow list, create, update, delete: if false;
+  }
+
   match /users/{uid} {
    // Own reads remain available during onboarding and for disabled identities.
    allow get: if isOwner(uid);
@@ -42,7 +280,7 @@ service cloud.firestore {
    allow write: if false;
   }
   // Appointments, consultations, prescriptions, ratings, chatbotInteractions,
-  // verification and unknown paths remain closed until their checkpoints.
+  // other unknown paths remain closed until their checkpoints.
   // Admin SDK bypasses rules and requires independent backend authorization.
   match /{document=**} { allow read, write: if false; }
  }

@@ -1,3 +1,4 @@
+/** Legacy UI scaffold only. New contracts live in profiles.d.ts and verification.d.ts; this is not a users/{uid} schema. */
 import { BaseUser } from "./user";
 
 export type { DoctorVerificationStatus as VerificationStatus } from "./identity";

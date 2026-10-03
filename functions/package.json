@@ -8,7 +8,9 @@
     "serve": "npm run build && firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions",
     "test": "jest",
-    "test:rules": "firebase emulators:exec --only firestore --project demo-calladoc-rules --config firebase.rules-test.json \"jest --config jest.rules.config.js --runInBand\""
+    "test:integration": "node scripts/integrationGate.cjs",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-calladoc-rules --config firebase.rules-test.json \"jest --config jest.rules.config.js --runInBand\"",
+    "test:storage": "firebase emulators:exec --only firestore,storage --project demo-calladoc-credentials --config firebase.storage-test.json \"jest --config jest.storage.config.js --runInBand\""
   },
   "engines": {
     "node": "22"

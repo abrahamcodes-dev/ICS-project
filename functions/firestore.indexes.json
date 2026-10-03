@@ -1,4 +1,11 @@
 {
-  "indexes": [],
+  "indexes": [{
+    "collectionGroup": "verificationRequests",
+    "queryScope": "COLLECTION",
+    "fields": [
+      { "fieldPath": "doctorUid", "order": "ASCENDING" },
+      { "fieldPath": "profileRevision", "order": "DESCENDING" }
+    ]
+  }],
   "fieldOverrides": []
 }
