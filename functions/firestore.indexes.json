@@ -6,6 +6,36 @@
       { "fieldPath": "doctorUid", "order": "ASCENDING" },
       { "fieldPath": "profileRevision", "order": "DESCENDING" }
     ]
+  }, {
+    "collectionGroup": "appointments",
+    "queryScope": "COLLECTION",
+    "fields": [
+      { "fieldPath": "patientId", "order": "ASCENDING" },
+      { "fieldPath": "status", "order": "ASCENDING" },
+      { "fieldPath": "startAt", "order": "ASCENDING" }
+    ]
+  }, {
+    "collectionGroup": "appointments",
+    "queryScope": "COLLECTION",
+    "fields": [
+      { "fieldPath": "doctorId", "order": "ASCENDING" },
+      { "fieldPath": "status", "order": "ASCENDING" },
+      { "fieldPath": "startAt", "order": "ASCENDING" }
+    ]
+  }, {
+    "collectionGroup": "appointments",
+    "queryScope": "COLLECTION",
+    "fields": [
+      { "fieldPath": "patientId", "order": "ASCENDING" },
+      { "fieldPath": "startAt", "order": "DESCENDING" }
+    ]
+  }, {
+    "collectionGroup": "appointments",
+    "queryScope": "COLLECTION",
+    "fields": [
+      { "fieldPath": "doctorId", "order": "ASCENDING" },
+      { "fieldPath": "startAt", "order": "DESCENDING" }
+    ]
   }],
   "fieldOverrides": []
 }

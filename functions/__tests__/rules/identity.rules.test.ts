@@ -80,9 +80,9 @@ test.each([
   await assertFails(getDoc(doc(client("owner"), "availabilitySlots/slot")));
 });
 test("unauthenticated availability denied", async () => { await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), "availabilitySlots/slot"))); });
-test.each(["patient", "administrator", "doctor"])("active %s can read availability (doctor requires approval)", async role => {
+test.each(["patient", "administrator", "doctor"])("active %s cannot read retired legacy availability", async role => {
   await seed("users/owner", identity("owner", role, role === "doctor" ? { verificationStatus: "approved" } : {}));
-  await assertSucceeds(getDoc(doc(client("owner"), "availabilitySlots/slot")));
+  await assertFails(getDoc(doc(client("owner"), "availabilitySlots/slot")));
   await assertFails(updateDoc(doc(client("owner"), "availabilitySlots/slot"), { isBooked: true }));
 });
 test.each(["appointments", "consultations", "prescriptions", "ratings", "chatbotInteractions", "verification", "unknown"])("later collection %s is closed", async name => {

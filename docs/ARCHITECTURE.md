@@ -79,6 +79,66 @@ See [VERIFICATION_WORKFLOW.md](VERIFICATION_WORKFLOW.md) for contracts, retry
 semantics, client access, evidence checks and the cross-service atomicity boundary.
 The current export surface is the four 3E callables plus these two callables.
 
+## Scheduling contracts (Checkpoint 4B)
+
+Pure scheduling contracts and policies are documented in
+[SCHEDULING_CONTRACTS.md](SCHEDULING_CONTRACTS.md). Dated UTC availability produces
+30-minute candidates on demand. Scheduled appointments own doctor/time and
+patient/time reservations; cancellation, completion and no-show release both
+owned locks transactionally once persistence is implemented. Appointment documents
+retain history. This corrects any 4A indefinite terminal-lock retention proposal.
+No scheduling endpoint, persistence, Rules or mobile workflow is enabled by 4B.
+
+## Availability persistence and discovery (Checkpoint 4C)
+
+The active surface adds replaceDoctorAvailabilityDay and
+getAvailableAppointmentTimes. Canonical identity and approval-source binding are
+checked transactionally; only active patients receive sanitized slot candidates.
+All direct availability access and the retired availabilitySlots path are denied.
+See [AVAILABILITY_PERSISTENCE.md](AVAILABILITY_PERSISTENCE.md) for revision,
+historical-window and UTC semantics, plus the reservation-coverage and occupancy
+extensions now implemented by 4D.
+
+## Appointment booking (Checkpoint 4D)
+
+The active surface adds bookAppointment from the new bookingCallable module.
+New appointments atomically create doctor/time and patient/time reservation locks.
+Availability replacement checks all 48 doctor positions per UTC day and preserves
+reserved coverage; discovery excludes occupied times. Real emulator tests cover
+doctor conflicts, patient conflicts and booking-versus-removal races. Direct
+appointment writes and all lock access stay denied. Participant reads are added by 4F. See
+[APPOINTMENT_BOOKING.md](APPOINTMENT_BOOKING.md). Lifecycle persistence is deferred
+to 4E; legacy scheduling handlers remain inactive.
+
+## Appointment lifecycle (Checkpoint 4E)
+
+cancelAppointment and recordAppointmentOutcome implement the 4B terminal policy
+with canonical active participant authorization. Terminal updates atomically release
+both verified reservations; exact retries skip lock reads and preserve timestamps.
+Lifecycle actor policy does not require current doctor approval, unlike booking.
+Participant history reads are now provided by 4F. See
+[APPOINTMENT_LIFECYCLE.md](APPOINTMENT_LIFECYCLE.md) for timing, concurrency,
+approval-policy evidence and 4F boundaries.
+
+## Appointment reads and security (Checkpoint 4F)
+
+Canonical active participants can get appointments and query bounded own history
+or upcoming bookings. Counterpart disability or approval loss does not hide
+history. Queries use start time and document ID for stable equal-time pagination.
+Four appointment composites are defined locally; none have been deployed.
+Direct scheduling mutations, locks and availability remain closed to clients.
+See [APPOINTMENT_READS.md](APPOINTMENT_READS.md) for schema/query Rules, privacy,
+the eleven-callable integrity audit, concurrency coverage and 4G boundaries.
+
+## Scheduling integration gate (Checkpoint 4G)
+
+The existing local four-service gate now includes scheduling through real Auth
+tokens, callable transport and Firestore client Rules. It verifies reservation
+ownership, lifecycle history, concurrent requests, privacy and corrupt-state
+failures without changing runtime handlers. See
+[SCHEDULING_INTEGRATION_GATE.md](SCHEDULING_INTEGRATION_GATE.md) for fixtures,
+safety guards, test boundaries and remaining 4H limitations.
+
 ## Deferred checkpoints
 
 The local four-service release gate is documented in

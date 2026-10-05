@@ -276,10 +276,67 @@ service cloud.firestore {
    // Editable profile access will be designed in Checkpoint 3.
   }
   match /availabilitySlots/{slotId} {
-   allow read: if isPatient() || isApprovedDoctor() || isAdministrator();
-   allow write: if false;
+   // Retired legacy model; discovery is callable-only.
+   allow read, write: if false;
   }
-  // Appointments, consultations, prescriptions, ratings, chatbotInteractions,
+  match /doctorAvailability/{availabilityId} {
+   // No raw client reader is required. Canonical authorization lives in callables.
+   allow read, write: if false;
+  }
+  function maxAppointmentPageSize() { return 50; }
+  function appointmentParticipant(data) {
+    return strictActive()
+      && ((currentIdentity().role == 'patient' && data.patientId == request.auth.uid)
+        || (currentIdentity().role == 'doctor' && data.doctorId == request.auth.uid));
+  }
+  function appointmentActorId(value) {
+    return value is string && value.size() > 0 && value.size() <= 128
+      && !value.matches('[\\s\\S]*[/\\\\\\x00-\\x1F\\x7F][\\s\\S]*');
+  }
+  function appointmentTerminal(data) {
+    return (data.status == 'scheduled' && data.cancellation == null && data.outcome == null && data.updatedAt == data.createdAt)
+      || (data.status == 'cancelled' && data.outcome == null && data.cancellation is map
+        && data.cancellation.keys().hasAll(['cancelledBy', 'cancelledAt', 'reason'])
+        && data.cancellation.keys().hasOnly(['cancelledBy', 'cancelledAt', 'reason'])
+        && data.cancellation.cancelledBy in [data.patientId, data.doctorId]
+        && data.cancellation.cancelledAt is timestamp && data.cancellation.cancelledAt == data.updatedAt
+        && data.cancellation.cancelledAt < data.startAt
+        && (data.cancellation.reason == null || patientText(data.cancellation.reason, 500)))
+      || (data.status in ['completed', 'no_show'] && data.cancellation == null && data.outcome is map
+        && data.outcome.keys().hasAll(['recordedBy', 'recordedAt']) && data.outcome.keys().hasOnly(['recordedBy', 'recordedAt'])
+        && data.outcome.recordedBy == data.doctorId && data.outcome.recordedAt is timestamp
+        && data.outcome.recordedAt == data.updatedAt && data.outcome.recordedAt >= data.endAt);
+  }
+  function readableAppointment(data, id) {
+    let fields = ['appointmentId', 'patientId', 'doctorId', 'availabilityId', 'availabilityRevision', 'startAt', 'endAt',
+      'doctorDisplay', 'status', 'cancellation', 'outcome', 'schemaVersion', 'createdAt', 'updatedAt'];
+    return data.keys().hasAll(fields) && data.keys().hasOnly(fields)
+      && data.appointmentId == id && id.matches('[a-f0-9]{64}')
+      && appointmentActorId(data.patientId) && appointmentActorId(data.doctorId) && data.patientId != data.doctorId
+      && data.schemaVersion == 1 && data.status in ['scheduled', 'cancelled', 'completed', 'no_show']
+      && data.startAt is timestamp && data.endAt is timestamp
+      && data.endAt == data.startAt + duration.value(30, 'm')
+      && data.startAt.seconds() % 1800 == 0 && data.startAt.nanos() == 0
+      && data.createdAt is timestamp && data.updatedAt is timestamp
+      && data.createdAt < data.startAt && data.updatedAt >= data.createdAt
+      && data.availabilityId is string && data.availabilityId.matches('[a-f0-9]{64}')
+      && data.availabilityRevision is int && data.availabilityRevision > 0 && data.availabilityRevision <= 9007199254740991
+      && data.doctorDisplay is map && data.doctorDisplay.keys().hasAll(['professionalName', 'specialty'])
+      && data.doctorDisplay.keys().hasOnly(['professionalName', 'specialty'])
+      && patientText(data.doctorDisplay.professionalName, 200) && patientText(data.doctorDisplay.specialty, 120)
+      && appointmentTerminal(data);
+  }
+  match /appointments/{appointmentId} {
+    allow get: if appointmentParticipant(resource.data) && readableAppointment(resource.data, appointmentId);
+    // Queries prove participant equality; they cannot serve as schema-validation filters.
+    // Backend-only writes strictly validate the full schema. Order/time are client presentation semantics.
+    allow list: if request.query.limit is int && request.query.limit >= 1
+      && request.query.limit <= maxAppointmentPageSize() && request.query.get('offset', 0) == 0
+      && appointmentParticipant(resource.data);
+    allow create, update, delete: if false;
+  }
+  match /bookingLocks/{lockId} { allow read, write: if false; }
+  // Consultations, prescriptions, ratings, chatbotInteractions,
   // other unknown paths remain closed until their checkpoints.
   // Admin SDK bypasses rules and requires independent backend authorization.
   match /{document=**} { allow read, write: if false; }
