@@ -50,7 +50,7 @@ export function validateDiscoveryInput(value: unknown): AvailabilityDiscoveryInp
   return { doctorId: safeId(data.doctorId), fromDate: utcDate(data.fromDate), days: data.days as number };
 }
 
-export async function approvedDoctor(tx: AvailabilityTransaction, uid: string): Promise<AppointmentDoctorDisplay> {
+export async function approvedDoctor(tx: Pick<AvailabilityTransaction, 'identity' | 'profile' | 'publicProfile' | 'verification'>, uid: string): Promise<AppointmentDoctorDisplay> {
   await createAuthorization(id => tx.identity(id)).requireApprovedDoctor({ uid });
   const profile = await tx.profile(uid);
   if (!profile) fail('missing-doctor-profile');

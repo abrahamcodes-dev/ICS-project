@@ -134,8 +134,10 @@ export async function assertIntegrity() {
   expect(locks.map(d => d.id).sort()).toEqual([...expectedLocks].sort());
 }
 /** Historical fixtures avoid waiting 30 minutes or altering the deployed server clock. */
-export async function historical(patient: Client, doctor: Client) {
-  const start = Math.floor(Date.now() / halfHour) * halfHour - 2 * halfHour, createdAt = stamp(start - halfHour);
+export async function historical(patient: Client, doctor: Client,
+  start = Math.floor(Date.now() / halfHour) * halfHour - 2 * halfHour) {
+  // Optional aligned start supports consultation-window fixtures; existing callers retain expired appointments.
+  const createdAt = stamp(start - halfHour);
   const input = intent(doctor, start), appointmentId = hash(patient.uid, input.bookingRequestId), availabilityId = hash(doctor.uid, dayOf(start));
   const value = { appointmentId, patientId: patient.uid, doctorId: doctor.uid, availabilityId, availabilityRevision: 1,
     startAt: stamp(start), endAt: stamp(start + halfHour), doctorDisplay: { professionalName: professional.professionalName, specialty: professional.specialty },

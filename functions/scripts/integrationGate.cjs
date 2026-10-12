@@ -26,7 +26,36 @@ function run(script, args) {
   if (child.error) throw child.error;
   if (child.status !== 0) process.exit(child.status ?? 1);
 }
+const allowedTestFiles = new Set([
+  'profiles.integration.test.ts',
+  'scheduling.integration.test.ts',
+  'consultations.integration.test.ts',
+]);
+
+const requestedFiles = process.argv.slice(2);
+
+if (requestedFiles.some(file => !allowedTestFiles.has(file))) {
+  throw new Error('Integration gate accepts only approved integration test filenames.');
+}
+
+const jestCommand = [
+  'node',
+  'node_modules/jest/bin/jest.js',
+  '--config',
+  'jest.integration.config.js',
+  '--runInBand',
+  ...(requestedFiles.length ? ['--runTestsByPath', ...requestedFiles.map(
+    file => `__tests__/integration/${file}`,
+  )] : []),
+].join(' ');
 run('node_modules/typescript/bin/tsc', []);
-run('node_modules/firebase-tools/lib/bin/firebase.js', ['emulators:exec', '--only', 'auth,functions,firestore,storage',
-  '--project', 'demo-calladoc-integration', '--config', 'firebase.integration-test.json',
-  'node node_modules/jest/bin/jest.js --config jest.integration.config.js --runInBand']);
+run('node_modules/firebase-tools/lib/bin/firebase.js', [
+  'emulators:exec',
+  '--only',
+  'auth,functions,firestore,storage',
+  '--project',
+  'demo-calladoc-integration',
+  '--config',
+  'firebase.integration-test.json',
+  jestCommand,
+]);

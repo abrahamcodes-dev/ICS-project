@@ -339,15 +339,15 @@ test('failed early outcome, conflicting intent and invalid replacement leave all
   expect(await state()).toEqual(stable); await assertIntegrity();
 });
 
-test('emulator loads exactly eleven approved exports, legacy endpoints fail, and five declared indexes are retained', async () => {
+test('emulator loads exactly thirteen approved exports, legacy endpoints fail, and five declared indexes are retained', async () => {
   const response = await fetch('http://127.0.0.1:5105/backends'); expect(response.ok).toBe(true);
   // Only inspect trigger names, never log backend environment/configuration payloads.
   const manifest: any = await response.json();
   const names = manifest.backends.flatMap((b: any) => b.functionTriggers.map((t: any) => t.name)).sort();
   expect(names).toEqual(['completeRegistration', 'saveDoctorProfileDraft', 'prepareDoctorCredential', 'finalizeDoctorCredential',
     'submitDoctorVerification', 'reviewDoctorVerification', 'replaceDoctorAvailabilityDay', 'getAvailableAppointmentTimes',
-    'bookAppointment', 'cancelAppointment', 'recordAppointmentOutcome'].sort());
-  for (const name of ['onUserCreate', 'setAvailability', 'createAvailability', 'updateAvailability', 'updateAppointmentStatus', 'submitCredentials', 'reviewVerification']) {
+    'bookAppointment', 'cancelAppointment', 'recordAppointmentOutcome', 'openConsultation', 'sendConsultationMessage'].sort());
+  for (const name of ['onUserCreate', 'startConsultation', 'setAvailability', 'createAvailability', 'updateAvailability', 'updateAppointmentStatus', 'submitCredentials', 'reviewVerification']) {
     const missing = await fetch('http://127.0.0.1:5105/' + projectId + '/us-central1/' + name, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data: {} }) });
     expect(missing.status).toBe(404);

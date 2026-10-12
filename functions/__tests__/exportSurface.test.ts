@@ -9,5 +9,7 @@ test("only approved identity, profiles, verification and availability callables 
   'export { submitDoctorVerification, reviewDoctorVerification } from "./profiles/verificationCallables";',
   'export { replaceDoctorAvailabilityDay, getAvailableAppointmentTimes } from "./scheduling/availabilityCallables";',
   'export { bookAppointment } from "./scheduling/bookingCallable";',
-  'export { cancelAppointment, recordAppointmentOutcome } from "./scheduling/lifecycleCallables";']);
+  'export { cancelAppointment, recordAppointmentOutcome } from "./scheduling/lifecycleCallables";',
+  'export { openConsultation } from "./consultations/openConsultation";',
+  'export { sendConsultationMessage } from "./consultations/sendConsultationMessage";']);
 });

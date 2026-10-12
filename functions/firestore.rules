@@ -336,7 +336,60 @@ service cloud.firestore {
     allow create, update, delete: if false;
   }
   match /bookingLocks/{lockId} { allow read, write: if false; }
-  // Consultations, prescriptions, ratings, chatbotInteractions,
+  // History authority is independent of current send eligibility.
+  function readableConsultation(data, id) {
+    let appointment = get(/databases/$(database)/documents/appointments/$(id)).data;
+    let fields = ['consultationId', 'appointmentId', 'patientId', 'doctorId', 'appointmentStartAt',
+      'appointmentEndAt', 'state', 'createdAt', 'closedAt', 'schemaVersion'];
+    return appointmentParticipant(appointment) && readableAppointment(appointment, id)
+      && data.keys().hasAll(fields) && data.keys().hasOnly(fields)
+      && data.schemaVersion == 1 && data.consultationId == id && data.appointmentId == id
+      && data.patientId == appointment.patientId && data.doctorId == appointment.doctorId
+      && data.appointmentStartAt == appointment.startAt && data.appointmentEndAt == appointment.endAt
+      && data.createdAt is timestamp && data.createdAt >= appointment.startAt
+      && data.createdAt < appointment.endAt + duration.value(15, 'm')
+      // A room created after a cancellation/terminal decision is corrupt.
+      && (appointment.status == 'scheduled' || data.createdAt <= appointment.updatedAt)
+      && ((data.state == 'active' && data.closedAt == null)
+        || (data.state == 'closed' && data.closedAt is timestamp && data.closedAt >= data.createdAt
+          && data.closedAt <= appointment.endAt + duration.value(15, 'm')));
+  }
+  function consultationHistory(id) {
+    return readableConsultation(get(/databases/$(database)/documents/consultations/$(id)).data, id);
+  }
+  function readableMessage(data, id, consultationId) {
+    let room = get(/databases/$(database)/documents/consultations/$(consultationId)).data;
+    let fields = ['messageId', 'senderId', 'type', 'text', 'createdAt', 'schemaVersion'];
+    return data.keys().hasAll(fields) && data.keys().hasOnly(fields)
+      && data.messageId == id && data.schemaVersion == 1 && data.type == 'text'
+      && data.senderId in [room.patientId, room.doctorId]
+      && data.text is string && data.text.size() > 0 && data.text.size() <= 4000
+      && data.createdAt is timestamp && data.createdAt >= room.createdAt
+      && data.createdAt < room.appointmentEndAt + duration.value(15, 'm');
+  }
+  function messagePage() {
+    // Security bounds the amount of history a client can request. Ordering is a
+    // client data-contract concern and does not change which documents are
+    // authorized, so it is exercised by the mobile data-layer tests instead.
+    return request.query.limit is int && request.query.limit >= 1 && request.query.limit <= 50
+      && request.query.get('offset', 0) == 0;
+  }
+  match /consultations/{consultationId} {
+    allow get: if readableConsultation(resource.data, consultationId);
+    allow list, create, update, delete: if false;
+    match /messages/{messageId} {
+      // Immutable messages are validated by the trusted send transaction. Rules
+      // validate the complete parent aggregate, including for empty queries.
+      allow get: if consultationHistory(consultationId) && readableMessage(resource.data, messageId, consultationId);
+      // List authorization is parent-scoped. Message documents are backend-only
+      // immutable writes; adding per-message field predicates here would turn
+      // them into query filters that clients would have to reproduce.
+      allow list: if messagePage() && consultationHistory(consultationId);
+      allow create, update, delete: if false;
+    }
+    match /senderState/{senderId} { allow read, write: if false; }
+  }
+  // Prescriptions, ratings, chatbotInteractions,
   // other unknown paths remain closed until their checkpoints.
   // Admin SDK bypasses rules and requires independent backend authorization.
   match /{document=**} { allow read, write: if false; }
