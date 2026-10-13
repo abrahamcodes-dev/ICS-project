@@ -1,14 +1,15 @@
+import { validateApprovedDoctorBinding } from './approvalBinding';
 import { HttpsError } from 'firebase-functions/v2/https';
 import type { DoctorProfile, DomainTimestamp } from '../../../shared/types/profiles';
 import type { VerificationRequest } from '../../../shared/types/verification';
 import type { Appointment, AppointmentDoctorDisplay, BookingLock, AvailabilityDiscoveryInput, AvailabilityDiscoveryResult, AvailabilityReplacementResult, DoctorAvailability } from '../../../shared/types/scheduling';
 import { createAuthorization, requireAuthenticated } from '../shared/authorization';
-import { DomainValidationError, fail, LIMITS, safeId, strictRecord, text } from '../profiles/domainValidation';
+import { DomainValidationError, fail, safeId, strictRecord } from '../profiles/domainValidation';
 import { validateDoctorProfile, validateRequest } from '../profiles/verificationPolicy';
 import { SCHEDULING } from './constants';
 import { availabilityId } from './ids';
 import { deriveSlots } from './intervals';
-import { assertBookableStart, compareTimes, dateStart, positiveRevision, schedulingTimestamp, toMilliseconds, utcDate } from './primitives';
+import { assertBookableStart, compareTimes, dateStart, schedulingTimestamp, toMilliseconds, utcDate } from './primitives';
 import { planAvailabilityReplacement } from './policy';
 import { validateAvailability, validateAvailabilityInput } from './validation';
 import { assertCoverage, readDayReservations, readDoctorReservation } from './reservationGuards';
@@ -61,19 +62,7 @@ export async function approvedDoctor(tx: Pick<AvailabilityTransaction, 'identity
   const source = await tx.verification(requestId);
   if (!source) fail('missing-approved-source');
   validateRequest(source);
-  const publishedAt = schedulingTimestamp(projection.publishedAt), updatedAt = schedulingTimestamp(projection.updatedAt);
-  if (profile.uid !== uid || profile.activeRequestId !== null || profile.approvedRequestId !== requestId
-    || projection.uid !== uid || projection.schemaVersion !== SCHEDULING.schemaVersion
-    || positiveRevision(projection.approvedRevision) !== profile.revision
-    || source.requestId !== requestId || source.doctorUid !== uid || source.state !== 'approved'
-    || source.profileRevision !== profile.revision || source.reviewerUid === uid
-    || compareTimes(updatedAt, publishedAt) < 0 || !source.reviewedAt || compareTimes(publishedAt, source.reviewedAt) !== 0
-    || text(projection.professionalName, LIMITS.name) !== projection.professionalName
-    || text(projection.specialty, LIMITS.specialty) !== projection.specialty
-    || projection.professionalName !== source.professional.professionalName || projection.specialty !== source.professional.specialty
-    || (['professionalName', 'specialty', 'registrationNumber', 'issuingAuthority'] as const)
-      .some(key => profile[key] !== source.professional[key])) fail('invalid-approved-binding');
-  return { professionalName: projection.professionalName as string, specialty: projection.specialty as string };
+  return validateApprovedDoctorBinding(uid, profile, projection, source);
 }
 
 export function createAvailabilityHandlers(deps: AvailabilityDependencies) {

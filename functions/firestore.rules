@@ -374,6 +374,96 @@ service cloud.firestore {
     return request.query.limit is int && request.query.limit >= 1 && request.query.limit <= 50
       && request.query.get('offset', 0) == 0;
   }
+  // C6 history uses the same canonical participant/appointment binding as C5.
+  // Live approval, counterpart status and wall-clock expiry govern mutations, not history.
+  function signalingRoom(room, cid) {
+    let appointment = get(/databases/$(database)/documents/appointments/$(cid)).data;
+    let actor = currentIdentity();
+    let fields = ['consultationId', 'appointmentId', 'patientId', 'doctorId', 'appointmentStartAt',
+      'appointmentEndAt', 'state', 'createdAt', 'closedAt', 'schemaVersion'];
+    // Validate authority and the room envelope here. Revalidating unrelated
+    // appointment display/availability fields at each signaling depth exceeds
+    // the Rules expression budget; those remain validated by backend writers.
+    return isSignedIn() && workflowIdentity(actor, request.auth.uid)
+      && ((actor.role == 'patient' && appointment.patientId == request.auth.uid)
+        || (actor.role == 'doctor' && appointment.doctorId == request.auth.uid))
+      && appointment.appointmentId == cid
+      && cid.matches('[a-f0-9]{64}') && appointment.schemaVersion == 1
+      && appointment.patientId != appointment.doctorId
+      && appointment.startAt is timestamp && appointment.endAt is timestamp
+      && appointment.endAt == appointment.startAt + duration.value(30, 'm')
+      && appointment.status in ['scheduled', 'cancelled', 'completed', 'no_show']
+      && room.keys().hasOnly(fields)
+      && [room.consultationId, room.appointmentId, room.schemaVersion, room.patientId, room.doctorId,
+          room.appointmentStartAt, room.appointmentEndAt]
+        == [cid, cid, 1, appointment.patientId, appointment.doctorId, appointment.startAt, appointment.endAt]
+      && room.createdAt is timestamp && room.createdAt >= appointment.startAt
+      && room.createdAt < appointment.endAt + duration.value(15, 'm')
+      && (appointment.status == 'scheduled' || room.createdAt <= appointment.updatedAt)
+      && ((room.state == 'active' && room.closedAt == null)
+        || (room.state == 'closed' && room.closedAt is timestamp && room.closedAt >= room.createdAt
+          && room.closedAt <= appointment.endAt + duration.value(15, 'm')));
+  }
+  function callState(data) {
+    let accepted = data.acceptedAt;
+    let reason = data.endReason;
+    return (accepted == null || (accepted is timestamp && accepted >= data.createdAt && accepted < data.ringExpiresAt))
+      && (data.state == 'ringing' ? [accepted, data.endedAt, data.endReason] == [null, null, null]
+        : data.state == 'accepted' ? accepted is timestamp && [data.endedAt, data.endReason] == [null, null]
+        : data.state == 'ended' && data.endedAt is timestamp
+          && data.endedAt >= (data.acceptedAt == null ? data.createdAt : data.acceptedAt)
+          && data.endedAt <= data.expiresAt
+          // Transition-specific end-reason invariants are backend validated.
+          && reason in ['rejected', 'cancelled', 'hangup', 'ring_timeout', 'consultation_closed', 'expired']);
+  }
+  function readableCall(data, cid, callId) {
+    let room = get(/databases/$(database)/documents/consultations/$(cid)).data;
+    let ringEnd = data.createdAt + duration.value(60, 's');
+    let fields = ['callId', 'consultationId', 'appointmentId', 'patientId', 'doctorId', 'initiatorId', 'recipientId',
+      'mode', 'state', 'createdAt', 'ringExpiresAt', 'expiresAt', 'acceptedAt', 'endedAt', 'endReason', 'schemaVersion'];
+    return signalingRoom(room, cid)
+      && data.keys().hasOnly(fields)
+      && callId.matches('[a-f0-9]{64}')
+      && [data.callId, data.consultationId, data.appointmentId, data.schemaVersion, data.patientId, data.doctorId]
+        == [callId, cid, cid, 1, room.patientId, room.doctorId]
+      && data.initiatorId in [room.patientId, room.doctorId]
+      && data.recipientId in [room.patientId, room.doctorId] && data.initiatorId != data.recipientId
+      && data.mode in ['audio', 'video'] && data.createdAt is timestamp
+      && data.createdAt >= room.createdAt && data.createdAt < data.expiresAt
+      && (room.state != 'closed' || data.createdAt <= room.closedAt)
+      && data.expiresAt == room.appointmentEndAt + duration.value(15, 'm')
+      && data.ringExpiresAt == (ringEnd < data.expiresAt ? ringEnd : data.expiresAt)
+      && callState(data);
+  }
+  function callHistory(cid, callId) {
+    return readableCall(get(/databases/$(database)/documents/consultations/$(cid)/calls/$(callId)).data, cid, callId);
+  }
+  function readableDescription(data, cid, callId, kind) {
+    let call = get(/databases/$(database)/documents/consultations/$(cid)/calls/$(callId)).data;
+    let fields = ['type', 'sdp', 'senderId', 'createdAt', 'schemaVersion'];
+    return readableCall(call, cid, callId) && kind in ['offer', 'answer'] && data.keys().hasOnly(fields)
+      && data.type == kind && data.schemaVersion == 1 && data.sdp is string && data.createdAt is timestamp
+      && ((kind == 'offer' && data.senderId == call.initiatorId && data.createdAt == call.createdAt)
+        || (kind == 'answer' && call.acceptedAt is timestamp
+          && data.senderId == call.recipientId && data.createdAt == call.acceptedAt));
+  }
+  function readableCandidate(data, cid, callId, candidateId) {
+    let call = get(/databases/$(database)/documents/consultations/$(cid)/calls/$(callId)).data;
+    let fields = ['candidate', 'sdpMid', 'sdpMLineIndex', 'senderId', 'sequence', 'createdAt', 'schemaVersion'];
+    return readableCall(call, cid, callId) && candidateId.matches('[a-f0-9]{64}') && data.keys().hasAll(fields)
+      && data.keys().hasOnly(fields.concat(['usernameFragment'])) && data.schemaVersion == 1
+      && data.senderId in [call.initiatorId, call.recipientId]
+      && data.sequence is int && data.sequence >= 1 && data.sequence <= 128
+      // Full payload validation belongs to the immutable backend writer.
+      && data.candidate is string
+      && call.acceptedAt is timestamp && data.createdAt is timestamp
+      && data.createdAt >= call.acceptedAt && data.createdAt < call.expiresAt
+      && (call.endedAt == null || data.createdAt <= call.endedAt);
+  }
+  function candidatePage() {
+    return request.query.limit is int && request.query.limit >= 1 && request.query.limit <= 128
+      && request.query.get('offset', 0) == 0;
+  }
   match /consultations/{consultationId} {
     allow get: if readableConsultation(resource.data, consultationId);
     allow list, create, update, delete: if false;
@@ -388,6 +478,24 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
     match /senderState/{senderId} { allow read, write: if false; }
+    match /calls/{callId} {
+      allow get: if readableCall(resource.data, consultationId, callId);
+      allow list, create, update, delete: if false;
+      match /descriptions/{kind} {
+        allow get: if readableDescription(resource.data, consultationId, callId, kind);
+        allow list, create, update, delete: if false;
+      }
+      match /candidates/{candidateId} {
+        allow get: if readableCandidate(resource.data, consultationId, callId, candidateId);
+        // Immutable child writes are backend validated. Parent-scoped authorization
+        // permits bounded listeners without treating child schema checks as query filters.
+        allow list: if candidatePage() && callHistory(consultationId, callId);
+        allow create, update, delete: if false;
+      }
+      match /iceSenderState/{uid} { allow read, write: if false; }
+    }
+    match /callControl/{id} { allow read, write: if false; }
+    match /callReceipts/{id} { allow read, write: if false; }
   }
   // Prescriptions, ratings, chatbotInteractions,
   // other unknown paths remain closed until their checkpoints.

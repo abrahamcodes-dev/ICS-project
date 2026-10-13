@@ -1,5 +1,5 @@
 {
-  "functions": { "source": ".", "runtime": "nodejs22" },
+  "functions": { "source": "lib/c6-emulator", "runtime": "nodejs22", "predeploy": ["node -e \"throw new Error('Integration Functions must never be deployed')\""] },
   "firestore": { "rules": "firestore.rules", "indexes": "firestore.indexes.json" },
   "storage": { "rules": "storage.rules" },
   "emulators": {
