@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, Button, Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AppState, Linking, Platform, StyleSheet, View } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
+import {Action as Button,Copy as Text,Screen,Card,Loading,Notice} from '../../ui/design';
 import { uuid } from 'expo-modules-core';
 import type { MediaStream } from 'react-native-webrtc';
 import type { CallMode } from '@shared/types/consultationCallContracts';
@@ -28,9 +29,9 @@ export default function ConsultationCallScreen({route}: {route?: ConsultationCal
   const appointmentId = route?.params?.appointmentId;
   if (!focused) return null; // Native stacks retain blurred screens: unmount all call resources on blur.
   if (identity.status !== 'ready' || identity.user?.status !== 'active'
-    || !['patient','doctor'].includes(identity.user.role)) return <Text>Sign in with an active patient or doctor account.</Text>;
-  if (!appointmentId || !/^[a-f0-9]{64}$/.test(appointmentId)) return <Text>Open a scheduled appointment to enter its consultation.</Text>;
-  if (Platform.OS !== 'android' && Platform.OS !== 'ios') return <Text>Calls require an Android or iOS development build.</Text>;
+    || !['patient','doctor'].includes(identity.user.role)) return <Screen><Text>Sign in with an active patient or doctor account.</Text></Screen>;
+  if (!appointmentId || !/^[a-f0-9]{64}$/.test(appointmentId)) return <Screen><Text>Open a scheduled appointment to enter its consultation.</Text></Screen>;
+  if (Platform.OS !== 'android' && Platform.OS !== 'ios') return <Screen><Text>Calls require an Android or iOS development build.</Text></Screen>;
   return <ConsultationGate key={`${identity.firebaseUid}:${appointmentId}`} appointmentId={appointmentId} uid={identity.firebaseUid!} />;
 }
 
@@ -49,9 +50,9 @@ function ConsultationGate({appointmentId, uid}: {appointmentId: string; uid: str
     }).catch(() => { if (active) setError(true); });
     return () => { active = false; };
   }, [appointmentId, uid, attempt]);
-  if (error) return <View style={styles.container}><Text>Unable to open this consultation. Check your connection, appointment time and eligibility.</Text>
-    <Button title="Retry opening consultation" onPress={() => setAttempt(v => v + 1)} /></View>;
-  if (!room) return <Text>Opening consultation…</Text>;
+  if (error) return <Screen><Card><Text>Unable to open this consultation. Check your connection, appointment time and eligibility.</Text>
+    <Button title="Retry opening consultation" onPress={() => setAttempt(v => v + 1)} /></Card></Screen>;
+  if (!room) return <Screen><Loading label="Opening consultation..."/></Screen>;
   return <CallRoom key={sessionKey} consultationId={room} uid={uid} restart={() => setSessionKey(v => v + 1)} />;
 }
 
@@ -119,30 +120,32 @@ export function CallRoom({consultationId, uid, restart}: {consultationId: string
   const incoming = state.phase === 'ringing' && state.call?.recipientId === uid;
   const canStart = state.phase === 'idle' && discovery === 'ready' && !!session && !busy && !background;
   const RTCView = (local || remote) ? (require('react-native-webrtc') as typeof import('react-native-webrtc')).RTCView : null;
-  return <ScrollView contentContainerStyle={styles.container}>
-    <Text style={styles.title} accessibilityRole="header">Consultation call</Text>
+  return <Screen>
+    <Text title>Consultation call</Text>
     <Text accessibilityLiveRegion="polite">{busy ? 'Preparing microphone and camera…' : callStatus(state)}</Text>
     {background && <Text>The call stopped when the app moved to the background. Reopen the consultation when ready.</Text>}
     {state.phase === 'idle' && discovery === 'checking' && <Text>Checking for an incoming call…</Text>}
     {state.phase === 'idle' && discovery === 'occupied' && <Text>A call is already active. It cannot be resumed on this device.</Text>}
     {discovery === 'error' && state.phase === 'idle' && <View><Text>Unable to check for calls. Check your connection and access.</Text>
       <Button title="Retry checking calls" onPress={() => setRefresh(v => v + 1)} /></View>}
-    {message && <Text accessibilityLiveRegion="polite">{message}</Text>}
+    <Notice message={message}/>
     {permissionDenied && <Button title="Open device settings" onPress={() => { void Linking.openSettings().catch(() => setMessage('Unable to open device settings.')); }} />}
     {state.phase === 'error' && <Text>The call could not continue. Check your connection and consultation eligibility before trying again.</Text>}
-    {incoming && <Text>Incoming {state.call?.mode === 'video' ? 'video' : 'audio'} call</Text>}
+    {incoming && <Card><Text title>Incoming {state.call?.mode === 'video' ? 'video' : 'audio'} call</Text><Text>Your consultation participant is calling. Accept when you are ready.</Text></Card>}
+    {state.phase === 'ringing' && !incoming && <Text>Calling your consultation participant. Waiting for an answer...</Text>}
+    {['starting','accepting','connecting'].includes(state.phase) && <Loading label="Establishing a connection..."/>}
     {state.phase === 'idle' && <View style={styles.controls}>
       <Button title="Start audio call" disabled={!canStart} onPress={() => { void withMedia('audio', false); }} />
       <Button title="Start video call" disabled={!canStart} onPress={() => { void withMedia('video', false); }} />
     </View>}
     {incoming && <View style={styles.controls}>
       <Button title="Accept call" disabled={busy || background} onPress={() => { void withMedia(state.call!.mode, true); }} />
-      <Button title="Reject call" onPress={end} />
+      <Button danger title="Reject call" onPress={end} />
     </View>}
     {RTCView && remote && remote.getVideoTracks().length > 0 && <View><Text>Remote video</Text>
-      <RTCView testID="remote-video" streamURL={remote.toURL()} style={styles.video} objectFit="contain" /></View>}
+      <RTCView testID="remote-video" streamURL={remote.toURL()} accessibilityLabel="Remote participant video" style={styles.video} objectFit="contain" /></View>}
     {RTCView && local && local.getVideoTracks().length > 0 && camera && <View><Text>Your video</Text>
-      <RTCView testID="local-video" streamURL={local.toURL()} style={styles.preview} mirror={front} objectFit="cover" /></View>}
+      <RTCView testID="local-video" streamURL={local.toURL()} accessibilityLabel="Your camera preview" style={styles.preview} mirror={front} objectFit="cover" /></View>}
     {local && !terminal && <View style={styles.controls}>
       <Button title={microphone ? 'Mute microphone' : 'Unmute microphone'} onPress={() => { media.microphone(!microphone); setMicrophone(!microphone); }} />
       {local.getVideoTracks().length > 0 && <>
@@ -153,9 +156,9 @@ export function CallRoom({consultationId, uid, restart}: {consultationId: string
       </>}
     </View>}
     {!terminal && (busy || !['idle','loading'].includes(state.phase)) && !incoming &&
-      <Button title="End call" disabled={state.phase === 'ending'} onPress={end} />}
+      <Button danger title="End call" disabled={state.phase === 'ending'} onPress={end} />}
     {terminal && <Button title="Check for another call" onPress={restart} />}
-  </ScrollView>;
+  </Screen>;
 }
-const styles = StyleSheet.create({container:{padding:20,gap:16},title:{fontSize:24,fontWeight:'600'},
-  controls:{gap:12},video:{height:300,backgroundColor:'#17202a'},preview:{height:150,backgroundColor:'#17202a'}});
+const styles = StyleSheet.create({
+  controls:{gap:12},video:{width:'100%',aspectRatio:0.8,minHeight:240,backgroundColor:'#142C28',borderRadius:20},preview:{width:'40%',aspectRatio:0.8,alignSelf:'flex-end',backgroundColor:'#142C28',borderRadius:16}});

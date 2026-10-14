@@ -1,6 +1,6 @@
 const React = require('react');
 const {act, create} = require('react-test-renderer');
-const {Button} = require('react-native');
+const {Action:Button} = require('../src/ui/design');
 let mockState, mockNext;
 const mockSession = {start:jest.fn(),accept:jest.fn(),end:jest.fn(),dispose:jest.fn(),load:jest.fn()};
 const mockMedia = {acquire:jest.fn(),clear:jest.fn(),microphone:jest.fn(),camera:jest.fn(),switchCamera:jest.fn()};
@@ -17,7 +17,7 @@ const {CallMediaError}=require('../src/services/calls/media');
 let tree;
 async function render(){await act(async()=>{tree=create(<CallRoom consultationId={'a'.repeat(64)} uid="p" restart={jest.fn()}/>);});}
 async function press(title){await act(async()=>{tree.root.findAllByType(Button).find(b=>b.props.title===title).props.onPress();});}
-beforeEach(()=>{jest.clearAllMocks();mockState={phase:'idle',call:null};mockMedia.acquire.mockResolvedValue({getVideoTracks:()=>[{}],toURL:()=> 'local'});mockMedia.switchCamera.mockReturnValue(true);
+beforeEach(()=>{jest.clearAllMocks();jest.spyOn(require('react-native').AccessibilityInfo,'isReduceMotionEnabled').mockResolvedValue(true);mockState={phase:'idle',call:null};mockMedia.acquire.mockResolvedValue({getVideoTracks:()=>[{}],toURL:()=> 'local'});mockMedia.switchCamera.mockReturnValue(true);
  mockSession.start.mockImplementation(async()=>{mockState={phase:'ringing',call:{initiatorId:'p',recipientId:'d',mode:'video'}};});
 });
 afterEach(async()=>{if(tree)await act(async()=>tree.unmount());tree=null;});
