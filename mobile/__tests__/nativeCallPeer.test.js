@@ -5,6 +5,13 @@ jest.mock('react-native-webrtc',()=>({RTCPeerConnection:jest.fn().mockImplementa
 })}));
 const {createNativePeer}=require('../src/services/calls/nativePeer');
 beforeEach(()=>{mockInstances.length=0;jest.clearAllMocks();});
+
+test('peer retains ownership when a stable stream getter is cleared by the UI',()=>{
+ const track={kind:'audio',stop:jest.fn()},stream={getTracks:()=>[track],release:jest.fn()};let current=stream;
+ const peer=createNativePeer('audio',{ice:jest.fn(),connection:jest.fn()},{get localStream(){return current;}});
+ expect(mockInstances[0].addTrack).toHaveBeenCalledWith(track,stream);current=undefined;peer.close();
+ expect(track.stop).toHaveBeenCalledTimes(1);expect(stream.release).toHaveBeenCalledTimes(1);
+});
 test('native events strip authority fields and ignore end-of-candidates',()=>{
  const events={ice:jest.fn(),connection:jest.fn()};const peer=createNativePeer('audio',events);const pc=mockInstances[0];
  expect(pc.config).toEqual({iceServers:[]});pc.onicecandidate({candidate:null});pc.onicecandidate({candidate:{candidate:'candidate:1',sdpMid:'0',sdpMLineIndex:0,senderId:'forged'}});

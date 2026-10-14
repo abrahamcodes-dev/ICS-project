@@ -294,7 +294,7 @@ a future approved media layer can provide the peer configuration.
 changes, identity refresh, app backgrounding, and unmount. Memoize its options;
 changing them disposes the old session. Backgrounding deliberately stops this
 foreground-only session. The hook releases supplied but unused media as well.
-Patient/doctor screens, navigation and the older placeholder
+At C7C, patient/doctor screens, navigation and the older placeholder
 `useConsultationSession` are unchanged: this checkpoint supplies a reusable service
 and hook, not an automatic call button or a new UI workflow.
 
@@ -308,3 +308,38 @@ canonical UUID generation, foreground call UI and incoming discovery, evaluate
 STUN/TURN provisioning, and verify two devices (including physical Android/iOS),
 audio routing, rendering, network loss and call termination. No production Firebase
 access or real media exchange was performed for C7C.
+
+### C7D: foreground call UI and native media
+
+The patient `Consultation` and doctor `ConsultationRoom` screens share
+`ConsultationCallScreen`. They require an `appointmentId` route parameter and open
+the consultation through the existing authorized callable before displaying calls.
+Appointment-list/booking navigation remains scaffolded; this increment does not
+add an appointment discovery workflow.
+
+Incoming discovery polls `getConsultationCall` for that known consultation every
+five seconds, serially and only while idle in the foreground. It never lists calls
+or reads private control documents. There are no global incoming alerts, push
+notifications, background calling, or resumed peer sessions on another device.
+
+Start/accept explicitly requests microphone permission (plus camera for video),
+then acquires native media before invoking the existing C7C session. Denial offers
+device settings and does not start signaling. Partial video capture is rejected.
+Stable hook options expose the current stream, which the peer snapshots and owns.
+Generation checks cancel late permission/capture results; release is idempotent
+across UI and peer cleanup. Logout, navigation blur/unmount, terminal states, and
+backgrounding release media. Transient iOS `inactive` permission prompts do not
+dispose the session. Background disposal is local; explicit End uses the backend
+cancel/reject/hangup operation, subject to network availability.
+
+The UI renders local/remote video with RTCView and exposes microphone/camera
+track toggles, supported native camera switching, and explicit end/reject controls.
+It distinguishes connecting, ringing, connected, rejected, ended, expired and
+failed states. It uses Expo's native UUID factory for requests and does not change
+immutable SDP, ICE authorization, or backend eligibility rules.
+
+Focused tests mock native media and signaling. Two-device media exchange, audio
+routing, physical Android/iOS behavior, network conditions and background timing
+remain unverified. Real calls still require an approved deployed or local-emulator
+backend and appropriate STUN/TURN planning. No production credentials or TURN
+secrets are embedded; no deployment or real consultation was performed in C7D.

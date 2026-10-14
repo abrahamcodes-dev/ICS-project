@@ -13,6 +13,10 @@ jest.mock('../src/hooks/useAuth',()=>({useAuth:jest.fn(()=>({status:'ready',fire
 const {useConsultationCall}=require('../src/hooks/useConsultationCall');
 const {useAuth}=require('../src/hooks/useAuth');
 const {createCallSession}=require('../src/services/calls/session');
+test('transient inactive permission prompt preserves the session',()=>{
+ useConsultationCall('a'.repeat(64),{requestId:jest.fn()});const cleanup=mockEffect();
+ mockAppNext('inactive');expect(mockDispose).not.toHaveBeenCalled();cleanup();
+});
 beforeEach(()=>{jest.clearAllMocks();useAuth.mockReturnValue({status:'ready',firebaseUid:'p',user:{role:'patient',status:'active'}});});
 test.each(['logout','account switch','identity refresh','background','unmount'])('%s disposes listeners/session and unclaimed media',cause=>{
  const track={stop:jest.fn()},stream={getTracks:()=>[track],release:jest.fn()};

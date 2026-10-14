@@ -96,7 +96,7 @@ export function createCallSession(options: CallSessionOptions) {
     accepted = call.state === 'accepted';
     const remaining = milliseconds(accepted ? call.expiresAt : call.ringExpiresAt) - now();
     if (remaining <= 0) {
-      cleanup(); emit({ phase: 'ended', call: null });
+      cleanup(); emit({ phase: 'ended', call: null, error: 'expired' });
       // Server reconciliation is best effort; local expiry never grants new authority.
       void api.get({ consultationId, callId: call.callId }).catch(() => {});
       return;

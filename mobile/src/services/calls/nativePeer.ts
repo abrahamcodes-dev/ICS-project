@@ -1,6 +1,7 @@
 import type { MediaStream, RTCPeerConnection as PeerConnection } from 'react-native-webrtc';
 import type { CallMode } from '@shared/types/consultationCallContracts';
 import type { Peer, PeerEvents } from './session';
+import { releaseCallMedia } from './media';
 
 export interface NativePeerOptions {
   /** Ownership transfers to this session. Permissions/media acquisition happen before supplying it. */
@@ -11,10 +12,12 @@ export interface NativePeerOptions {
 export function createNativePeer(mode: CallMode, events: PeerEvents, options: NativePeerOptions = {}): Peer {
   // Load only when a session starts; importing the service must not open native media.
   const { RTCPeerConnection } = require('react-native-webrtc') as typeof import('react-native-webrtc');
+  // Stable hook options may expose a getter populated only after the user accepts permissions.
+  const localStream = options.localStream;
   let pc: PeerConnection;
   try { pc = new RTCPeerConnection(options.configuration ?? {iceServers:[]}); }
   catch(e) {
-    options.localStream?.getTracks().forEach(t => t.stop()); options.localStream?.release();
+    releaseCallMedia(localStream);
     options.onRemoteStream?.(null); throw e;
   }
   let closed = false;
@@ -38,16 +41,15 @@ export function createNativePeer(mode: CallMode, events: PeerEvents, options: Na
     closed = true;
     pc.onicecandidate = null; pc.onconnectionstatechange = null; pc.ontrack = null;
     try { pc.close(); } finally {
-      options.localStream?.getTracks().forEach(t => t.stop());
-      options.localStream?.release();
+      releaseCallMedia(localStream);
       remoteStreams.forEach(s => s.release()); remoteStreams.clear(); options.onRemoteStream?.(null);
     }
   };
   try {
-    if (options.localStream) {
-      for (const t of options.localStream.getTracks()) {
+    if (localStream) {
+      for (const t of localStream.getTracks()) {
         if (t.kind === 'video' && mode === 'audio') { t.stop(); continue; }
-        pc.addTrack(t, options.localStream);
+        pc.addTrack(t, localStream);
       }
     } else {
       pc.addTransceiver('audio', {direction:'recvonly'});
