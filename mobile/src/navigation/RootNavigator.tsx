@@ -5,18 +5,19 @@ import GuestNavigator from "./GuestNavigator";
 import PatientNavigator from "./PatientNavigator";
 import DoctorNavigator from "./DoctorNavigator";
 import AdminNavigator from "./AdminNavigator";
+import AccountStatusScreen from '../screens/auth/AccountStatusScreen';
 
 // Routes to the correct role-based navigator once auth state is known.
 // Sprint 1 deliverable: Guest -> Login/Register -> role-specific stack.
 export default function RootNavigator() {
   const { user, loading, status } = useAuth();
 
-  if (loading) return null; // TODO: splash/loading screen
+  if (loading) return <AccountStatusScreen />;
 
   if (status === "signedOut") return <NavigationContainer><GuestNavigator /></NavigationContainer>;
-  // Incomplete/error/disabled and unapproved-doctor UI belongs to a later checkpoint.
-  if (status !== "ready" || !user || user.status !== "active") return null;
-  if (user.role === "doctor" && user.verificationStatus !== "approved") return null;
+  // Recovery/status screens preserve the existing clinical-route eligibility guards.
+  if (status !== "ready" || !user || user.status !== "active") return <AccountStatusScreen />;
+  if (user.role === "doctor" && user.verificationStatus !== "approved") return <AccountStatusScreen />;
 
   switch (user.role) {
     case "patient":
