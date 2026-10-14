@@ -5,6 +5,7 @@ export type PatientStackParams = {
   RateDoctor: undefined; Chatbot: undefined; Notifications: undefined;
 };
 export type DoctorStackParams = {
+  DoctorWorkspace: undefined;
   SubmitVerification: undefined; SetAvailability: undefined; Appointments: undefined;
   ConsultationRoom: {appointmentId: string}; IssuePrescription: undefined; Notifications: undefined;
 };
