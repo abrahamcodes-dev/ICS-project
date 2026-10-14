@@ -95,9 +95,9 @@ double: competing writes retry, staged failures roll back, and reads after write
 fail. C6G adds backend transaction/transport emulator tests. C6F exercises read
 and write authorization in the local Rules emulator. No SDP is logged by these handlers.
 
-No mobile call service, media connectivity, native permissions/UI, STUN/TURN
-provisioning, notifications, scheduled cleanup or
-production deployment is included. Signaling authorization cannot terminate an
+The C6 backend does not provide media connectivity, STUN/TURN provisioning,
+notifications, scheduled cleanup or production deployment. C7B verified basic
+Android native loading; C7C's mobile adapter is described below. Signaling authorization cannot terminate an
 already-established peer-to-peer media stream.
 
 ## C6E ICE publication
@@ -236,3 +236,75 @@ transactions. Expiry fixtures create valid historical records using injected
 test clocks locally; no clock override is exposed through the emulator entry or
 callables. These tests cover signaling persistence and security, not SDP/ICE
 interoperability or actual audio/video connectivity.
+
+## C7C mobile signaling integration
+
+`mobile/src/services/calls/signaling.ts` is the typed Firebase adapter for the five
+existing callables. It uses the authenticated Firebase client and default Functions
+region, matching the existing bindings. No callable is deployed by this change.
+Metadata parsing preserves seconds/nanoseconds and discards unknown response fields.
+All mutations remain callable-only; no client Firestore writes or Rules changes
+are introduced.
+
+`session.ts` owns one call attempt and exposes `start(mode)`, `load(callId?)`,
+`accept()`, `end()`, `subscribe()` and `dispose()`. `load()` retrieves the current
+call in a known consultation; it does not enumerate calls or implement notifications.
+A new controller is required after termination/disposal. An already accepted call
+cannot be resumed without its original native peer state and is rejected locally.
+
+Outgoing flow creates/sets one offer, then calls start. Incoming acceptance reads
+the fixed offer, sets it remotely, creates/sets one answer, then calls respond.
+The initiator reads the immutable answer only after accepted metadata arrives;
+listening to an absent answer before acceptance would fail the existing Rules.
+Call metadata uses a document listener that waits for server-confirmed snapshots.
+Remote ICE uses a sender-filtered, call-scoped `limit(128)` listener, covering the
+entire remote sender quota. It is sorted by sequence locally; no composite index
+or pagination is needed. Remote candidates are applied serially after remote SDP,
+with document-ID deduplication. Local empty ICE events remain local.
+
+Local ICE is buffered until acceptance, deduplicated, capped at 128, and sent in
+batches of at most 32 with 1.1 seconds after each acknowledgment. The backend's
+one-second minimum remains authoritative. Unavailable/deadline transport failures
+(and ICE rate errors) get at most two retries with the exact same request UUID
+and payload. The caller supplies a stable `requestId()` factory producing canonical
+UUIDs; it is called once per logical mutation, never per retry. Do not use request
+IDs as authorization or derive them from SDP. No SDP/candidate contents are logged
+by the mobile adapter/controller.
+
+The controller distinguishes signaling acceptance (`connecting`) from the native
+peer's `connected` event. A 30-second startup deadline, local ring/call deadline,
+and serial 15-second callable reconciliation bound stale sessions. Client clocks
+only stop local work; backend time decides eligibility. Listener errors, exhausted
+retries, or native disconnection fail closed and release local resources. No
+renegotiation or ICE restart is attempted because descriptions are immutable.
+A network outage may leave backend ringing/accepted metadata until its next lazy
+reconciliation. Disposal cannot guarantee a remote hangup; use `end()` for an
+explicit cancel/reject/hangup before navigation when possible. End immediately
+closes local resources even if server acknowledgment fails. A timed-out start can
+have committed remotely; retrieve current metadata before creating another attempt.
+
+`nativePeer.ts` lazily loads react-native-webrtc. It accepts an optional, already
+permission-authorized local MediaStream and takes ownership of its tracks. Without
+one, it negotiates receive-only audio/video transceivers and opens no media devices.
+Remote streams are delivered through a callback and cleared on cleanup. Audio mode
+never adds video tracks. No default STUN/TURN servers or credentials are embedded;
+a future approved media layer can provide the peer configuration.
+
+`useConsultationCall` binds the controller to canonical identity context, auth
+changes, identity refresh, app backgrounding, and unmount. Memoize its options;
+changing them disposes the old session. Backgrounding deliberately stops this
+foreground-only session. The hook releases supplied but unused media as well.
+Patient/doctor screens, navigation and the older placeholder
+`useConsultationSession` are unchanged: this checkpoint supplies a reusable service
+and hook, not an automatic call button or a new UI workflow.
+
+Focused mocked tests cover callables/paths, timestamp precision, candidate query
+bounds, offer/answer ordering, retry identity, ICE buffering/deduplication/rate,
+stale asynchronous responses, expiry, terminal state, listener errors, native
+cleanup, logout/background/unmount and permission boundaries. They do not prove
+actual two-peer media interoperability. Before real calls: approve deployment or
+wire a deliberately local emulator client, provide permission/media acquisition,
+canonical UUID generation, foreground call UI and incoming discovery, evaluate
+STUN/TURN provisioning, and verify two devices (including physical Android/iOS),
+audio routing, rendering, network loss and call termination. No production Firebase
+access or real media exchange was performed for C7C.
