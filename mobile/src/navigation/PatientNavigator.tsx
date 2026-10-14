@@ -8,11 +8,14 @@ import RateDoctorScreen from "../screens/patient/RateDoctorScreen";
 import ChatbotScreen from "../screens/shared/ChatbotScreen";
 import NotificationsScreen from "../screens/shared/NotificationsScreen";
 
-const Stack = createNativeStackNavigator();
+import type {PatientStackParams} from "./types";
+import {PatientAppointmentsScreen} from "../screens/shared/AppointmentsScreen";
+const Stack = createNativeStackNavigator<PatientStackParams>();
 
 export default function PatientNavigator() {
   return (
     <Stack.Navigator initialRouteName="HealthProfile">
+      <Stack.Screen name="Appointments" component={PatientAppointmentsScreen} />
       <Stack.Screen name="HealthProfile" component={HealthProfileScreen} />
       <Stack.Screen name="BookAppointment" component={BookAppointmentScreen} />
       <Stack.Screen name="Consultation" component={ConsultationScreen} />

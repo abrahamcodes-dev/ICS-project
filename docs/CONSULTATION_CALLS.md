@@ -343,3 +343,49 @@ routing, physical Android/iOS behavior, network conditions and background timing
 remain unverified. Real calls still require an approved deployed or local-emulator
 backend and appropriate STUN/TURN planning. No production credentials or TURN
 secrets are embedded; no deployment or real consultation was performed in C7D.
+
+### C7E: appointment navigation and demonstration
+
+Both role home screens now offer **My appointments**. The shared list subscribes
+to the latest 50 appointments using participant equality, startAt descending and
+limit 50, backed by the existing patient/doctor indexes. Leaving the list removes
+its listener; account changes remount it with empty state. Read failures clear
+the list and offer retry. Older history pagination is not implemented here.
+
+Typed routes pass the exact appointmentId to patient `Consultation` or doctor
+`ConsultationRoom`. Local buttons require the matching participant, `scheduled`
+status and start <= device time < end + 15 minutes. This is a presentation hint:
+the backend rechecks canonical identity, doctor approval, appointment/consultation
+state and authoritative time. Closed consultations cannot be reopened. Existing
+C7C/C7D start, accept/reject, expiry, failure and cleanup behavior is reused.
+
+Demo prerequisites: two authenticated active canonical accounts (patient and
+approved doctor), a valid appointment created through the supported backend, and
+an approved available backend with existing Rules/indexes and C6 callables.
+Booking/availability forms remain scaffolds; the legacy mobile appointmentService
+uses retired schemas and is not used by this list. Do not create demo appointments
+with ordinary direct client writes. No backend deployment or emulator connection
+was added by C7E; the current Firebase client still uses its existing configuration.
+An isolated local demo requires explicit emulator wiring and synthetic fixture
+setup before running it. Missing backend availability blocks a live demonstration.
+
+Physical-device/demo procedure:
+1. Install the native development build on both devices; use approved test accounts
+   and synthetic appointment data, never real patient records for a demonstration.
+2. At the appointment start time, each role opens **My appointments**, finds the
+   matching appointment time, and selects **Open consultation**.
+3. One participant selects audio or video and grants permissions. The other keeps
+   the same consultation open in the foreground, waits for discovery (up to five
+   seconds), then accepts and grants permissions. Do not start both ends at once.
+4. Verify connected state, actual bidirectional audio/video, mute/camera toggles,
+   camera switching where supported, and End on both devices. Separately exercise
+   rejection, denied permissions, navigation away, logout and network interruption.
+5. Record device/OS/build and observed outcomes. Passing mocked tests or seeing
+   signaling accepted is not proof of media connectivity.
+
+No STUN/TURN servers are configured by this workflow. Same-LAN testing may work
+with host candidates; different networks/NAT/firewalls may prevent connection.
+Reliable internet calling needs an approved STUN/TURN configuration and a secure
+short-lived TURN credential strategy, plus physical Android/iOS and network testing.
+Global incoming notifications and background calls remain unsupported. C7E does
+not claim verified two-device calling or production readiness.
