@@ -15,9 +15,9 @@ test.each(['GOOGLE_APPLICATION_CREDENTIALS', 'FIREBASE_TOKEN'])('%s present reje
   const load = jest.fn(); expect(() => runInNewContext(source, { process: { versions: { node: '22.23.3' }, env: { ...valid, [key]: 'synthetic' } }, require: load, module: {} })).toThrow();
   expect(load).not.toHaveBeenCalled();
 });
-test('only guarded demo entry loads production plus internal C6 bindings', () => {
+test('guarded demo entry loads only the production entry without additional exports', () => {
   const load = jest.fn(() => ({})); runInNewContext(source, { process: { versions: { node: '22.23.3' }, env: valid }, require: load, module: {} });
-  expect(load.mock.calls).toHaveLength(4);
+  expect(load.mock.calls).toEqual([['../index.js']]);
   const config = JSON.parse(readFileSync(resolve(__dirname, '../firebase.integration-test.json'), 'utf8'));
   expect(config.functions.source).toBe('lib/c6-emulator'); expect(config.functions.predeploy).toEqual(["node -e \"throw new Error('Integration Functions must never be deployed')\""]);
   expect(JSON.parse(readFileSync(resolve(__dirname, '../package.json'), 'utf8')).main).toBe('lib/index.js');

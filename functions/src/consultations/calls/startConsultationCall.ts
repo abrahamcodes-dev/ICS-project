@@ -3,6 +3,6 @@ import { db } from '../../shared/firestoreRefs';
 import { createCallStore } from './callStore';
 import { createStartConsultationCallHandler } from './startHandler';
 
-// Deliberately absent from src/index.ts until the C6 export-surface phase.
+// Explicitly exported by src/index.ts; deployment is a separate release step.
 const handler = createStartConsultationCallHandler(createCallStore(db));
 export const startConsultationCall = onCall(request => handler(request));

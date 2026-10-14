@@ -1,11 +1,11 @@
 # Consultation call signaling
 
-These internal bindings are not exported by `functions/src/index.ts` and have not
-been deployed. C6A contracts and C6B policy are shared by the C6C start and C6D
+The five signaling bindings are explicitly exported by `functions/src/index.ts`
+as of C7B; this source change does not deploy them. C6A contracts and C6B policy are shared by the C6C start and C6D
 lifecycle stores/handlers, including C6E ICE publication. C6F adds participant
 signaling reads; controls and receipts remain backend-only.
 Checkpoint 6 delivers backend signaling, not a completed mobile voice/video
-feature. The five callables are available only in the guarded local emulator.
+feature. Local integration continues to use the guarded demo emulator entry.
 
 ## Requests and responses
 
@@ -217,7 +217,7 @@ filename for the complete integration suite. The project remains fixed to
 
 The gate builds normal Functions output, then generates an ignored
 `functions/lib/c6-emulator` package from `scripts/integrationEntry.cjs`. This
-entry loads the 13 production exports and five internal C6 callables only after
+entry loads the same 18 production exports, with no additional bindings, only after
 checking Node 22, `FUNCTIONS_EMULATOR=true`, `GCLOUD_PROJECT` and
 `GOOGLE_CLOUD_QUOTA_PROJECT` against the demo project, the demo Firebase
 configuration and exact local Auth/Firestore/Storage endpoints. If present,

@@ -339,20 +339,20 @@ test('failed early outcome, conflicting intent and invalid replacement leave all
   expect(await state()).toEqual(stable); await assertIntegrity();
 });
 
-test('production retains thirteen exports, emulator adds only five C6 callables, legacy endpoints fail, and five indexes remain', async () => {
+test('production and emulator expose eighteen approved callables, legacy endpoints fail, and five indexes remain', async () => {
   const response = await fetch('http://127.0.0.1:5105/backends'); expect(response.ok).toBe(true);
   // Only inspect trigger names, never log backend environment/configuration payloads.
   const manifest: any = await response.json();
   const names = manifest.backends.flatMap((b: any) => b.functionTriggers.map((t: any) => t.name)).sort();
   const productionNames = ['completeRegistration', 'saveDoctorProfileDraft', 'prepareDoctorCredential', 'finalizeDoctorCredential',
     'submitDoctorVerification', 'reviewDoctorVerification', 'replaceDoctorAvailabilityDay', 'getAvailableAppointmentTimes',
-    'bookAppointment', 'cancelAppointment', 'recordAppointmentOutcome', 'openConsultation', 'sendConsultationMessage'].sort();
+    'bookAppointment', 'cancelAppointment', 'recordAppointmentOutcome', 'openConsultation', 'sendConsultationMessage',
+    'startConsultationCall', 'respondToConsultationCall', 'endConsultationCall', 'getConsultationCall', 'publishConsultationIce'].sort();
   const productionSource = readFileSync(resolve(__dirname, '../../src/index.ts'), 'utf8');
   const sourceNames = [...productionSource.matchAll(/^export \{([^}]+)\} from /gm)]
     .flatMap(match => match[1].split(',').map(name => name.trim())).sort();
   expect(sourceNames).toEqual(productionNames);
-  expect(names).toEqual([...productionNames, 'startConsultationCall', 'respondToConsultationCall',
-    'endConsultationCall', 'getConsultationCall', 'publishConsultationIce'].sort());
+  expect(names).toEqual(productionNames);
   for (const name of ['onUserCreate', 'startConsultation', 'setAvailability', 'createAvailability', 'updateAvailability', 'updateAppointmentStatus', 'submitCredentials', 'reviewVerification']) {
     const missing = await fetch('http://127.0.0.1:5105/' + projectId + '/us-central1/' + name, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data: {} }) });

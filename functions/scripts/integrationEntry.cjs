@@ -16,9 +16,4 @@ if (process.versions.node.split('.')[0] !== '22'
   || JSON.parse(process.env.FIREBASE_CONFIG || '{}').projectId !== expected.GCLOUD_PROJECT) {
   throw new Error('Integration entry requires the fixed local demo emulators; check: ' + mismatches.join(', '));
 }
-module.exports = {
-  ...require('../index.js'),
-  ...require('../consultations/calls/startConsultationCall.js'),
-  ...require('../consultations/calls/lifecycleCallables.js'),
-  ...require('../consultations/calls/publishConsultationIce.js'),
-};
+module.exports = require('../index.js');
