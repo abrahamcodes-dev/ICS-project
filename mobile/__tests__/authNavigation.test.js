@@ -5,6 +5,7 @@ jest.mock("../src/navigation/PatientNavigator", () => "Patient");
 jest.mock("../src/navigation/DoctorNavigator", () => "Doctor");
 jest.mock("../src/navigation/AdminNavigator", () => "Administrator");
 jest.mock('../src/screens/auth/AccountStatusScreen',()=> 'AccountStatus');
+jest.mock('../src/screens/doctor/SubmitVerificationScreen',()=> 'Verification');
 import RootNavigator from "../src/navigation/RootNavigator";
 import { useAuth } from "../src/hooks/useAuth";
 test.each(["identityMissing", "identityError", "loadingIdentity", "initializing"])("%s has no role navigator", status => {
@@ -13,7 +14,7 @@ test.each(["identityMissing", "identityError", "loadingIdentity", "initializing"
 });
 test.each(["pending", "rejected"])("%s doctor cannot enter doctor navigator", verificationStatus => {
   useAuth.mockReturnValue({ status: "ready", loading: false, user: { role: "doctor", status: "active", verificationStatus } });
-  expect(RootNavigator().type).toBe('AccountStatus');
+  expect(RootNavigator().type).toBe('Verification');
 });
 test("disabled administrator has no role navigator", () => {
   useAuth.mockReturnValue({ status: "ready", loading: false, user: { role: "administrator", status: "disabled" } });
