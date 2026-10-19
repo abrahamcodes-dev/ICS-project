@@ -2,6 +2,7 @@ export { completeRegistration } from "./auth/completeRegistration";
 export { saveDoctorProfileDraft } from "./profiles/saveDoctorProfileDraft";
 export { prepareDoctorCredential, finalizeDoctorCredential } from "./profiles/credentialCallables";
 export { submitDoctorVerification, reviewDoctorVerification } from "./profiles/verificationCallables";
+export { listPendingDoctorVerifications } from "./profiles/verificationQueueCallable";
 export { replaceDoctorAvailabilityDay, getAvailableAppointmentTimes } from "./scheduling/availabilityCallables";
 export { bookAppointment } from "./scheduling/bookingCallable";
 export { cancelAppointment, recordAppointmentOutcome } from "./scheduling/lifecycleCallables";
