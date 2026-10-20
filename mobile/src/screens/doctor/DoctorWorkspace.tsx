@@ -9,6 +9,7 @@ import {Action,Card,Copy,Field,Loading,Notice,Screen,usePalette} from '../../ui/
 import {observeAppointments,consultationUnavailable,type AppointmentRow} from '../../services/appointmentReads';
 import SchedulingAppointments from '../shared/SchedulingAppointments';
 import {readOwnDoctorProfile} from '../../services/doctorProfileRead';
+import {DoctorRatingSummaryPanel} from '../shared/RatingPanels';
 
 export const doctorTabs=['Home','Schedule','Consultations','Profile'] as const;
 type Tab=typeof doctorTabs[number];
@@ -62,5 +63,6 @@ function DoctorAccount({uid}:{uid:string}){
  useEffect(()=>{let active=true;setLoading(true);setProfile(null);setError(null);void readOwnDoctorProfile(uid).then(p=>{if(active)setProfile(p);}).catch(()=>{if(active)setError('Unable to load your professional profile.');}).finally(()=>{if(active)setLoading(false);});return()=>{active=false;};},[uid,retry]);
  return <Screen><Copy title>Doctor profile</Copy><Card><Copy title>{user?.fullName}</Copy><Copy>{user?.email}</Copy><Copy>Verification status: {user?.role==='doctor'?user.verificationStatus:'Unavailable'}</Copy></Card>
  <Card><Copy title>Professional information</Copy>{loading&&<Loading/>}<Notice message={error}/>{error&&<Action title="Retry profile" onPress={()=>setRetry(v=>v+1)}/>}{profile?Object.entries(profile).map(([key,value])=><View key={key}><Copy>{({professionalName:'Professional name',specialty:'Specialty',phoneNumber:'Phone',registrationNumber:'Registration number',issuingAuthority:'Issuing authority'} as Record<string,string>)[key]}</Copy><Copy>{value}</Copy></View>):!loading&&!error&&<Copy>No professional profile available.</Copy>}<Copy>These are your stored professional fields. Editing and credential submission are not connected in this screen.</Copy></Card>
+ <DoctorRatingSummaryPanel key={uid} uid={uid}/>
  <Action title="Sign out" disabled={busy} onPress={()=>{setBusy(true);void logout().catch(()=>setError('Unable to sign out. Please retry.')).finally(()=>setBusy(false));}}/></Screen>;
 }

@@ -1,9 +1,1 @@
-export interface Rating {
-  id: string;
-  consultationId: string;
-  doctorId: string;
-  patientId: string;
-  score: number;       // 1-5
-  comment?: string;
-  createdAt: string;
-}
+export type { ConsultationRating, DoctorRatingSummary } from './ratingContracts';

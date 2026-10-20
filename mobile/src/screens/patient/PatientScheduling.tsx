@@ -17,7 +17,7 @@ export function PatientAppointments({ navigation }: NativeStackScreenProps<Patie
   return <Screen><Copy title>Your appointments</Copy><Copy>Times use your device time zone. History includes all statuses; elapsed appointments are not automatically completed.</Copy>
     <Action title="Upcoming and active" secondary={mode !== 'upcoming'} onPress={() => setMode('upcoming')}/>
     <Action title="Appointment history" secondary={mode !== 'history'} onPress={() => setMode('history')}/>
-    {firebaseUid && focused && <SchedulingAppointments key={`${firebaseUid}:${mode}`} uid={firebaseUid} role="patient" mode={mode} boundary={boundary} open={appointmentId => navigation.navigate('Consultation', { appointmentId })}/>}
+    {firebaseUid && focused && <SchedulingAppointments key={`${firebaseUid}:${mode}`} uid={firebaseUid} role="patient" mode={mode} boundary={boundary} open={appointmentId => navigation.navigate('Consultation', { appointmentId })} rate={consultationId => navigation.navigate('RateDoctor', { consultationId })}/>}
     <PatientMenu navigation={navigation}/></Screen>;
 }
 export function DoctorsScreen(props: NativeStackScreenProps<PatientStackParams, 'Doctors'>) {

@@ -45,6 +45,12 @@ test('history preserves scheduled status after elapsed time',async()=>{
  await act(async()=>{tree=create(<List uid="p" role="patient" mode="history" boundary={boundary} open={open}/>);});
  expect(tree.root.findAllByType(Copy).some(n=>n.props.children==='scheduled')).toBe(true);expect(button('Open consultation').props.disabled).toBe(true);
 });
+test.each(['scheduled','cancelled','no_show','completed'])('rating action requires completed owned appointment: %s',async status=>{
+ const rate=jest.fn();readAppointmentPage.mockResolvedValue({rows:[{...row(),status}],cursor:null});
+ await act(async()=>{tree=create(<List uid="p" role="patient" mode="history" boundary={boundary} open={open} rate={rate}/>);});
+ if(status==='completed'){await press('Rate or view my rating');expect(rate).toHaveBeenCalledWith(id);}
+ else expect(button('Rate or view my rating')).toBeUndefined();
+});
 async function doctorRender(overrides={},role='doctor'){
  readAppointmentPage.mockResolvedValue({rows:[{...row(),startAt:Date.now()-3600000,endAt:Date.now()-1800000,...overrides}],cursor:null});
  await act(async()=>{tree=create(<List uid={role==='doctor'?'d':'p'} role={role} mode="history" boundary={boundary} open={open}/>);});

@@ -1,4 +1,5 @@
 const React=require('react'),{create,act}=require('react-test-renderer');
+jest.mock('../src/screens/shared/RatingPanels',()=>({DoctorRatingSummaryPanel:()=>null}));
 jest.mock('../src/hooks/useSchedulingSession',()=>({useSchedulingSession:()=>({})}));
 jest.mock('../src/services/schedulingService',()=>({schedulingError:()=> 'Unavailable'}));
 let mockNext,mockStatus='approved';const mockStop=jest.fn();

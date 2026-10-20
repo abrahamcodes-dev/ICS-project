@@ -5,8 +5,8 @@ import { readAppointmentPage, consultationUnavailable, type AppointmentRow, type
 import { useSchedulingSession } from '../../hooks/useSchedulingSession';
 import { schedulingError } from '../../services/schedulingService';
 
-export default function SchedulingAppointments({ uid, role, open, mode = 'upcoming', boundary, end }:
-  { uid: string; role: ParticipantRole; open(id: string): void; mode?: AppointmentPageMode; boundary: number; end?: number }) {
+export default function SchedulingAppointments({ uid, role, open, rate, mode = 'upcoming', boundary, end }:
+  { uid: string; role: ParticipantRole; open(id: string): void; rate?(id: string): void; mode?: AppointmentPageMode; boundary: number; end?: number }) {
   const session = useSchedulingSession(uid), generation = useRef(0), busy = useRef(false), deciding = useRef(false);
   const [rows, setRows] = useState<AppointmentRow[]>([]), [cursor, setCursor] = useState<AppointmentCursor | null>(null);
   const [loading, setLoading] = useState(true), [error, setError] = useState<string | null>(null), [retry, setRetry] = useState(0);
@@ -60,6 +60,8 @@ export default function SchedulingAppointments({ uid, role, open, mode = 'upcomi
         {unavailable && <Copy>{unavailable}</Copy>}<Action title="Open consultation" disabled={!!unavailable} onPress={() => {
           if (!consultationUnavailable(a, uid, role, Date.now())) open(a.appointmentId);
         }}/>
+        {role === 'patient' && a.patientId === uid && a.status === 'completed' && rate &&
+          <Action title="Rate or view my rating" onPress={() => rate(a.appointmentId)}/>}
         {role === 'doctor' && a.doctorId === uid && a.status === 'scheduled' && a.endAt <= now &&
           <Action title="Record completed appointment" disabled={pending || !!complete} onPress={() => {
             if (a.endAt <= Date.now()) { setComplete(a); setUncertain(false); setMessage(null); setError(null); }

@@ -1,20 +1,15 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-
-// Sprint: 5
-// Rate and review a doctor after a completed consultation.
-export default function RateDoctorScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>RateDoctorScreen</Text>
-      <Text style={styles.desc}>Rate and review a doctor after a completed consultation.</Text>
-      {/* TODO: implement screen per Supervisor Development Guide, Section 7 (workflows) */}
-    </View>
-  );
+import React from 'react';
+import { useIsFocused } from '@react-navigation/native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { PatientStackParams } from '../../navigation/types';
+import { useAuth } from '../../hooks/useAuth';
+import { Screen, Copy } from '../../ui/design';
+import { PatientRating } from '../shared/RatingPanels';
+export default function RateDoctorScreen({ route }: NativeStackScreenProps<PatientStackParams, 'RateDoctor'>) {
+  const identity = useAuth(), focused = useIsFocused();
+  if (!focused) return null;
+  const cid = route.params?.consultationId;
+  if (identity.status !== 'ready' || identity.user?.role !== 'patient' || identity.user.status !== 'active'
+    || !identity.firebaseUid || !cid || !/^[a-f0-9]{64}$/.test(cid)) return <Screen><Copy>Open a completed appointment from your account.</Copy></Screen>;
+  return <Screen><PatientRating key={`${identity.firebaseUid}:${cid}`} uid={identity.firebaseUid} cid={cid}/></Screen>;
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, justifyContent: "center" },
-  title: { fontSize: 20, fontWeight: "600", marginBottom: 8 },
-  desc: { fontSize: 14, color: "#555" },
-});
