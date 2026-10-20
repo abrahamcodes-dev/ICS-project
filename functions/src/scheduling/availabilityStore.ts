@@ -1,4 +1,5 @@
 import { Timestamp, type Firestore, type DocumentData } from 'firebase-admin/firestore';
+import { writeEvent } from '../notifications/events';
 import type { DomainTimestamp, DoctorProfile } from '../../../shared/types/profiles';
 import type { VerificationRequest } from '../../../shared/types/verification';
 import type { DoctorAvailability } from '../../../shared/types/scheduling';
@@ -56,6 +57,8 @@ export function createAvailabilityStore(db: Firestore): AvailabilityDependencies
           const data = validateAppointment(value);
           if (data.status !== 'scheduled') fail('creation-must-be-scheduled');
           tx.create(ref('appointments', data.appointmentId), { ...encodeScheduled(data), updatedAt: encodeTime(data.updatedAt) });
+          for (const uid of [data.patientId, data.doctorId])
+            writeEvent(db, tx, uid, 'booking', data.appointmentId, data.appointmentId, data.createdAt);
         },
         createLock: (id, value) => { tx.create(ref('bookingLocks', id), encodeScheduled(validateBookingLock(value))); },
         saveTerminalAppointment: value => {
@@ -64,6 +67,8 @@ export function createAvailabilityStore(db: Firestore): AvailabilityDependencies
           tx.update(ref('appointments', data.appointmentId), { ...encodeScheduled(data), updatedAt: encodeTime(data.updatedAt),
             cancellation: data.cancellation ? { ...data.cancellation, cancelledAt: encodeTime(data.cancellation.cancelledAt) } : null,
             outcome: data.outcome ? { ...data.outcome, recordedAt: encodeTime(data.outcome.recordedAt) } : null });
+          if (data.status === 'cancelled') for (const uid of [data.patientId, data.doctorId])
+            writeEvent(db, tx, uid, 'cancellation', data.appointmentId, data.appointmentId, data.cancellation.cancelledAt);
         },
         deleteLock: id => { tx.delete(ref('bookingLocks', id)); },
         availability: async id => {

@@ -25,6 +25,7 @@ export function PatientHomeScreen({navigation}:NativeStackScreenProps<PatientSta
  const next=data.rows.filter(a=>a.status==='scheduled'&&a.endAt>Date.now()).sort((a,b)=>a.startAt-b.startAt)[0];
  return <Screen><Brand/><Copy title>Hello, {user?.fullName?.split(' ')[0]||'there'}</Copy><Copy>Your care, one step at a time.</Copy>
  <Action title="My prescriptions" onPress={()=>navigation.navigate('Prescriptions')}/>
+ <Action title="Notifications" onPress={()=>navigation.navigate('Notifications')}/>
  <Card><Copy title>How can we help?</Copy><Action title="Find a doctor" onPress={()=>navigation.navigate('Doctors')}/><Action title="My appointments" onPress={()=>navigation.navigate('Appointments')}/><Action title="My profile" onPress={()=>navigation.navigate('Profile')}/></Card>
  <Card><Copy title>Next appointment</Copy>{data.loading?<Loading label="Loading appointments..."/>:data.error?<><Notice message="Unable to load appointments."/><Action title="Retry" onPress={data.retry}/></>:next?<><Copy>{new Date(next.startAt).toLocaleString()}</Copy><Copy>Scheduled consultation</Copy><Action title="View appointments" onPress={()=>navigation.navigate('Appointments')}/></>:<Copy>No upcoming appointment.</Copy>}</Card><PatientMenu navigation={navigation}/></Screen>;
 }

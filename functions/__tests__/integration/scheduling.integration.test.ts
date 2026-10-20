@@ -363,7 +363,7 @@ test('failed early outcome, conflicting intent and invalid replacement leave all
   expect(await state()).toEqual(stable); await assertIntegrity();
 });
 
-test('production and emulator expose twenty-six approved callables, legacy endpoints fail, and five indexes remain', async () => {
+test('production and emulator expose thirty approved callables, legacy endpoints fail, and five indexes remain', async () => {
   const response = await fetch('http://127.0.0.1:5105/backends'); expect(response.ok).toBe(true);
   // Only inspect trigger names, never log backend environment/configuration payloads.
   const manifest: any = await response.json();
@@ -371,6 +371,7 @@ test('production and emulator expose twenty-six approved callables, legacy endpo
   const productionNames = ['completeRegistration', 'saveDoctorProfileDraft', 'prepareDoctorCredential', 'finalizeDoctorCredential',
     'listPendingDoctorVerifications', 'listApprovedDoctors', 'getOwnDoctorAvailabilityDay', 'issuePrescription', 'getConsultationPrescription',
     'rateDoctor', 'getOwnConsultationRating', 'getOwnDoctorRatingSummary',
+    'listNotifications', 'markNotificationRead', 'openNotification', 'setNotificationDevice',
     'submitDoctorVerification', 'reviewDoctorVerification', 'replaceDoctorAvailabilityDay', 'getAvailableAppointmentTimes',
     'bookAppointment', 'cancelAppointment', 'recordAppointmentOutcome', 'openConsultation', 'sendConsultationMessage',
     'startConsultationCall', 'respondToConsultationCall', 'endConsultationCall', 'getConsultationCall', 'publishConsultationIce'].sort();

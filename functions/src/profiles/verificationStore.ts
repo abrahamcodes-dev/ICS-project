@@ -6,6 +6,7 @@ import type { CollectionReference } from 'firebase-admin/firestore';
 import type { VerificationDependencies } from './verificationHandlers';
 import { createCredentialStore } from './credentialStore';
 import { fail } from './domainValidation';
+import { writeEvent } from '../notifications/events';
 
 const timeFields = ['createdAt', 'updatedAt', 'submittedAt', 'reviewedAt', 'invalidatedAt', 'expiresAt', 'publishedAt', 'occurredAt'];
 function decode<T>(data: DocumentData | undefined): T | null {
@@ -37,7 +38,12 @@ export function createVerificationStore(db: Firestore, bucket: Bucket): Verifica
           if (data.requestId !== latest.id) fail('request-id-mismatch'); return data;
         },
         createRequest: data => { tx.create(ref('verificationRequests', data.requestId), encode(data)); },
-        saveRequest: data => { tx.set(ref('verificationRequests', data.requestId), encode(data)); },
+        saveRequest: data => {
+          tx.set(ref('verificationRequests', data.requestId), encode(data));
+          if ((data.state === 'approved' || data.state === 'rejected') && data.reviewedAt)
+            writeEvent(db, tx, data.doctorUid, data.state === 'approved' ? 'verification_approved' : 'verification_rejected',
+              data.requestId, null, data.reviewedAt);
+        },
         saveProfile: data => { tx.set(ref('doctorProfiles', data.uid), encode(data)); },
         saveCredential: data => { tx.set(ref('doctorCredentials', data.credentialId), encode(data)); },
         saveIdentity: data => { tx.set(ref('users', data.uid), data); },

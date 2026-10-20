@@ -1,6 +1,7 @@
 import { Timestamp, type Firestore } from 'firebase-admin/firestore';
 import { consultationTransaction } from '../consultations/consultationStore';
 import { fail } from '../profiles/domainValidation';
+import { writeEvent } from '../notifications/events';
 import { validateStored, type PrescriptionDependencies } from './handlers';
 export function createPrescriptionStore(db: Firestore): PrescriptionDependencies {
   return {
@@ -20,6 +21,7 @@ export function createPrescriptionStore(db: Firestore): PrescriptionDependencies
         const d = validateStored(value);
         tx.create(db.collection('prescriptions').doc(d.prescriptionId),
           { ...d, issuedAt: new Timestamp(d.issuedAt.seconds, d.issuedAt.nanoseconds) });
+        writeEvent(db, tx, d.patientId, 'prescription', d.prescriptionId, d.appointmentId, d.issuedAt);
       },
     })),
   };

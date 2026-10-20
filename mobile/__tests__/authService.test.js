@@ -4,6 +4,7 @@ jest.mock("firebase/auth", () => ({
 }));
 jest.mock("firebase/functions", () => ({ getFunctions: jest.fn(() => ({})), httpsCallable: jest.fn() }));
 jest.mock("firebase/firestore", () => ({ doc: jest.fn((_db, _collection, uid) => uid), getDoc: jest.fn(), setDoc: jest.fn() }));
+jest.mock('../src/services/notificationDevice',()=>({prepareNotificationLogout:jest.fn(async()=>{})}));
 
 import { auth } from "../src/services/firebaseConfig";
 import { createUserWithEmailAndPassword, signOut } from "firebase/auth";
@@ -14,6 +15,11 @@ import { loadOwnIdentity } from "../src/services/identityService";
 const mockIdentity = { uid: "u1", email: "test@example.test", fullName: "Test", role: "patient", status: "active",
   schemaVersion: 1, createdAt: "2026-10-01T00:00:00.000Z", updatedAt: "2026-10-01T00:00:00.000Z" };
 const mockCallable = jest.fn();
+test('unconfirmed device revocation prevents sign-out until retry',async()=>{
+  require('../src/services/notificationDevice').prepareNotificationLogout.mockRejectedValueOnce(Error('revocation unconfirmed'));
+  await expect(logoutUser()).rejects.toThrow('revocation unconfirmed');
+  expect(signOut).not.toHaveBeenCalled();
+});
 beforeEach(() => {
   jest.clearAllMocks();
   auth.currentUser = null;

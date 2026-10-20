@@ -14,5 +14,6 @@ export { respondToConsultationCall, endConsultationCall, getConsultationCall } f
 export { publishConsultationIce } from "./consultations/calls/publishConsultationIce";
 export { issuePrescription, getConsultationPrescription } from "./prescriptions/issuePrescription";
 export { rateDoctor, getOwnConsultationRating, getOwnDoctorRatingSummary } from "./ratings/rateDoctor";
+export { listNotifications, markNotificationRead, openNotification, setNotificationDevice } from "./notifications/callables";
 // Later-workflow callables remain in source but are inactive pending authorization
 // and workflow design. Never export onUserCreate or operator provisioning here.

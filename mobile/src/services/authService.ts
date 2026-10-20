@@ -4,6 +4,7 @@ import type { PublicRegistrationRole, PublicRegistrationRequest, CallADocIdentit
 import { auth, app } from "./firebaseConfig";
 import { loadOwnIdentity } from "./identityService";
 import { parseIdentity } from "./identityParser";
+import { prepareNotificationLogout } from "./notificationDevice";
 
 const identityListeners = new Set<() => void>();
 export function onIdentityRefresh(listener: () => void) {
@@ -51,6 +52,7 @@ export function loginUser(email: string, password: string) {
   return signInWithEmailAndPassword(auth, email, password);
 }
 export async function logoutUser() {
+  await prepareNotificationLogout();
   await signOut(auth);
   notifyIdentityRefresh();
 }
