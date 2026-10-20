@@ -1,8 +1,27 @@
-import {collection, query, where, orderBy, limit, onSnapshot, Timestamp} from 'firebase/firestore';
+import {collection, query, where, orderBy, limit, onSnapshot, Timestamp, getDocs, startAfter, documentId,
+  type QueryDocumentSnapshot, type DocumentData, type QueryConstraint} from 'firebase/firestore';
 import type {AppointmentStatus} from '@shared/types/scheduling';
 import {db} from './firebaseConfig';
 
 export type ParticipantRole = 'patient' | 'doctor';
+export type AppointmentCursor = QueryDocumentSnapshot<DocumentData>;
+export type AppointmentPageMode = 'upcoming' | 'history' | 'day';
+export async function readAppointmentPage(uid: string, role: ParticipantRole, mode: AppointmentPageMode,
+  boundary: number, cursor?: AppointmentCursor, end?: number) {
+  const constraints: QueryConstraint[] = [where(`${role}Id`, '==', uid)];
+  if (mode === 'upcoming') constraints.push(where('status', '==', 'scheduled'), where('startAt', '>=', Timestamp.fromMillis(boundary)));
+  if (mode === 'day') {
+    if (!Number.isFinite(end) || end! <= boundary) throw new Error('Invalid schedule range.');
+    constraints.push(where('startAt', '>=', Timestamp.fromMillis(boundary)), where('startAt', '<', Timestamp.fromMillis(end!)));
+  }
+  const direction = mode === 'upcoming' ? 'asc' : 'desc';
+  constraints.push(orderBy('startAt', direction), orderBy(documentId(), direction));
+  if (cursor) constraints.push(startAfter(cursor));
+  constraints.push(limit(20));
+  const result = await getDocs(query(collection(db, 'appointments'), ...constraints));
+  return { rows: result.docs.map(d => parseAppointment(d.id, d.data(), uid, role)),
+    cursor: result.docs.length === 20 ? result.docs[result.docs.length - 1] : null };
+}
 export interface AppointmentRow {
   appointmentId: string; patientId: string; doctorId: string;
   startAt: number; endAt: number; status: AppointmentStatus;
@@ -27,10 +46,12 @@ export function consultationUnavailable(a: AppointmentRow, uid: string, role: Pa
 }
 /** Existing participant/startAt descending indexes; no client writes or legacy booking service. */
 export function observeAppointments(uid: string, role: ParticipantRole,
-  next: (rows: AppointmentRow[]) => void, error: () => void) {
+  next: (rows: AppointmentRow[]) => void, error: () => void, upcoming = false) {
   let active = true;
-  const stop = onSnapshot(query(collection(db,'appointments'), where(`${role}Id`,'==',uid),
-    orderBy('startAt','desc'), limit(50)), snapshot => {
+  const filters: QueryConstraint[] = [where(`${role}Id`,'==',uid)];
+  if (upcoming) filters.push(where('status','==','scheduled'), where('startAt','>=',Timestamp.fromMillis(Date.now()-45*60000)));
+  const stop = onSnapshot(query(collection(db,'appointments'), ...filters,
+    orderBy('startAt',upcoming?'asc':'desc'), limit(50)), snapshot => {
       if (!active) return;
       try { next(snapshot.docs.map(d => parseAppointment(d.id,d.data(),uid,role))); }
       catch { error(); }

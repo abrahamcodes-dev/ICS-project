@@ -21,6 +21,30 @@ const upcoming = (c: Client, owner: string, start: number) => query(collection(c
   orderBy('startAt', 'asc'), orderBy(documentId(), 'asc'), limit(50));
 const get = (c: Client, id: string) => getDoc(doc(c.firestore, 'appointments', id));
 
+test('C9C bounded directory and own-day reads preserve canonical authorization and private DTOs', async () => {
+  const { patientA, doctorA } = actors, start = tomorrowStart();
+  const directory = await call(patientA, 'listApprovedDoctors', { limit: 1 });
+  expect(directory.items).toHaveLength(1);
+  expect(Object.keys(directory.items[0]).sort()).toEqual(['professionalName', 'specialty', 'uid']);
+  expect(typeof directory.nextCursor).toBe('string');
+  const next = await call(patientA, 'listApprovedDoctors', { limit: 1, after: directory.nextCursor });
+  expect(next.items[0].uid).not.toBe(directory.items[0].uid);
+  await denied(call(doctorA, 'listApprovedDoctors', {}), 'functions/permission-denied');
+  await denied(call(patientA, 'getOwnDoctorAvailabilityDay', { utcDate: dayOf(start) }), 'functions/permission-denied');
+  expect(await call(doctorA, 'getOwnDoctorAvailabilityDay', { utcDate: dayOf(start) })).toEqual({ day: null });
+  await publish(doctorA, start);
+  const own = await call(doctorA, 'getOwnDoctorAvailabilityDay', { utcDate: dayOf(start) });
+  expect(own.day).toEqual({ utcDate: dayOf(start), timeZone: availabilityInput(start).timeZone, revision: 1, windows: availabilityInput(start).windows });
+  await denied(call(doctorA, 'getOwnDoctorAvailabilityDay', { utcDate: dayOf(start), doctorId: actors.doctorB.uid }), 'functions/invalid-argument');
+  await denied(getDoc(doc(doctorA.firestore, 'doctorAvailability', hash(doctorA.uid, dayOf(start)))), 'permission-denied');
+  const booked = await book(patientA, intent(doctorA, start));
+  const midnight = Date.parse(dayOf(start) + 'T00:00:00Z');
+  const schedule = query(collection(doctorA.firestore, 'appointments'), where('doctorId', '==', doctorA.uid),
+    where('startAt', '>=', Timestamp.fromMillis(midnight)), where('startAt', '<', Timestamp.fromMillis(midnight + 86400000)),
+    orderBy('startAt', 'desc'), orderBy(documentId(), 'desc'), limit(20));
+  expect((await getDocs(schedule)).docs.map(d => d.id)).toEqual([booked.appointmentId]);
+});
+
 test('real callable publish -> discover -> book -> participant read -> cancel -> rediscover -> different patient rebooks', async () => {
   const start = tomorrowStart(), { doctorA, patientA, patientB } = actors, before = Date.now();
   const published = await publish(doctorA, start);
@@ -339,12 +363,13 @@ test('failed early outcome, conflicting intent and invalid replacement leave all
   expect(await state()).toEqual(stable); await assertIntegrity();
 });
 
-test('production and emulator expose eighteen approved callables, legacy endpoints fail, and five indexes remain', async () => {
+test('production and emulator expose twenty-one approved callables, legacy endpoints fail, and five indexes remain', async () => {
   const response = await fetch('http://127.0.0.1:5105/backends'); expect(response.ok).toBe(true);
   // Only inspect trigger names, never log backend environment/configuration payloads.
   const manifest: any = await response.json();
   const names = manifest.backends.flatMap((b: any) => b.functionTriggers.map((t: any) => t.name)).sort();
   const productionNames = ['completeRegistration', 'saveDoctorProfileDraft', 'prepareDoctorCredential', 'finalizeDoctorCredential',
+    'listPendingDoctorVerifications', 'listApprovedDoctors', 'getOwnDoctorAvailabilityDay',
     'submitDoctorVerification', 'reviewDoctorVerification', 'replaceDoctorAvailabilityDay', 'getAvailableAppointmentTimes',
     'bookAppointment', 'cancelAppointment', 'recordAppointmentOutcome', 'openConsultation', 'sendConsultationMessage',
     'startConsultationCall', 'respondToConsultationCall', 'endConsultationCall', 'getConsultationCall', 'publishConsultationIce'].sort();

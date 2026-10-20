@@ -7,6 +7,7 @@ import type {DoctorStackParams} from '../../navigation/types';
 import {useAuth} from '../../hooks/useAuth';
 import {Action,Card,Copy,Field,Loading,Notice,Screen,usePalette} from '../../ui/design';
 import {observeAppointments,consultationUnavailable,type AppointmentRow} from '../../services/appointmentReads';
+import SchedulingAppointments from '../shared/SchedulingAppointments';
 import {readOwnDoctorProfile} from '../../services/doctorProfileRead';
 
 export const doctorTabs=['Home','Schedule','Consultations','Profile'] as const;
@@ -21,18 +22,18 @@ export default function DoctorWorkspace({navigation}:NativeStackScreenProps<Doct
  if(identity.status!=='ready'||identity.user?.role!=='doctor'||identity.user.status!=='active'||identity.user.verificationStatus!=='approved'||!identity.firebaseUid)
   return <Screen><Copy>Clinical access requires an active, approved doctor account.</Copy></Screen>;
  return <View style={{flex:1,backgroundColor:colors.background}}>
-  <DoctorContent key={`${identity.firebaseUid}:${tab}`} uid={identity.firebaseUid} tab={tab} select={setTab} open={appointmentId=>navigation.navigate('ConsultationRoom',{appointmentId})}/>
+  <DoctorContent key={`${identity.firebaseUid}:${tab}`} uid={identity.firebaseUid} tab={tab} select={setTab} manage={()=>navigation.navigate('SetAvailability')} open={appointmentId=>navigation.navigate('ConsultationRoom',{appointmentId})}/>
   <SafeAreaView edges={['bottom']} style={{backgroundColor:colors.surface,borderTopWidth:1,borderColor:colors.border}}>
    <View style={{flexDirection:'row'}}>{doctorTabs.map(name=><Pressable key={name} accessibilityRole="tab" accessibilityLabel={name} accessibilityState={{selected:tab===name}} onPress={()=>setTab(name)} style={({pressed})=>({flex:1,minHeight:64,paddingVertical:12,paddingHorizontal:4,alignItems:'center',justifyContent:'center',opacity:pressed?0.65:1,borderTopWidth:3,borderTopColor:tab===name?colors.accent:'transparent'})}><Text style={{color:colors.text,fontSize:12,fontWeight:tab===name?'700':'400',textAlign:'center'}}>{name}</Text></Pressable>)}</View>
   </SafeAreaView>
  </View>;
 }
 
-export function DoctorContent({uid,tab,select,open}:{uid:string;tab:Tab;select(tab:Tab):void;open(id:string):void}){
- const {user}=useAuth();const [rows,setRows]=useState<AppointmentRow[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState(false),[retry,setRetry]=useState(0);
+export function DoctorContent({uid,tab,select,open,manage}:{uid:string;tab:Tab;select(tab:Tab):void;open(id:string):void;manage():void}){
+ const {user}=useAuth();const [boundary]=useState(()=>Date.now()-45*60000);const [rows,setRows]=useState<AppointmentRow[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState(false),[retry,setRetry]=useState(0);
  const [now,setNow]=useState(Date.now()),[day,setDay]=useState(localDay(Date.now())),[previous,setPrevious]=useState(false);
- useEffect(()=>{if(tab==='Profile')return;let active=true;setLoading(true);setError(false);setRows([]);
-  const stop=observeAppointments(uid,'doctor',value=>{if(active){setRows(value);setLoading(false);}},()=>{if(active){setRows([]);setLoading(false);setError(true);}});
+ useEffect(()=>{if(tab!=='Home')return;let active=true;setLoading(true);setError(false);setRows([]);
+  const stop=observeAppointments(uid,'doctor',value=>{if(active){setRows(value);setLoading(false);}},()=>{if(active){setRows([]);setLoading(false);setError(true);}},true);
   const timer=setInterval(()=>setNow(Date.now()),1000);return()=>{active=false;stop();clearInterval(timer);};
  },[uid,tab,retry]);
  if(tab==='Profile')return <DoctorAccount uid={uid}/>;
@@ -40,13 +41,16 @@ export function DoctorContent({uid,tab,select,open}:{uid:string;tab:Tab;select(t
  const next=rows.filter(a=>a.status==='scheduled'&&a.endAt+900000>now).sort((a,b)=>a.startAt-b.startAt)[0];
  const list=tab==='Home'?today:tab==='Schedule'?rows.filter(a=>localDay(a.startAt)===day):rows.filter(a=>previous?(a.status!=='scheduled'||a.endAt+900000<=now):(a.status==='scheduled'&&a.endAt+900000>now));
  return <Screen><Copy title>{tab==='Home'?`Hello, ${user?.fullName||'Doctor'}`:tab}</Copy>
-  {tab==='Home'&&<><Copy>Verification status: {user?.role==='doctor'?user.verificationStatus:'Unavailable'}</Copy><Card><Copy title>Your next consultation</Copy>{!loading&&!error&&next?<><Copy>{new Date(next.startAt).toLocaleString()}</Copy><Action title="View consultations" onPress={()=>select('Consultations')}/></>:<Copy>{loading?'Loading your schedule…':error?'Schedule unavailable.':'No upcoming consultation in your latest 50 records.'}</Copy>}</Card><Action title="Manage my schedule" onPress={()=>select('Schedule')}/><Action secondary title="My consultations" onPress={()=>select('Consultations')}/><Copy title>Today’s appointments</Copy></>}
-  {tab==='Schedule'&&<><Field label="Schedule date (YYYY-MM-DD)" value={day} onChangeText={setDay} autoCapitalize="none" maxLength={10}/>{!validDay(day)&&<Notice message="Enter a valid calendar date."/>}<Card><Copy title>Availability</Copy><Copy>Availability slots and editing are not available in this doctor interface yet. Your appointments below are confirmed records, not open slots.</Copy><Action title="Availability editing unavailable" disabled onPress={()=>{}}/></Card></>}
-  {tab==='Consultations'&&<View style={{gap:8}}><Action title="Upcoming and active" secondary={previous} onPress={()=>setPrevious(false)}/><Action title="Previous and canceled" secondary={!previous} onPress={()=>setPrevious(true)}/></View>}
-  <Copy>Latest 50 appointments. Dates and times use your device time zone.</Copy>
+  {tab==='Home'&&<><Copy>Verification status: {user?.role==='doctor'?user.verificationStatus:'Unavailable'}</Copy><Card><Copy title>Your next consultation</Copy>{!loading&&!error&&next?<><Copy>{new Date(next.startAt).toLocaleString()}</Copy><Action title="View consultations" onPress={()=>select('Consultations')}/></>:<Copy>{loading?'Loading your schedule…':error?'Schedule unavailable.':'No upcoming consultation.'}</Copy>}</Card><Action title="Manage my schedule" onPress={()=>select('Schedule')}/><Action secondary title="My consultations" onPress={()=>select('Consultations')}/><Copy title>Today’s appointments</Copy></>}
+  {tab==='Schedule'&&<><Field label="Schedule date (YYYY-MM-DD)" value={day} onChangeText={setDay} autoCapitalize="none" maxLength={10}/>{!validDay(day)&&<Notice message="Enter a valid calendar date."/>}<Card><Copy title>Availability</Copy><Copy>Edit dated UTC availability. Appointments below are confirmed records, not open slots.</Copy><Action title="Edit availability" onPress={manage}/></Card></>}
+  {tab==='Consultations'&&<View style={{gap:8}}><Action title="Upcoming and active" secondary={previous} onPress={()=>setPrevious(false)}/><Action title="Appointment history" secondary={!previous} onPress={()=>setPrevious(true)}/></View>}
+  {tab==='Home'&&<Copy>Next 50 scheduled appointments, including active consultations. Dates and times use your device time zone.</Copy>}
+  {tab==='Consultations'&&<SchedulingAppointments key={previous?'history':'upcoming'} uid={uid} role="doctor" mode={previous?'history':'upcoming'} boundary={boundary} open={open}/>}
+  {tab==='Schedule'&&validDay(day)&&<SchedulingAppointments key={day} uid={uid} role="doctor" mode="day" boundary={new Date(day+'T00:00:00').getTime()} end={new Date(new Date(day+'T00:00:00').setDate(new Date(day+'T00:00:00').getDate()+1)).getTime()} open={open}/>}
+  {tab==='Home'&&<>
   {loading&&<Loading label="Loading appointments…"/>}{error&&<><Notice message="Unable to load appointments. Check your connection and account access."/><Action title="Retry" onPress={()=>setRetry(v=>v+1)}/></>}
   {!loading&&!error&&list.length===0&&<Card><Copy>No appointments in this view.</Copy></Card>}
-  {[...list].sort((a,b)=>a.startAt-b.startAt).map(a=><DoctorAppointmentCard key={a.appointmentId} appointment={a} uid={uid} now={now} open={open}/>)}</Screen>;
+  {[...list].sort((a,b)=>a.startAt-b.startAt).map(a=><DoctorAppointmentCard key={a.appointmentId} appointment={a} uid={uid} now={now} open={open}/>)}</>}</Screen>;
 }
 export function DoctorAppointmentCard({appointment:a,uid,now,open}:{appointment:AppointmentRow;uid:string;now:number;open(id:string):void}){
  const reason=consultationUnavailable(a,uid,'doctor',now);

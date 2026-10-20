@@ -83,12 +83,27 @@ Build invocation from `mobile/android` (process-local Android Studio JBR and And
 .\gradlew.bat ':app:assembleDebug' '--no-daemon' '--max-workers=1' '-Dorg.gradle.parallel=false' '-Dorg.gradle.jvmargs=-Xmx1536m -XX:MaxMetaspaceSize=512m' '-Pkotlin.compiler.execution.strategy=in-process' '-PreactNativeArchitectures=x86_64'
 ```
 
-Recommendation: NO-GO for dashboard integration until the JDK/Prefab build issue is
+Initial spike recommendation: NO-GO for dashboard integration until the JDK/Prefab build issue is
 resolved in a controlled follow-up and actual runtime rendering/cleanup is verified.
+
+### Subsequent controlled JDK 17 recovery
+
+The authorized follow-up used the existing Temurin JDK 17 installation with
+process-local Java selection. Android debug compilation succeeded in **8m 30s**
+(409 tasks, 99 executed), producing
+`mobile/android/app/build/outputs/apk/debug/app-debug.apk` (91,000,794 bytes).
+This records the previously reported recovery; C9C did not rerun the native build.
+The original JDK 25/Prefab failure findings above remain historical evidence.
+
+The native compilation blocker is resolved. Checkpoint 9B subsequently integrated
+the authenticated, private-file credential viewer; see `ADMIN_VERIFICATION_MOBILE.md`.
+**PDF rendering, Android administrator workflow and device cleanup remain unverified.**
+A successful build is not a runtime rendering result. No Android emulator was
+launched during this documentation update.
 
 ## Future runtime test (approval required; not performed by this spike)
 
-1. First obtain a successful native development APK after resolving the build blocker;
+1. Use the successful JDK 17 native development APK (rebuild only if necessary);
    Expo Go cannot run this renderer.
 2. Temporarily select `pdf-spike.js` as the mobile package's `main` entry, saving and
    restoring the existing value `node_modules/expo/AppEntry.js` afterward. This isolates
@@ -99,6 +114,7 @@ resolved in a controlled follow-up and actual runtime rendering/cleanup is verif
    repeated opens, backgrounding, explicit close and cache-file removal.
 5. Restore the normal entry and stop the test resources. Do not use real credentials.
 
-Integration into 9B still requires approved runtime validation and an authenticated,
-Storage-Rules-authorized download adapter with size/content-type checks, logout cleanup
-and no durable Firebase download-token URLs. No such adapter is implemented here.
+The original isolated spike did not contain an authenticated download adapter.
+Checkpoint 9B now supplies it with Storage Rules authorization, size/content-type
+checks, logout cleanup and no durable Firebase download-token URLs. Runtime
+validation remains outstanding for both the synthetic harness and the dashboard.

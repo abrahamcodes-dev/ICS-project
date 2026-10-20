@@ -2,8 +2,9 @@ let mockNext,mockError;
 const mockStop=jest.fn();
 jest.mock('../src/services/firebaseConfig',()=>({db:{}}));
 jest.mock('firebase/firestore',()=>({
- Timestamp:class {constructor(ms){this.ms=ms;}toMillis(){return this.ms;}},
+ Timestamp:class {constructor(ms){this.ms=ms;}toMillis(){return this.ms;}static fromMillis(ms){return new this(ms);}},
  collection:jest.fn((_,name)=>name),where:jest.fn((...a)=>a),orderBy:jest.fn((...a)=>a),limit:jest.fn(n=>n),query:jest.fn((...a)=>a),
+ documentId:jest.fn(()=> '__name__'),startAfter:jest.fn(cursor=>['after',cursor]),getDocs:jest.fn(),
  onSnapshot:jest.fn((q,next,error)=>{mockNext=next;mockError=error;return mockStop;})
 }));
 const {Timestamp,query}=require('firebase/firestore');
@@ -32,4 +33,21 @@ test('start inclusive and end plus grace exclusive; unrelated entry denied',()=>
 test('cleanup ignores late responses and errors',()=>{
  const next=jest.fn(),error=jest.fn(),stop=observeAppointments('p','patient',next,error);stop();mockNext({docs:[{id,data}]});mockError();
  expect(next).not.toHaveBeenCalled();expect(error).not.toHaveBeenCalled();expect(mockStop).toHaveBeenCalledTimes(1);
+});
+
+test.each(['patient','doctor'])('%s upcoming page has owner, bounds, stable timestamp/id order and cursor',async role=>{
+ const sdk=require('firebase/firestore'),{readAppointmentPage}=require('../src/services/appointmentReads');
+ sdk.getDocs.mockResolvedValue({docs:[]});const cursor={id:'cursor'},uid=role==='patient'?'p':'d';
+ expect(await readAppointmentPage(uid,role,'upcoming',1000,cursor)).toEqual({rows:[],cursor:null});
+ expect(query).toHaveBeenLastCalledWith('appointments',[`${role}Id`,'==',uid],['status','==','scheduled'],['startAt','>=',expect.any(Timestamp)],['startAt','asc'],['__name__','asc'],['after',cursor],20);
+});
+test('day query uses existing descending owner index and exact half-open boundaries',async()=>{
+ const sdk=require('firebase/firestore'),{readAppointmentPage}=require('../src/services/appointmentReads');sdk.getDocs.mockResolvedValue({docs:[]});
+ await readAppointmentPage('d','doctor','day',1000,undefined,2000);
+ expect(query).toHaveBeenLastCalledWith('appointments',['doctorId','==','d'],['startAt','>=',expect.any(Timestamp)],['startAt','<',expect.any(Timestamp)],['startAt','desc'],['__name__','desc'],20);
+ await expect(readAppointmentPage('d','doctor','day',2000,undefined,1000)).rejects.toThrow();
+});
+test('home preview uses upcoming index instead of latest-history truncation',()=>{
+ observeAppointments('p','patient',jest.fn(),jest.fn(),true);
+ expect(query).toHaveBeenCalledWith('appointments',['patientId','==','p'],['status','==','scheduled'],['startAt','>=',expect.any(Timestamp)],['startAt','asc'],50);
 });

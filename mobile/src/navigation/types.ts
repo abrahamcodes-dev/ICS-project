@@ -1,6 +1,6 @@
 export type PatientStackParams = {
   Home: undefined; Doctors: undefined; Profile: undefined; DoctorProfile: {doctorId:string};
-  HealthProfile: undefined; BookAppointment: undefined; Appointments: undefined;
+  HealthProfile: undefined; BookAppointment: {doctorId: string; startAt: number}; Appointments: undefined;
   Consultation: {appointmentId: string}; Prescriptions: undefined;
   RateDoctor: undefined; Chatbot: undefined; Notifications: undefined;
 };

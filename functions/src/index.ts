@@ -4,6 +4,7 @@ export { prepareDoctorCredential, finalizeDoctorCredential } from "./profiles/cr
 export { submitDoctorVerification, reviewDoctorVerification } from "./profiles/verificationCallables";
 export { listPendingDoctorVerifications } from "./profiles/verificationQueueCallable";
 export { replaceDoctorAvailabilityDay, getAvailableAppointmentTimes } from "./scheduling/availabilityCallables";
+export { listApprovedDoctors, getOwnDoctorAvailabilityDay } from "./scheduling/readCallables";
 export { bookAppointment } from "./scheduling/bookingCallable";
 export { cancelAppointment, recordAppointmentOutcome } from "./scheduling/lifecycleCallables";
 export { openConsultation } from "./consultations/openConsultation";

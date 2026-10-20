@@ -1,6 +1,6 @@
 import { readFileSync } from "fs";
 import { resolve } from "path";
-test("only the nineteen approved backend callables are exported",()=>{
+test("only the twenty-one approved backend callables are exported",()=>{
  const source=readFileSync(resolve(__dirname,"../src/index.ts"),"utf8");
  expect(source.split(/\r?\n/).filter(line=>line.trim().startsWith("export ")))
  .toEqual(['export { completeRegistration } from "./auth/completeRegistration";',
@@ -9,6 +9,7 @@ test("only the nineteen approved backend callables are exported",()=>{
   'export { submitDoctorVerification, reviewDoctorVerification } from "./profiles/verificationCallables";',
   'export { listPendingDoctorVerifications } from "./profiles/verificationQueueCallable";',
   'export { replaceDoctorAvailabilityDay, getAvailableAppointmentTimes } from "./scheduling/availabilityCallables";',
+  'export { listApprovedDoctors, getOwnDoctorAvailabilityDay } from "./scheduling/readCallables";',
   'export { bookAppointment } from "./scheduling/bookingCallable";',
   'export { cancelAppointment, recordAppointmentOutcome } from "./scheduling/lifecycleCallables";',
   'export { openConsultation } from "./consultations/openConsultation";',
