@@ -153,6 +153,13 @@ export function createSchedulingSession(uid: string, makeId = () => uuid.v4()) {
       })().finally(() => { pendingBooking = null; });
       return pendingBooking;
     },
+    async complete(appointmentId: string): Promise<AppointmentLifecycleResult> {
+      digest(appointmentId);
+      const result = record(await call<AppointmentLifecycleResult>('recordAppointmentOutcome',
+        { appointmentId, outcome: 'completed' }), ['appointmentId', 'status', 'replayed']);
+      if (result.appointmentId !== appointmentId || result.status !== 'completed' || typeof result.replayed !== 'boolean') invalid();
+      return result as AppointmentLifecycleResult;
+    },
     async cancel(appointmentId: string, reason: string | null = null): Promise<AppointmentLifecycleResult> {
       digest(appointmentId);
       const normalized = reason?.trim() || null;

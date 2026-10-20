@@ -1,6 +1,6 @@
 import { readFileSync } from "fs";
 import { resolve } from "path";
-test("only the twenty-one approved backend callables are exported",()=>{
+test("only the twenty-three approved backend callables are exported",()=>{
  const source=readFileSync(resolve(__dirname,"../src/index.ts"),"utf8");
  expect(source.split(/\r?\n/).filter(line=>line.trim().startsWith("export ")))
  .toEqual(['export { completeRegistration } from "./auth/completeRegistration";',
@@ -16,6 +16,7 @@ test("only the twenty-one approved backend callables are exported",()=>{
   'export { sendConsultationMessage } from "./consultations/sendConsultationMessage";',
   'export { startConsultationCall } from "./consultations/calls/startConsultationCall";',
   'export { respondToConsultationCall, endConsultationCall, getConsultationCall } from "./consultations/calls/lifecycleCallables";',
-  'export { publishConsultationIce } from "./consultations/calls/publishConsultationIce";']);
+  'export { publishConsultationIce } from "./consultations/calls/publishConsultationIce";',
+  'export { issuePrescription, getConsultationPrescription } from "./prescriptions/issuePrescription";']);
  expect(source).not.toMatch(/integrationEntry|c6-emulator|FUNCTIONS_EMULATOR/);
 });

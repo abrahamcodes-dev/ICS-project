@@ -11,6 +11,22 @@ const result=()=>({appointmentId:id,doctorId:'doctor',startAt:start,endAt:start+
 let session;
 beforeEach(()=>{jest.clearAllMocks();auth.currentUser={uid:'patient'};session=createSchedulingSession('patient');});
 afterEach(()=>session.dispose());
+test('completion uses existing callable and validates completed acknowledgment',async()=>{
+ mockCall.mockResolvedValue({data:{appointmentId:id,status:'completed',replayed:false}});
+ expect(await session.complete(id)).toEqual({appointmentId:id,status:'completed',replayed:false});
+ expect(httpsCallable).toHaveBeenLastCalledWith({local:true},'recordAppointmentOutcome');
+ expect(mockCall).toHaveBeenCalledWith({appointmentId:id,outcome:'completed'});
+ for(const data of [{appointmentId:id,status:'scheduled',replayed:false},{appointmentId:'b'.repeat(64),status:'completed',replayed:false}]){
+  mockCall.mockResolvedValue({data});await expect(session.complete(id)).rejects.toThrow();
+ }
+});
+test('completion retries identical payload and drops late account-changed response',async()=>{
+ mockCall.mockRejectedValueOnce(Error('offline'));await expect(session.complete(id)).rejects.toThrow();
+ let resolve;mockCall.mockReturnValue(new Promise(r=>{resolve=r;}));const result=session.complete(id);
+ expect(mockCall.mock.calls[0][0]).toEqual(mockCall.mock.calls[1][0]);
+ auth.currentUser={uid:'other'};resolve({data:{appointmentId:id,status:'completed',replayed:true}});
+ await expect(result).rejects.toThrow('Scheduling session ended');
+});
 test('directory uses connected Functions instance and explicit DTO',async()=>{
  mockCall.mockResolvedValue({data:{items:[{uid:'doctor',professionalName:'Doctor',specialty:'Medicine'}],nextCursor:null}});
  expect((await session.listDoctors()).items).toHaveLength(1);

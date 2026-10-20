@@ -1,5 +1,5 @@
 const React=require('react'),{create,act}=require('react-test-renderer');
-const mockSession={cancel:jest.fn()};
+const mockSession={cancel:jest.fn(),complete:jest.fn()};
 jest.mock('../src/hooks/useSchedulingSession',()=>({useSchedulingSession:()=>mockSession}));
 jest.mock('../src/services/schedulingService',()=>({schedulingError:()=> 'Result uncertain. Retry unchanged.'}));
 jest.mock('../src/services/firebaseConfig',()=>({db:{}}));jest.mock('firebase/firestore',()=>({}));
@@ -44,4 +44,36 @@ test('history preserves scheduled status after elapsed time',async()=>{
  readAppointmentPage.mockResolvedValue({rows:[{...row(),startAt:0,endAt:1800000}],cursor:null});
  await act(async()=>{tree=create(<List uid="p" role="patient" mode="history" boundary={boundary} open={open}/>);});
  expect(tree.root.findAllByType(Copy).some(n=>n.props.children==='scheduled')).toBe(true);expect(button('Open consultation').props.disabled).toBe(true);
+});
+async function doctorRender(overrides={},role='doctor'){
+ readAppointmentPage.mockResolvedValue({rows:[{...row(),startAt:Date.now()-3600000,endAt:Date.now()-1800000,...overrides}],cursor:null});
+ await act(async()=>{tree=create(<List uid={role==='doctor'?'d':'p'} role={role} mode="history" boundary={boundary} open={open}/>);});
+}
+test('completion requires confirmation and refreshes only after acknowledgment',async()=>{
+ await doctorRender();await press('Record completed appointment');expect(mockSession.complete).not.toHaveBeenCalled();
+ mockSession.complete.mockResolvedValue({appointmentId:id,status:'completed',replayed:false});
+ readAppointmentPage.mockResolvedValue({rows:[{...row(),status:'completed'}],cursor:null});
+ await press('Confirm completion');expect(mockSession.complete).toHaveBeenCalledWith(id);expect(readAppointmentPage).toHaveBeenCalledTimes(2);
+ expect(button('Record completed appointment')).toBeUndefined();
+ expect(tree.root.findAllByType(Copy).some(n=>n.props.children==='completed')).toBe(true);
+});
+test.each([{status:'completed'},{status:'cancelled'},{status:'no_show'},{endAt:Date.now()+3600000},{doctorId:'other'}])('ineligible appointment hides completion %p',async overrides=>{
+ await doctorRender(overrides);expect(button('Record completed appointment')).toBeUndefined();
+});
+test('patients cannot see completion',async()=>{
+ await doctorRender({},'patient');expect(button('Record completed appointment')).toBeUndefined();
+});
+test('uncertain completion does not assert completed status and retries same outcome',async()=>{
+ await doctorRender();mockSession.complete.mockRejectedValueOnce(Error('network')).mockResolvedValue({appointmentId:id,status:'completed'});
+ await press('Record completed appointment');await press('Confirm completion');
+ expect(readAppointmentPage).toHaveBeenCalledTimes(1);
+ expect(tree.root.findAllByType(Copy).some(n=>n.props.children==='scheduled')).toBe(true);
+ await press('Retry same completion');expect(mockSession.complete.mock.calls).toEqual([[id],[id]]);
+});
+test('duplicate completion presses submit once; late unmounted result cannot refresh',async()=>{
+ let resolve;await doctorRender();mockSession.complete.mockReturnValue(new Promise(r=>{resolve=r;}));
+ await press('Record completed appointment');const click=button('Confirm completion').props.onPress;
+ await act(async()=>{click();click();});expect(mockSession.complete).toHaveBeenCalledTimes(1);
+ await act(async()=>tree.unmount());tree=null;
+ await act(async()=>resolve({appointmentId:id,status:'completed'}));expect(readAppointmentPage).toHaveBeenCalledTimes(1);
 });
