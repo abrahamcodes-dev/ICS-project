@@ -7,7 +7,8 @@ import type { MediaStream } from 'react-native-webrtc';
 import type { CallMode } from '@shared/types/consultationCallContracts';
 import { useAuth } from '../../hooks/useAuth';
 import { useConsultationCall } from '../../hooks/useConsultationCall';
-import { openConsultation } from '../../services/consultationService';
+import { openConsultation, type ConsultationView } from '../../services/consultationService';
+import ConsultationChat from './ConsultationChat';
 import { CallMediaError, createCallMedia } from '../../services/calls/media';
 import { discoverConsultationCalls } from '../../services/calls/discovery';
 import type { CallSessionState } from '../../services/calls/session';
@@ -36,7 +37,7 @@ export default function ConsultationCallScreen({route}: {route?: ConsultationCal
 }
 
 function ConsultationGate({appointmentId, uid}: {appointmentId: string; uid: string}) {
-  const [room, setRoom] = useState<string | null>(null);
+  const [room, setRoom] = useState<ConsultationView | null>(null);
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [sessionKey, setSessionKey] = useState(0);
@@ -46,18 +47,18 @@ function ConsultationGate({appointmentId, uid}: {appointmentId: string; uid: str
       if (!active) return;
       if (result.state !== 'active' || result.consultationId !== appointmentId
         || ![result.patientId,result.doctorId].includes(uid)) { setError(true); return; }
-      setRoom(result.consultationId);
+      setRoom(result);
     }).catch(() => { if (active) setError(true); });
     return () => { active = false; };
   }, [appointmentId, uid, attempt]);
   if (error) return <Screen><Card><Text>Unable to open this consultation. Check your connection, appointment time and eligibility.</Text>
     <Button title="Retry opening consultation" onPress={() => setAttempt(v => v + 1)} /></Card></Screen>;
   if (!room) return <Screen><Loading label="Opening consultation..."/></Screen>;
-  return <CallRoom key={sessionKey} consultationId={room} uid={uid} restart={() => setSessionKey(v => v + 1)} />;
+  return <CallRoom consultationId={room.consultationId} uid={uid} restart={() => setSessionKey(v => v + 1)} key={sessionKey} chatRoom={room} />;
 }
 
 /** Shared interface; all role and appointment authority remains in the backend. */
-export function CallRoom({consultationId, uid, restart}: {consultationId: string; uid: string; restart(): void}) {
+export function CallRoom({consultationId, uid, restart, chatRoom}: {consultationId: string; uid: string; restart(): void; chatRoom?: ConsultationView}) {
   const media = useMemo(() => createCallMedia(), []);
   const alive = useRef(true);
   const busyRef = useRef(false);
@@ -121,6 +122,7 @@ export function CallRoom({consultationId, uid, restart}: {consultationId: string
   const canStart = state.phase === 'idle' && discovery === 'ready' && !!session && !busy && !background;
   const RTCView = (local || remote) ? (require('react-native-webrtc') as typeof import('react-native-webrtc')).RTCView : null;
   return <Screen>
+    {chatRoom && <ConsultationChat key={`${uid}:${consultationId}`} room={chatRoom} uid={uid} />}
     <Text title>Consultation call</Text>
     <Text accessibilityLiveRegion="polite">{busy ? 'Preparing microphone and camera…' : callStatus(state)}</Text>
     {background && <Text>The call stopped when the app moved to the background. Reopen the consultation when ready.</Text>}

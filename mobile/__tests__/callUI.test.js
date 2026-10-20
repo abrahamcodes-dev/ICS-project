@@ -9,6 +9,7 @@ jest.mock('../src/hooks/useConsultationCall',()=>({useConsultationCall:()=>({ses
 jest.mock('../src/hooks/useAuth',()=>({useAuth:()=>({status:'ready',firebaseUid:'p',user:{status:'active',role:'patient'}})}));
 jest.mock('@react-navigation/native',()=>({useIsFocused:()=>true}));
 jest.mock('../src/services/consultationService',()=>({openConsultation:jest.fn()}));
+jest.mock('../src/services/authService',()=>({onIdentityRefresh:jest.fn(()=>jest.fn())}));
 jest.mock('../src/services/calls/discovery',()=>({discoverConsultationCalls:(_,next)=>{mockNext=next;return mockStop;}}));
 jest.mock('../src/services/calls/media',()=>({...jest.requireActual('../src/services/calls/media'),createCallMedia:()=>mockMedia}));
 jest.mock('react-native-webrtc',()=>({RTCView:'RTCView'}));
