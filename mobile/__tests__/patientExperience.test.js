@@ -35,3 +35,6 @@ test('directory failure offers refresh without fabricated doctors',async()=>{
  await render(DoctorsScreen);expect(tree.root.findAllByType(Action).filter(n=>n.props.title==='View doctor')).toHaveLength(0);
  await press('Refresh doctors');expect(mockSession.listDoctors).toHaveBeenCalledTimes(2);
 });
+test('patient home opens the existing health assistant route',async()=>{
+ await render(PatientHomeScreen);await press('Health assistant');expect(navigation.navigate).toHaveBeenCalledWith('Chatbot');
+});
