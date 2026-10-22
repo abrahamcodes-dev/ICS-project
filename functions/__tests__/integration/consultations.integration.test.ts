@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import { Timestamp } from 'firebase-admin/firestore';
+import { notificationId } from '../../src/notifications/events';
 import { collection, doc, getDocFromServer, getDocs, query, orderBy, documentId, limit,
   setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import {
@@ -20,6 +21,72 @@ import {
 beforeAll(initializeFixtures);
 beforeEach(resetFixtures);
 afterAll(cleanupFixtures);
+
+// 10D: exercise real transaction retries across the completed-consultation workflows.
+async function completedRoom() {
+  const { appointmentId } = await expiredRoom();
+  await call(actors.doctorA, 'recordAppointmentOutcome', { appointmentId, outcome: 'completed' });
+  return appointmentId;
+}
+const syntheticMedication = { name: 'Synthetic record', dosage: 'Test entry', frequency: 'Test entry',
+  duration: 'Test entry', instructions: 'Not clinical advice' };
+
+test.each([false, true])('prescription contention (conflicting=%s) preserves one record and one notification', async conflicting => {
+  const consultationId = await completedRoom();
+  const input = { consultationId, requestId: randomUUID(), medications: [syntheticMedication] };
+  const other = conflicting ? { ...input, requestId: randomUUID() } : input;
+  const results = await race([() => call(actors.doctorA, 'issuePrescription', input),
+    () => call(actors.doctorA, 'issuePrescription', other)]);
+  expect(results.filter(r => r.status === 'fulfilled')).toHaveLength(conflicting ? 1 : 2);
+  for (const result of results) if (result.status === 'rejected') expect(result.reason.code).toBe('functions/already-exists');
+  expect((await db.collection('prescriptions').get()).size).toBe(1);
+  const stored = await read(`prescriptions/${consultationId}`);
+  const recovered = await call(actors.patientA, 'getConsultationPrescription', { consultationId });
+  expect(recovered.prescription).toMatchObject({ consultationId, patientId: actors.patientA.uid,
+    doctorId: actors.doctorA.uid, medications: [syntheticMedication] });
+  expect(recovered.prescription).not.toHaveProperty('requestId');
+  expect(await call(actors.doctorA, 'issuePrescription', { ...input, requestId: stored.requestId })).toMatchObject({ replayed: true });
+  const inboxPath = `notificationInboxes/${actors.patientA.uid}/items`;
+  const events = await db.collection(inboxPath).where('kind', '==', 'prescription').get();
+  expect(events.size).toBe(1);
+  const id = events.docs[0].id;
+  expect(id).toBe(notificationId('prescription', consultationId, actors.patientA.uid));
+  await Promise.all([1, 2].map(() => call(actors.patientA, 'markNotificationRead', { id })));
+  expect((await read(`${inboxPath}/${id}`)).readAt).toBeInstanceOf(Timestamp);
+  await denied(call(actors.patientB, 'openNotification', { id }), 'functions/permission-denied');
+});
+
+test.each([false, true])('rating contention (conflicting=%s) increments aggregate exactly once', async conflicting => {
+  const consultationId = await completedRoom(), input = { consultationId, score: 0, comment: 'Synthetic' };
+  const results = await race([() => call(actors.patientA, 'rateDoctor', input),
+    () => call(actors.patientA, 'rateDoctor', conflicting ? { ...input, score: 5 } : input)]);
+  expect(results.filter(r => r.status === 'fulfilled')).toHaveLength(conflicting ? 1 : 2);
+  for (const result of results) if (result.status === 'rejected') expect(result.reason.code).toBe('functions/already-exists');
+  const stored = await read(`ratings/${consultationId}`);
+  expect((await db.collection('ratings').get()).size).toBe(1);
+  expect(await call(actors.doctorA, 'getOwnDoctorRatingSummary', {})).toEqual({ count: 1, average: stored.score });
+  expect(await call(actors.patientA, 'rateDoctor', { ...input, score: stored.score })).toMatchObject({ replayed: true });
+  await denied(call(actors.patientB, 'getOwnConsultationRating', { consultationId }), 'functions/permission-denied');
+});
+
+test('completed clinical records deny direct client access and revoked canonical identity', async () => {
+  const consultationId = await completedRoom();
+  await call(actors.doctorA, 'issuePrescription', { consultationId, requestId: randomUUID(), medications: [syntheticMedication] });
+  await call(actors.patientA, 'rateDoctor', { consultationId, score: 5 });
+  for (const path of [`prescriptions/${consultationId}`, `ratings/${consultationId}`,
+    `doctorRatingSummaries/${actors.doctorA.uid}`,
+    `notificationInboxes/${actors.patientA.uid}/items/${notificationId('prescription', consultationId, actors.patientA.uid)}`]) {
+    await expect(getDocFromServer(doc(actors.patientA.firestore, path))).rejects.toMatchObject({ code: 'permission-denied' });
+    await expect(setDoc(doc(actors.patientA.firestore, path), { forged: true })).rejects.toMatchObject({ code: 'permission-denied' });
+  }
+  await denied(call(actors.patientB, 'getConsultationPrescription', { consultationId }), 'functions/permission-denied');
+  // Existing authenticated client/token must lose access when canonical identity is disabled.
+  await db.doc(`users/${actors.patientA.uid}`).update({ status: 'disabled' });
+  for (const [name, data] of [['getConsultationPrescription', { consultationId }],
+    ['getOwnConsultationRating', { consultationId }], ['listNotifications', {}]] as const)
+    await denied(call(actors.patientA, name, data), 'functions/permission-denied');
+  await denied(call(actors.guest, 'getConsultationPrescription', { consultationId }), 'functions/unauthenticated');
+});
 
 test('consultation cannot open before appointment start', async () => {
   const { patientA, doctorA } = actors;

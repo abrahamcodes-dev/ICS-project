@@ -7,6 +7,13 @@ for their individual checkpoints, not a full integrated device pass.
 
 ## Readiness by workflow
 
+This preparation inventory is historical. Current executed evidence is in
+`ANDROID_SMOKE_TEST_10A.md`, `ANDROID_E2E_TEST_10B.md`,
+`ANDROID_NATIVE_TEST_10C.md` and `ANDROID_INTEGRATION_TEST_10D.md`.
+In particular, 10B enabled closed consultation chat history and 10C verified
+private PDF/JPEG/PNG rendering; original pending markers below do not override
+those results.
+
 | Workflow | Connection and navigation present | Automated evidence | Android status / gate |
 | --- | --- | --- | --- |
 | Authentication and roles | Login/Register -> completeRegistration -> canonical identity -> RootNavigator; patient, approved doctor and administrator branches | authService, authState, authNavigation, authUI tests | Full integrated run pending; synthetic identities required; Auth uses memory persistence |
@@ -253,3 +260,31 @@ private artifacts. Classify these as P0 rather than changing Rules to continue.
 Stop only resources started for the test; never kill arbitrary Java processes.
 Keep emulator exports, logs, test documents and APKs excluded from Git. The plan
 requires no production deployment, billing change or dependency installation.
+
+## 10C native verification handoff
+
+See [ANDROID_NATIVE_TEST_10C.md](ANDROID_NATIVE_TEST_10C.md) for actual results.
+10B is committed as `59373488649891eb1aa4170ece9ae10e5efde682`. 10C is partial:
+single-client audio/video initialization and outgoing signaling were exercised;
+PDF/JPEG/PNG private rendering, temporary-file cleanup and targeted unauthorized
+access denial passed. Two-party media and connected-call network recovery remain
+blocked by the absence of a second native client. Android permission prompts
+currently trigger safe background cleanup and require an explicit retry.
+
+For the remaining calling gate, use two independently authenticated native clients
+and a fresh eligible appointment. Do not reuse the expired 10C fixture or describe
+local preview/control evidence as successful peer-to-peer media. Retain existing
+background privacy cleanup; do not bypass it merely to simplify permission tests.
+
+## 10D final validation scope
+
+Validate remaining authorization, privacy/recovery, concurrency and regression
+gaps using existing tests first. Real emulator contention is required for booking,
+consultation transitions and protected prescription/rating writes; mocked tests
+alone do not establish transaction behavior. Run test emulators under their
+separate fixed demo configurations so Android demo fixtures are preserved.
+
+Record first-run failures and exact retry results. Do not relax assertions or
+security boundaries to obtain a pass. Native two-party media, permission-prompt
+recovery and connected-call network recovery retain the 10C limitations until
+separately verified. See the 10D report for commands, counts and release caveats.
