@@ -45,7 +45,8 @@ function ConsultationGate({appointmentId, uid}: {appointmentId: string; uid: str
     let active = true; setError(false); setRoom(null);
     void openConsultation(appointmentId).then(result => {
       if (!active) return;
-      if (result.state !== 'active' || result.consultationId !== appointmentId
+      if (!['active','closed'].includes(result.state) || (result.state === 'closed' && result.canSend)
+        || result.consultationId !== appointmentId
         || ![result.patientId,result.doctorId].includes(uid)) { setError(true); return; }
       setRoom(result);
     }).catch(() => { if (active) setError(true); });
@@ -54,6 +55,9 @@ function ConsultationGate({appointmentId, uid}: {appointmentId: string; uid: str
   if (error) return <Screen><Card><Text>Unable to open this consultation. Check your connection, appointment time and eligibility.</Text>
     <Button title="Retry opening consultation" onPress={() => setAttempt(v => v + 1)} /></Card></Screen>;
   if (!room) return <Screen><Loading label="Opening consultation..."/></Screen>;
+  if (room.state === 'closed') return <Screen><Text title>Consultation history</Text>
+    <Text>This consultation has ended. Calls and new messages are unavailable.</Text>
+    <ConsultationChat room={room} uid={uid} /></Screen>;
   return <CallRoom consultationId={room.consultationId} uid={uid} restart={() => setSessionKey(v => v + 1)} key={sessionKey} chatRoom={room} />;
 }
 

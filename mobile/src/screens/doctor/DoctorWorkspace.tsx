@@ -23,8 +23,10 @@ export default function DoctorWorkspace({navigation}:NativeStackScreenProps<Doct
  if(identity.status!=='ready'||identity.user?.role!=='doctor'||identity.user.status!=='active'||identity.user.verificationStatus!=='approved'||!identity.firebaseUid)
   return <Screen><Copy>Clinical access requires an active, approved doctor account.</Copy></Screen>;
  return <View style={{flex:1,backgroundColor:colors.background}}>
-  <Action title="Consultation prescriptions" onPress={()=>navigation.navigate('IssuePrescription')}/>
-  <Action title="Notifications" onPress={()=>navigation.navigate('Notifications')}/>
+  <SafeAreaView edges={['top']}>
+   <Action title="Consultation prescriptions" onPress={()=>navigation.navigate('IssuePrescription')}/>
+   <Action title="Notifications" onPress={()=>navigation.navigate('Notifications')}/>
+  </SafeAreaView>
   <DoctorContent key={`${identity.firebaseUid}:${tab}`} uid={identity.firebaseUid} tab={tab} select={setTab} manage={()=>navigation.navigate('SetAvailability')} open={appointmentId=>navigation.navigate('ConsultationRoom',{appointmentId})}/>
   <SafeAreaView edges={['bottom']} style={{backgroundColor:colors.surface,borderTopWidth:1,borderColor:colors.border}}>
    <View style={{flexDirection:'row'}}>{doctorTabs.map(name=><Pressable key={name} accessibilityRole="tab" accessibilityLabel={name} accessibilityState={{selected:tab===name}} onPress={()=>setTab(name)} style={({pressed})=>({flex:1,minHeight:64,paddingVertical:12,paddingHorizontal:4,alignItems:'center',justifyContent:'center',opacity:pressed?0.65:1,borderTopWidth:3,borderTopColor:tab===name?colors.accent:'transparent'})}><Text style={{color:colors.text,fontSize:12,fontWeight:tab===name?'700':'400',textAlign:'center'}}>{name}</Text></Pressable>)}</View>

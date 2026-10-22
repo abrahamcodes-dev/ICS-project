@@ -20,13 +20,38 @@ async function seed(path: string, data: Record<string, unknown>) {
   await env.withSecurityRulesDisabled(async context => { await setDoc(doc(context.firestore(), path), data); });
 }
 beforeAll(async () => {
-  if (process.env.FIRESTORE_EMULATOR_HOST !== "127.0.0.1:8085") throw new Error("Requires local demo emulator.");
-  env = await initializeTestEnvironment({ projectId: "demo-calladoc-rules", firestore: { host: "127.0.0.1", port: 8085,
+  const host = process.env.FIRESTORE_EMULATOR_HOST;
+  if (host !== "127.0.0.1:8085" && host !== "127.0.0.1:8080") throw new Error("Requires local demo emulator.");
+  // Keep test clearing isolated from the interactive demo-calladoc project.
+  const port = Number(host.split(":")[1]);
+  env = await initializeTestEnvironment({ projectId: "demo-calladoc-rules", firestore: { host: "127.0.0.1", port,
     rules: readFileSync(resolve(__dirname, "../../firestore.rules"), "utf8") } });
-  admin = new Firestore({ projectId: "demo-calladoc-rules", host: "127.0.0.1:8085", ssl: false });
+  admin = new Firestore({ projectId: "demo-calladoc-rules", host, ssl: false });
 });
 beforeEach(async () => { await env.clearFirestore(); await seed("users/owner", identity()); });
 afterAll(async () => { if (env) await env.cleanup(); if (admin) await admin.terminate(); });
+
+test("canonical doctor can read own absent profile", async () => {
+  const snapshot = await assertSucceeds(getDoc(ref()));
+  expect(snapshot.exists()).toBe(false);
+});
+
+test("absent profile does not grant access to another doctor or guest", async () => {
+  await seed("users/other", identity({ uid: "other" }));
+  for (const db of [client("other"), env.unauthenticatedContext().firestore()])
+    await assertFails(getDoc(doc(db, "doctorProfiles/owner")));
+});
+
+test.each(["patient", "administrator"])("%s cannot read absent doctor profile", async role => {
+  const { verificationStatus, ...user } = identity({ role });
+  await seed("users/owner", user);
+  await assertFails(getDoc(ref()));
+});
+
+test("disabled doctor cannot read absent own profile", async () => {
+  await seed("users/owner", identity({ status: "disabled" }));
+  await assertFails(getDoc(ref()));
+});
 
 test.each(["pending", "rejected", "approved"])("active %s doctor reads own valid profile", async verificationStatus => {
   await seed("users/owner", identity({ verificationStatus })); await seed("doctorProfiles/owner", profile());

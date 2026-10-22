@@ -9,8 +9,9 @@ jest.mock('../src/hooks/useConsultationCall',()=>({useConsultationCall:()=>({ses
 jest.mock('../src/hooks/useAuth',()=>({useAuth:()=>({status:'ready',firebaseUid:'p',user:{status:'active',role:'patient'}})}));
 jest.mock('@react-navigation/native',()=>({useIsFocused:()=>true}));
 jest.mock('../src/services/consultationService',()=>({openConsultation:jest.fn()}));
+jest.mock('../src/screens/shared/ConsultationChat',()=>jest.fn(()=>null));
 jest.mock('../src/services/authService',()=>({onIdentityRefresh:jest.fn(()=>jest.fn())}));
-jest.mock('../src/services/calls/discovery',()=>({discoverConsultationCalls:(_,next)=>{mockNext=next;return mockStop;}}));
+jest.mock('../src/services/calls/discovery',()=>({discoverConsultationCalls:jest.fn((_,next)=>{mockNext=next;return mockStop;})}));
 jest.mock('../src/services/calls/media',()=>({...jest.requireActual('../src/services/calls/media'),createCallMedia:()=>mockMedia}));
 jest.mock('react-native-webrtc',()=>({RTCView:'RTCView'}));
 const {CallRoom,callStatus}=require('../src/screens/shared/ConsultationCallScreen');
@@ -50,4 +51,25 @@ test('unmount cancels media and discovery without starting a late acquisition',a
 });
 test.each([['connecting',null,'Connecting'],['ringing',null,'Ringing'],['connected',null,'Connected'],['ended','rejected','Rejected'],['ended','expired','Expired'],['ended',null,'Ended'],['error',null,'Failed']])('labels %s / %s', (phase,endReason,label)=>{
  expect(callStatus({phase,call:endReason?{endReason}:null})).toBe(label);
+});
+
+test('authorized closed consultation renders history without call resources',async()=>{
+ const id='a'.repeat(64),room={consultationId:id,patientId:'p',doctorId:'d',state:'closed',canSend:false};
+ require('../src/services/consultationService').openConsultation.mockResolvedValue(room);
+ const Screen=require('../src/screens/shared/ConsultationCallScreen').default;
+ const Chat=require('../src/screens/shared/ConsultationChat');
+ await act(async()=>{tree=create(<Screen route={{params:{appointmentId:id}}}/>);});
+ expect(tree.root.findByType(Chat).props).toMatchObject({room,uid:'p'});
+ expect(tree.root.findAllByType(CallRoom)).toHaveLength(0);
+ expect(mockMedia.acquire).not.toHaveBeenCalled();
+ expect(require('../src/services/calls/discovery').discoverConsultationCalls).not.toHaveBeenCalled();
+});
+
+test.each([{patientId:'other',doctorId:'another'},{consultationId:'b'.repeat(64)},{canSend:true}])('invalid closed room binding is rejected %#',async(extra)=>{
+ const id='a'.repeat(64);
+ require('../src/services/consultationService').openConsultation.mockResolvedValue({consultationId:id,patientId:'p',doctorId:'d',state:'closed',canSend:false,...extra});
+ const Screen=require('../src/screens/shared/ConsultationCallScreen').default;
+ await act(async()=>{tree=create(<Screen route={{params:{appointmentId:id}}}/>);});
+ expect(tree.root.findAllByType(require('../src/screens/shared/ConsultationChat'))).toHaveLength(0);
+ expect(tree.root.findAllByType(CallRoom)).toHaveLength(0);
 });

@@ -161,7 +161,9 @@ service cloud.firestore {
         || data.keys().hasAll(['professionalName', 'specialty', 'registrationNumber', 'issuingAuthority']));
   }
   match /doctorProfiles/{uid} {
-    allow get: if doctorOwner(uid) && readableDoctorProfile(resource.data, uid);
+    allow get: if doctorOwner(uid)
+      && (!exists(/databases/$(database)/documents/doctorProfiles/$(uid))
+        || readableDoctorProfile(resource.data, uid));
     allow list, create, update, delete: if false;
   }
 
