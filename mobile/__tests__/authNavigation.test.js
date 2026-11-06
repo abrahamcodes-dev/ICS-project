@@ -1,5 +1,6 @@
 jest.mock("../src/hooks/useAuth", () => ({ useAuth: jest.fn() }));
-jest.mock("@react-navigation/native", () => ({ NavigationContainer: "NavigationContainer" }));
+jest.mock("@react-navigation/native", () => ({ NavigationContainer: "NavigationContainer",DefaultTheme:{colors:{}},DarkTheme:{colors:{}} }));
+jest.mock("react-native",()=>Object.defineProperty(Object.create(jest.requireActual("react-native")),"useColorScheme",{value:()=>"light"}));
 jest.mock("../src/navigation/GuestNavigator", () => "Guest");
 jest.mock("../src/navigation/PatientNavigator", () => "Patient");
 jest.mock("../src/navigation/DoctorNavigator", () => "Doctor");

@@ -7,18 +7,20 @@ import DoctorNavigator from "./DoctorNavigator";
 import AdminNavigator from "./AdminNavigator";
 import AccountStatusScreen from '../screens/auth/AccountStatusScreen';
 import SubmitVerificationScreen from '../screens/doctor/SubmitVerificationScreen';
-import { View } from 'react-native';
+import { View, useColorScheme } from 'react-native';
 import { Action } from '../ui/design';
+import {navigationTheme} from '../ui/theme';
 import { NotificationInbox } from '../screens/shared/NotificationsScreen';
 
 // Routes to the correct role-based navigator once auth state is known.
 // Sprint 1 deliverable: Guest -> Login/Register -> role-specific stack.
 export default function RootNavigator() {
   const { user, loading, status } = useAuth();
+  const theme=navigationTheme(useColorScheme());
 
   if (loading) return <AccountStatusScreen />;
 
-  if (status === "signedOut") return <NavigationContainer><GuestNavigator /></NavigationContainer>;
+  if (status === "signedOut") return <NavigationContainer theme={theme}><GuestNavigator /></NavigationContainer>;
   // Recovery/status screens preserve the existing clinical-route eligibility guards.
   if (status !== "ready" || !user || user.status !== "active") return <AccountStatusScreen />;
   if (user.role === "doctor" && ['pending','rejected'].includes(user.verificationStatus)) return <PendingDoctor key={user.uid} uid={user.uid}/>;
@@ -26,13 +28,13 @@ export default function RootNavigator() {
 
   switch (user.role) {
     case "patient":
-      return <NavigationContainer><PatientNavigator /></NavigationContainer>;
+      return <NavigationContainer theme={theme}><PatientNavigator /></NavigationContainer>;
     case "doctor":
-      return <NavigationContainer><DoctorNavigator /></NavigationContainer>;
+      return <NavigationContainer theme={theme}><DoctorNavigator /></NavigationContainer>;
     case "administrator":
-      return <NavigationContainer><AdminNavigator /></NavigationContainer>;
+      return <NavigationContainer theme={theme}><AdminNavigator /></NavigationContainer>;
     default:
-      return <NavigationContainer><GuestNavigator /></NavigationContainer>;
+      return <NavigationContainer theme={theme}><GuestNavigator /></NavigationContainer>;
   }
 }
 function PendingDoctor({ uid }: { uid: string }) {
