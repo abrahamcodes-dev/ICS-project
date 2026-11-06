@@ -1,0 +1,544 @@
+{
+  "checkpoint": "final-android-usability-accessibility",
+  "recordedAtUtc": "2026-11-06T15:47:56.137Z",
+  "status": "PARTIAL: remaining manual checks explicitly NOT VERIFIED",
+  "changes": [
+    "Safety/limitation notices moved verbatim from fixed footer into scrollable content",
+    "Focused Android composer reserves 72dp for floating toolbar",
+    "Explicit Dismiss keyboard control and keyboard Send action",
+    "Accessible heading, decorative image excluded, grouped user utterances",
+    "Only newest reply live region announces; emergency assertive, ordinary polite"
+  ],
+  "tests": {
+    "passed": 321,
+    "failed": 0,
+    "suites": [
+      {
+        "file": "mobile/__tests__/patientExperience.test.js",
+        "passed": 25,
+        "failed": 0
+      },
+      {
+        "file": "mobile/__tests__/theme.test.js",
+        "passed": 6,
+        "failed": 0
+      },
+      {
+        "file": "mobile/__tests__/healthChatbotFinal.test.js",
+        "passed": 27,
+        "failed": 0
+      },
+      {
+        "file": "mobile/__tests__/onboardingUI.test.js",
+        "passed": 9,
+        "failed": 0
+      },
+      {
+        "file": "mobile/__tests__/healthChatbot.test.js",
+        "passed": 61,
+        "failed": 0
+      },
+      {
+        "file": "mobile/__tests__/healthKnowledgeBase.test.js",
+        "passed": 89,
+        "failed": 0
+      },
+      {
+        "file": "mobile/__tests__/authNavigation.test.js",
+        "passed": 14,
+        "failed": 0
+      },
+      {
+        "file": "mobile/__tests__/healthConversation.test.js",
+        "passed": 54,
+        "failed": 0
+      },
+      {
+        "file": "mobile/__tests__/chatbotEvaluation.test.js",
+        "passed": 2,
+        "failed": 0
+      },
+      {
+        "file": "mobile/__tests__/healthChatbotUI.test.js",
+        "passed": 34,
+        "failed": 0
+      }
+    ],
+    "execution": "Ten-suite regression run followed by affected 34-test UI rerun after fixing Android test fixture/native-host counting; no production changes during test-only corrections",
+    "typeScript": "PASS",
+    "whitespace": "PASS"
+  },
+  "contrast": {
+    "criterion": "4.5:1 for tested normal-text pairs; not a complete WCAG certification",
+    "pairs": {
+      "light": [
+        {
+          "foreground": "textPrimary",
+          "background": "background",
+          "ratio": 15.973572602316318
+        },
+        {
+          "foreground": "textPrimary",
+          "background": "primarySurface",
+          "ratio": 14.327603137829168
+        },
+        {
+          "foreground": "textPrimary",
+          "background": "surface",
+          "ratio": 15.154716966081187
+        },
+        {
+          "foreground": "textSecondary",
+          "background": "background",
+          "ratio": 6.13222500302169
+        },
+        {
+          "foreground": "textSecondary",
+          "background": "surface",
+          "ratio": 5.817867837508312
+        },
+        {
+          "foreground": "tabActive",
+          "background": "background",
+          "ratio": 6.668592385352942
+        },
+        {
+          "foreground": "tabActive",
+          "background": "surface",
+          "ratio": 6.326739338670755
+        },
+        {
+          "foreground": "onPrimary",
+          "background": "primary",
+          "ratio": 4.965257738634534
+        }
+      ],
+      "dark": [
+        {
+          "foreground": "textPrimary",
+          "background": "background",
+          "ratio": 17.524189904874525
+        },
+        {
+          "foreground": "textPrimary",
+          "background": "primarySurface",
+          "ratio": 13.181767859413124
+        },
+        {
+          "foreground": "textPrimary",
+          "background": "surface",
+          "ratio": 14.78281497392934
+        },
+        {
+          "foreground": "textSecondary",
+          "background": "background",
+          "ratio": 9.104343792818224
+        },
+        {
+          "foreground": "textSecondary",
+          "background": "surface",
+          "ratio": 7.680117054131954
+        },
+        {
+          "foreground": "tabActive",
+          "background": "background",
+          "ratio": 9.340315737353876
+        },
+        {
+          "foreground": "tabActive",
+          "background": "surface",
+          "ratio": 7.879175019952021
+        },
+        {
+          "foreground": "onPrimary",
+          "background": "primary",
+          "ratio": 4.965257738634534
+        }
+      ]
+    }
+  },
+  "android": {
+    "avd": "Pixel_7",
+    "serial": "emulator-5554",
+    "verified": [
+      "Lower horizontal floating toolbar no longer overlaps focused composer or relocated safety notice",
+      "Patient-side send-button submission and visible educational response",
+      "Enter-key submission clears input and displays clarification",
+      "Dismiss keyboard action clears focus and removes dismiss control",
+      "Safety notices reachable by scrolling",
+      "Dark-mode response/disclaimer/composer inspected in screenshot; colors respond to system appearance",
+      "Original light mode, disabled TalkBack, and horizontal toolbar restored"
+    ],
+    "notVerified": {
+      "nativeGuestAndLogout": "Current client is authenticated. Existing logout can call setNotificationDevice to revoke a notification token. Not executed under no-Firebase-data-change constraint; guest/logout/session transition tests passed with mocks.",
+      "talkBack": "Installed service activation attempted; first-run permission prompt appeared. Spoken labels, full gesture focus order and announcement behavior NOT VERIFIED. Optional Accessibility Suite notifications declined; original disabled state restored.",
+      "fullSoftwareKeyboard": "Floating-toolbar input, send and dismissal verified. Full software keyboard not reliably activated; resize/scroll/IME Send/Back with full keyboard NOT VERIFIED.",
+      "largeTextAndOtherDevices": "Large font scaling, other devices and IME/toolbar sizes NOT VERIFIED."
+    }
+  },
+  "protectedContentUnchangedSha256": {
+    "mobile/__tests__/fixtures/chatbotEvaluation.json": "A9CD0292BD9898CEBD980E0C1A021F52C757751726C2941CDEC3A6E3EF522F55",
+    "mobile/__tests__/fixtures/chatbotHeldOut.json": "DA9448F194B30F004D97289C886077C099F4E48007AA6A64BE6C26D57F3814E6",
+    "mobile/src/services/chatbotService.ts": "4A10586218707FEF241B51B39F76400277F3C3D68EEB7597DF701C6A1F8DA3A1",
+    "mobile/src/services/healthMatcher.ts": "9AA756CF0CD6D225FA858226A30AF3579049D1A3AF9BBF834791F60836469C50",
+    "mobile/src/knowledge/healthKnowledgeBase.ts": "9E6833E08E59C342A16F49A3E9FBD1570107FA6BC6102B050509D6290DCC7559",
+    "mobile/src/constants/disclaimers.ts": "94E12CD03C9CC5466E5BE98EA726F97AFAB5F65E3881880577FD6D6180D0ECC3",
+    "mobile/src/navigation/GuestNavigator.tsx": "4E78A146319D1597F7523C135831104DDC4A47EF6DF357D14C4A9A0CBC5244FE",
+    "mobile/src/navigation/PatientNavigator.tsx": "5E3AAAFC17F641CB1AA51FE3E4C8D964BFC294216BF864FF7DA0F7F27B3BC286",
+    "mobile/__tests__/healthChatbotFinal.test.js": "8CCD540EE7794C76196B8806677B2E0FB8575BCD7ED06484361E6270CE5B7F9A"
+  },
+  "currentUiSha256": {
+    "mobile/src/screens/shared/ChatbotScreen.tsx": "455A1B7CA2849D67A028183F15F5A2DFDB2CDFF0C22965051C248452CD20F11A",
+    "mobile/__tests__/healthChatbotUI.test.js": "863477C60A739F684B25999BD31535F2C5D09C477F9B24ADA2EF7127B996A778"
+  },
+  "scope": "No knowledge, matching, fixture, Firebase, dependency or deployment configuration changes. No clinical validation claimed. Screenshots stored only in system temporary directory.",
+  "independentCommitSnapshots": {
+    "validatedAtUtc": "2026-11-06T17:14:07.382Z",
+    "baselineCommit": "c2ae9b2695728c5a3c8a4c7031f2c87d1af672c5",
+    "isolation": "Detached worktrees based on HEAD; installed dependencies reused through junctions. No source files from unrelated dirty features copied.",
+    "theme": {
+      "passed": 461,
+      "failed": 0,
+      "suiteCount": 41,
+      "suites": [
+        {
+          "file": "mobile/__tests__/callSession.test.js",
+          "passed": 23,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/consultationService.test.js",
+          "passed": 16,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/schedulingService.test.js",
+          "passed": 23,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/doctorVerification.test.js",
+          "passed": 32,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/adminVerification.test.js",
+          "passed": 27,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/adminVerificationUI.test.js",
+          "passed": 14,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/callUI.test.js",
+          "passed": 15,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/design.test.js",
+          "passed": 15,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/doctorVerificationUI.test.js",
+          "passed": 13,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/patientExperience.test.js",
+          "passed": 7,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/authService.test.js",
+          "passed": 14,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/pdfSpike.test.js",
+          "passed": 11,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/healthChatbotUI.test.js",
+          "passed": 9,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/doctorWorkspace.test.js",
+          "passed": 7,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/consultationChat.test.js",
+          "passed": 7,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/prescriptionUI.test.js",
+          "passed": 7,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/firebaseEmulators.test.js",
+          "passed": 11,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/availabilityScreen.test.js",
+          "passed": 5,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/callSignaling.test.js",
+          "passed": 8,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/notifications.test.js",
+          "passed": 9,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/ratingUI.test.js",
+          "passed": 5,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/appointmentReads.test.js",
+          "passed": 12,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/notificationUI.test.js",
+          "passed": 6,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/bookingScreen.test.js",
+          "passed": 6,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/authState.test.js",
+          "passed": 23,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/theme.test.js",
+          "passed": 6,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/callMedia.test.js",
+          "passed": 9,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/prescriptionService.test.js",
+          "passed": 8,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/authUI.test.js",
+          "passed": 7,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/useConsultationCall.test.js",
+          "passed": 8,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/authNavigation.test.js",
+          "passed": 12,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/ratingService.test.js",
+          "passed": 7,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/nativeCallPeer.test.js",
+          "passed": 4,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/appointmentsScreen.test.js",
+          "passed": 3,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/schedulingDates.test.js",
+          "passed": 6,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/healthChatbot.test.js",
+          "passed": 34,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/patientDoctors.test.js",
+          "passed": 3,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/callDiscovery.test.js",
+          "passed": 3,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/doctorProfileRead.test.js",
+          "passed": 3,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/validators.test.ts",
+          "passed": 3,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/schedulingAppointments.test.js",
+          "passed": 20,
+          "failed": 0
+        }
+      ],
+      "typeScript": "PASS",
+      "whitespace": "PASS",
+      "initialFailure": "One 5000ms scheduling test timeout; its complete 20-test suite passed on a targeted rerun with no code or timeout changes.",
+      "files": [
+        "mobile/src/ui/theme.ts",
+        "mobile/src/ui/design.tsx",
+        "mobile/App.tsx",
+        "mobile/__tests__/design.test.js",
+        "mobile/__tests__/theme.test.js",
+        "mobile/src/navigation/RootNavigator.tsx",
+        "mobile/__tests__/authNavigation.test.js"
+      ],
+      "sourceSha256": {
+        "mobile/src/ui/theme.ts": "7B4D4BC63290563DC07161B12DA43D4EEE4638393DB29410AD61A4598E3A9206",
+        "mobile/src/ui/design.tsx": "0EF3DD3DD4A915B93E9FFA95BF92F19D679A2CABE259FED584191E568C503F25",
+        "mobile/App.tsx": "EBE43EB19AB214F8A17EFD2C39D83981807E0765FF4B0BCE1A963A2E81263AC5",
+        "mobile/__tests__/design.test.js": "541CAB16109F6D8F8CB2F14D7381435D72E7F4303EEAE088938BB299B4DDEB85",
+        "mobile/__tests__/theme.test.js": "33B1B8F906FA75A92B2FE0FE3FC7F65A2A17B0FED351572934340645BD7966EF",
+        "mobile/src/navigation/RootNavigator.tsx": "1F26364EC60F1007F86C3978ECD9C9629F35FAEE00CEA0C4578DE1D8AD8799D4",
+        "mobile/__tests__/authNavigation.test.js": "80BF2B6CC76F9A4FA5D146CF771F2932DC7FEA3B0C2BED5E30CF2A2B1953D57D"
+      }
+    },
+    "chatbot": {
+      "passed": 292,
+      "failed": 0,
+      "suiteCount": 9,
+      "suites": [
+        {
+          "file": "mobile/__tests__/healthConversation.test.js",
+          "passed": 54,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/patientExperience.test.js",
+          "passed": 7,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/healthChatbot.test.js",
+          "passed": 61,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/healthKnowledgeBase.test.js",
+          "passed": 89,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/theme.test.js",
+          "passed": 6,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/healthChatbotFinal.test.js",
+          "passed": 27,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/authNavigation.test.js",
+          "passed": 12,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/chatbotEvaluation.test.js",
+          "passed": 2,
+          "failed": 0
+        },
+        {
+          "file": "mobile/__tests__/healthChatbotUI.test.js",
+          "passed": 34,
+          "failed": 0
+        }
+      ],
+      "typeScript": "PASS",
+      "whitespace": "PASS",
+      "initialFailure": "One 5000ms chatbot UI timeout; the complete 34-test suite passed on a targeted rerun with no code or timeout changes.",
+      "files": [
+        "docs/HEALTH_CHATBOT_MOBILE.md",
+        "docs/evidence/health-chatbot-checkpoint-4.json",
+        "docs/evidence/health-chatbot-android-usability.json",
+        "mobile/src/constants/chatbotCategories.ts",
+        "mobile/src/knowledge/healthKnowledgeBase.ts",
+        "mobile/src/services/chatbotService.ts",
+        "mobile/src/services/healthMatcher.ts",
+        "mobile/src/screens/shared/ChatbotScreen.tsx",
+        "mobile/assets/health-assistant-robot.png",
+        "mobile/__tests__/healthChatbot.test.js",
+        "mobile/__tests__/healthChatbotUI.test.js",
+        "mobile/__tests__/healthKnowledgeBase.test.js",
+        "mobile/__tests__/healthConversation.test.js",
+        "mobile/__tests__/healthChatbotFinal.test.js",
+        "mobile/__tests__/chatbotEvaluation.test.js",
+        "mobile/__tests__/fixtures/chatbotEvaluation.json",
+        "mobile/__tests__/fixtures/chatbotHeldOut.json"
+      ],
+      "sourceSha256": {
+        "mobile/src/constants/chatbotCategories.ts": "206D0D78AC413F6ED38CEEF439D3CB5E5F608E881DA8D8DC338509EFA77E880F",
+        "mobile/src/knowledge/healthKnowledgeBase.ts": "67ED4606B16062BAA5C97A0B3B1C437A9A88CC12541335599BCA41552ECD366F",
+        "mobile/src/services/chatbotService.ts": "4A10586218707FEF241B51B39F76400277F3C3D68EEB7597DF701C6A1F8DA3A1",
+        "mobile/src/services/healthMatcher.ts": "9AA756CF0CD6D225FA858226A30AF3579049D1A3AF9BBF834791F60836469C50",
+        "mobile/src/screens/shared/ChatbotScreen.tsx": "455A1B7CA2849D67A028183F15F5A2DFDB2CDFF0C22965051C248452CD20F11A",
+        "mobile/assets/health-assistant-robot.png": "AE09E2A0A6904F8A15A81E929DA87B70A58935F3766C3606BF6A9D093C701889",
+        "mobile/__tests__/healthChatbot.test.js": "D5BFBE35E64127CFFD031EFDAEDDE64D036E0318BE9DE9132F866838A5CBF1C5",
+        "mobile/__tests__/healthChatbotUI.test.js": "C3C077DF8D2F3C13BAA8073DE7739CCDC78C5A743002F85CAD03459E017E9B9F",
+        "mobile/__tests__/healthKnowledgeBase.test.js": "0BC8F6D28D8A5BCE00A2348D884073ED1D7718FA4F17E29FCDBEB3482D45C59E",
+        "mobile/__tests__/healthConversation.test.js": "6DA65103E8AA5977647059FCE208244E52AC16EDF977D8EBCA4DF7E7F0F8AAEC",
+        "mobile/__tests__/healthChatbotFinal.test.js": "8CCD540EE7794C76196B8806677B2E0FB8575BCD7ED06484361E6270CE5B7F9A",
+        "mobile/__tests__/chatbotEvaluation.test.js": "67B12E0F22B1AE97379D2C510F6D7FAEC70532DB146661595953D39B5357DF3C",
+        "mobile/__tests__/fixtures/chatbotEvaluation.json": "A9CD0292BD9898CEBD980E0C1A021F52C757751726C2941CDEC3A6E3EF522F55",
+        "mobile/__tests__/fixtures/chatbotHeldOut.json": "DA9448F194B30F004D97289C886077C099F4E48007AA6A64BE6C26D57F3814E6"
+      },
+      "comparison": {
+        "correct": 23,
+        "total": 24,
+        "failures": [
+          {
+            "label": "lay terminology",
+            "query": "Information on nursing a baby",
+            "expected": "child-breastfeeding",
+            "actual": "clarification",
+            "correct": false
+          }
+        ]
+      },
+      "formerHeldOut": {
+        "correct": 20,
+        "total": 20,
+        "failures": []
+      },
+      "authenticationBoundary": "Baseline footer-based Login/AuthForm and original registration guards retained. Navigation assertion also supports the separately uncommitted onAssistant API without weakening exact route/call-count checks."
+    },
+    "historicalEvidence": "Earlier 308/321-test results, source hashes and Pixel 7 observations remain historical working-tree evidence. They are not substituted for the independent snapshot results. No new native verification or clinical approval claimed.",
+    "formattingOnly": "Cached diff checks removed one extra EOF blank line from theme.test.js and healthKnowledgeBase.ts; no medical wording or fixture bytes changed. The affected six theme tests and 116 knowledge/final-safety tests passed again; chatbot TypeScript passed again."
+  }
+}

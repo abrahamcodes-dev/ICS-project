@@ -1,4 +1,4 @@
-// Mirrors functions/src/chatbot/knowledgeBase.ts categories.
+// Approved categories used by the bundled mobile knowledge base. Legacy backend is inactive.
 export const CHATBOT_CATEGORIES = [
   "symptoms",
   "disease_info",

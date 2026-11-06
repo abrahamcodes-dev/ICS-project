@@ -1,0 +1,157 @@
+{
+  "checkpoint": 4,
+  "recordedAtUtc": "2026-11-06T15:20:00.136Z",
+  "scope": "Synthetic deterministic engineering verification; not clinical or usability validation",
+  "environment": {
+    "node": "v24.16.0",
+    "jest": "29.7.0",
+    "typescript": "6.0.3"
+  },
+  "catalog": {
+    "version": "2026-11-06.2",
+    "entries": 31,
+    "followUpAnswers": 10,
+    "categoryCounts": {
+      "symptoms": 6,
+      "disease_info": 5,
+      "maternal_child_health": 5,
+      "nutrition": 5,
+      "mental_health": 5,
+      "medication_guidance": 5
+    },
+    "reviewStatus": "pending_clinical_review"
+  },
+  "tests": {
+    "passed": 308,
+    "failed": 0,
+    "suitesPassed": 9,
+    "suites": [
+      {
+        "file": "mobile/__tests__/healthChatbotFinal.test.js",
+        "passed": 27,
+        "status": "passed"
+      },
+      {
+        "file": "mobile/__tests__/patientExperience.test.js",
+        "passed": 25,
+        "status": "passed"
+      },
+      {
+        "file": "mobile/__tests__/healthChatbotUI.test.js",
+        "passed": 27,
+        "status": "passed"
+      },
+      {
+        "file": "mobile/__tests__/onboardingUI.test.js",
+        "passed": 9,
+        "status": "passed"
+      },
+      {
+        "file": "mobile/__tests__/chatbotEvaluation.test.js",
+        "passed": 2,
+        "status": "passed"
+      },
+      {
+        "file": "mobile/__tests__/healthKnowledgeBase.test.js",
+        "passed": 89,
+        "status": "passed"
+      },
+      {
+        "file": "mobile/__tests__/authNavigation.test.js",
+        "passed": 14,
+        "status": "passed"
+      },
+      {
+        "file": "mobile/__tests__/healthConversation.test.js",
+        "passed": 54,
+        "status": "passed"
+      },
+      {
+        "file": "mobile/__tests__/healthChatbot.test.js",
+        "passed": 61,
+        "status": "passed"
+      }
+    ],
+    "evaluationRunners": 2,
+    "labelledEvaluationCases": 44
+  },
+  "checks": {
+    "mobileTypeScript": "passed: tsc --noEmit",
+    "whitespace": "passed: git diff --check"
+  },
+  "comparisonBenchmark": {
+    "correct": 23,
+    "total": 24,
+    "accuracy": 0.9583333333333334,
+    "failures": [
+      {
+        "label": "lay terminology",
+        "query": "Information on nursing a baby",
+        "expected": "child-breastfeeding",
+        "actual": "clarification",
+        "correct": false
+      }
+    ],
+    "safetyCorrect": 4,
+    "safetyTotal": 4
+  },
+  "formerHeldOutEvaluation": {
+    "correct": 20,
+    "total": 20,
+    "accuracy": 1,
+    "failures": [],
+    "safetyCorrect": 4,
+    "safetyTotal": 4
+  },
+  "evaluationCaveat": "Fixtures and labels unchanged. These author-labelled synthetic sets are now known regression data; raised blood pressure was explicitly fixed after its earlier evaluation miss. The 20/20 rerun is not fresh held-out generalization evidence.",
+  "unchangedFixtureSha256": {
+    "mobile/__tests__/fixtures/chatbotEvaluation.json": "A9CD0292BD9898CEBD980E0C1A021F52C757751726C2941CDEC3A6E3EF522F55",
+    "mobile/__tests__/fixtures/chatbotHeldOut.json": "DA9448F194B30F004D97289C886077C099F4E48007AA6A64BE6C26D57F3814E6"
+  },
+  "sourceSha256": {
+    "mobile/src/services/chatbotService.ts": "4A10586218707FEF241B51B39F76400277F3C3D68EEB7597DF701C6A1F8DA3A1",
+    "mobile/src/services/healthMatcher.ts": "9AA756CF0CD6D225FA858226A30AF3579049D1A3AF9BBF834791F60836469C50",
+    "mobile/src/knowledge/healthKnowledgeBase.ts": "9E6833E08E59C342A16F49A3E9FBD1570107FA6BC6102B050509D6290DCC7559",
+    "mobile/src/screens/shared/ChatbotScreen.tsx": "361F96C8795A59B7D72D451B2C9B58180337DA00F4250595175BE2F1248C3F24",
+    "mobile/src/constants/disclaimers.ts": "94E12CD03C9CC5466E5BE98EA726F97AFAB5F65E3881880577FD6D6180D0ECC3",
+    "mobile/src/navigation/GuestNavigator.tsx": "4E78A146319D1597F7523C135831104DDC4A47EF6DF357D14C4A9A0CBC5244FE",
+    "mobile/src/navigation/PatientNavigator.tsx": "5E3AAAFC17F641CB1AA51FE3E4C8D964BFC294216BF864FF7DA0F7F27B3BC286",
+    "mobile/__tests__/healthChatbotFinal.test.js": "8CCD540EE7794C76196B8806677B2E0FB8575BCD7ED06484361E6270CE5B7F9A"
+  },
+  "android": {
+    "avd": "Pixel_7",
+    "serial": "emulator-5554",
+    "api": 35,
+    "resolution": "1080x2400",
+    "observedRole": "authenticated patient",
+    "metroPort": 8081,
+    "verified": [
+      "assistant screen and single disclaimer rendered",
+      "raised blood pressure returns hypertension education",
+      "nursing a baby asks clarification",
+      "dosing request refused",
+      "malaria followed by what causes it returns fixed sourced answer",
+      "not-breathing phrase returns urgent guidance",
+      "reset clears topic",
+      "background and return clear transcript and topic"
+    ],
+    "notVerified": [
+      "native guest login entry",
+      "native logout/account-switch isolation",
+      "dark theme",
+      "TalkBack",
+      "full software keyboard and small-screen usability",
+      "comprehensive clinical safety"
+    ],
+    "visualIssue": "Android floating hardware-keyboard toolbar overlapped part of lower static notice while input was focused; full software-keyboard interaction remains pending.",
+    "screenshots": "Temporary files outside repository; no clinical data fabricated or altered."
+  },
+  "architectureAudit": {
+    "method": "Targeted source/import/dependency inspection plus behavioral regression tests; no packet capture performed",
+    "externalAI": false,
+    "chatbotFirebaseRequests": false,
+    "persistentTranscripts": false,
+    "legacyBackendReactivated": false,
+    "emulatorDataModified": false
+  }
+}

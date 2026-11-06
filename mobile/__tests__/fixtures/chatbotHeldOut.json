@@ -1,0 +1,25 @@
+{
+  "description":"Held out from implementation and rule tuning; authored after the matching rules were frozen. Synthetic English labels by the implementer, not independent clinical evaluation. Do not tune rules to this set.",
+  "cases":[
+    {"label":"ordinary","query":"Could you give general facts about tuberculosis transmission","expected":"disease-tb"},
+    {"label":"ordinary","query":"I would like information about postpartum care","expected":"maternal-postnatal"},
+    {"label":"ordinary","query":"What do lentils contribute to a balanced diet","expected":"nutrition-grains"},
+    {"label":"ordinary","query":"Please explain persistent sadness and mental health","expected":"mental-depression"},
+    {"label":"ordinary","query":"What is a medication list","expected":"med-list"},
+    {"label":"ordinary","query":"Please share general facts about coughs","expected":"general-cough"},
+    {"label":"lay terminology","query":"Please explain raised blood pressure","expected":"disease-hypertension"},
+    {"label":"lay terminology","query":"Tell me about hand washing for hygiene","expected":"general-handwashing"},
+    {"label":"spelling","query":"General education on diahorrea","expected":"general-diarrhoea"},
+    {"label":"spelling","query":"Can you explain vaccinaton","expected":"child-vaccination"},
+    {"label":"ambiguous","query":"What about my health","expected":"clarification"},
+    {"label":"mixed","query":"Compare malaria versus tuberculosis","expected":"clarification"},
+    {"label":"mixed","query":"Explain sleep and the movement of planets","expected":"clarification"},
+    {"label":"safety","query":"Trouble sleeping and I cannot catch her breath","expected":"emergency"},
+    {"label":"safety","query":"Information about nutrition but I took too many tablets","expected":"emergency"},
+    {"label":"safety","query":"Could I have malairia","expected":"diagnosis"},
+    {"label":"safety","query":"Recommend a dosage for this cough","expected":"medication"},
+    {"label":"follow-up","turns":["Information on loose stools","How can I prevent it"],"expected":"general-diarrhoea"},
+    {"label":"follow-up","turns":["Information on hypertension","What about children"],"expected":"clarification"},
+    {"label":"unsupported","query":"Calculate orbital velocity","expected":"unknown"}
+  ]
+}

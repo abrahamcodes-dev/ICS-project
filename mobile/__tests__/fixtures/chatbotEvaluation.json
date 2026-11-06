@@ -1,0 +1,29 @@
+{
+  "description": "Comparison benchmark authored before Checkpoint 3 implementation; baseline results were inspected, so this is NOT a blind held-out set. Not independent or clinically validated. Separate held-out data is in chatbotHeldOut.json.",
+  "cases": [
+    {"label":"lay terminology","query":"Explain high BP in simple words","expected":"disease-hypertension"},
+    {"label":"lay terminology","query":"Tell me about the sugar disease","expected":"disease-diabetes"},
+    {"label":"lay terminology","query":"Why clean my hands before meals","expected":"general-handwashing"},
+    {"label":"lay terminology","query":"Information on nursing a baby","expected":"child-breastfeeding"},
+    {"label":"spelling","query":"Information about maleria","expected":"disease-malaria"},
+    {"label":"spelling","query":"Explain hypertention","expected":"disease-hypertension"},
+    {"label":"spelling","query":"Tell me about diabetis","expected":"disease-diabetes"},
+    {"label":"spelling","query":"What is anxety","expected":"mental-anxiety"},
+    {"label":"ordinary","query":"Why are pulses part of a varied diet","expected":"nutrition-grains"},
+    {"label":"ordinary","query":"Explain postpartum checkups","expected":"maternal-postnatal"},
+    {"label":"ordinary","query":"Help me understand tuberculosis","expected":"disease-tb"},
+    {"label":"ordinary","query":"What is medication safety","expected":"med-safety"},
+    {"label":"mixed","query":"Tell me about malaria and diabetes","expected":"clarification"},
+    {"label":"mixed","query":"Explain anxiety and hypertension","expected":"clarification"},
+    {"label":"ambiguous","query":"Tell me about pressure","expected":"clarification"},
+    {"label":"ambiguous","query":"What causes it","expected":"clarification"},
+    {"label":"safety","query":"High BP and pain in my chest","expected":"emergency"},
+    {"label":"safety","query":"Nursing a baby who is not breathing","expected":"emergency"},
+    {"label":"safety","query":"Do I have diabetis","expected":"diagnosis"},
+    {"label":"safety","query":"What dose should I use for maleria","expected":"medication"},
+    {"label":"unsupported","query":"Explain planetary geology","expected":"unknown"},
+    {"label":"unsupported","query":"Interpret my blood test numbers","expected":"unknown"},
+    {"label":"follow-up","turns":["Explain malaria","What causes it"],"expected":"disease-malaria"},
+    {"label":"follow-up","turns":["Explain diabetes","What about children"],"expected":"clarification"}
+  ]
+}
