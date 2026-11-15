@@ -4,8 +4,56 @@ dist/
 web-build/
 *.log
 .env
+/functions/.env.local
 functions/lib/
 .firebase/
 serviceAccountKey.json
 /Microsoft/Windows/PowerShell/ModuleAnalysisCache
 /mobile/android/
+
+# Local environments; only intentionally blank templates belong in Git.
+.env.*
+!.env.example
+
+# Emulator state, private fixtures, backups and disposable regression workspaces.
+emulator-demo-backup/
+firebase-export-*/
+*-emulator-export/
+.local/
+.regression/
+.regression-dependencies/
+regression-workspaces/
+calladoc-regression-*/
+calladoc-demo-snapshot-*/
+.calladoc-regression.json
+tmp/
+temp/
+*.bak
+*.tmp
+
+# Administrative credentials and signing material (not public Firebase config).
+*serviceAccount*.json
+*service-account*.json
+*firebase-adminsdk*.json
+application_default_credentials.json
+credentials.json
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Generated diagnostics/build artifacts.
+coverage/
+.cache/
+*.tsbuildinfo
+*.apk
+*.aab
+hs_err_pid*.log
+replay_pid*.log
+
+# Personal editor state and unused original design images.
+/.vscode/settings.json
+/mobile/assets/consult-doctor-original.png
+/mobile/assets/consult-doctor-checkerboard-original.png
