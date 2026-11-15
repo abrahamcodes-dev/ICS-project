@@ -1,5 +1,239 @@
 # 9H - Local health information assistant
 
+## Question-intent accuracy - 8 November 2026
+
+Current catalog: **50 entries**, including **22 nutrition entries**, and **93
+predefined topic/facet answers**, version `2026-11-08.1`. Counts in earlier
+checkpoint sections below are historical. All content remains pending clinical review.
+
+### Observed causes and fixes
+
+The sleep-duration question matched the sleep topic but had no recognized duration
+facet and no duration answer, so it received default sleep-hygiene text. Pizza had
+neither an entity nor a catalog entry and reached the approved unsupported fallback.
+The same routing defect was demonstrated for broccoli frequency: it returned food
+facts instead of acknowledging that no supported frequency answer existed.
+
+`healthQuestionIntent.ts` now separates deterministic question intent from scored
+topic recognition. It classifies definition/explanation, causes, signs/symptoms,
+benefits, nutrients, duration, frequency, prevention, safety/limitations,
+preparation/alternatives, plus existing children/care requests. Classification is
+finite editorial English rules, not inference. Specific intents precede definition;
+competing requested facets clarify. Explicit topic plus intent always wins over
+prior session context. Only bounded ellipsis/pronoun forms may inherit a topic.
+Missing answers use safe fallback or clarification; they never substitute the
+default topic response. Definition/explanation uses the entry explanation, with a
+sleep-specific override. `followUpKind` remains available for existing callers.
+
+### Authored coverage
+
+- Sleep duration: CDC adult daily guidance, ages 18-60: 7 or more hours;
+  ages 61-64: 7-9; ages 65 and older: 7-8. The answer does not assume the user's
+  age or prescribe a personal target. Explicit child/teen and numeric-minor
+  questions clarify; they do not receive adult targets. No profile age lookup or
+  age persistence was introduced.
+- Sleep definition, benefits and possible poor-quality signs: fixed educational
+  answers. Signs explicitly do not diagnose sleep deprivation or a sleep disorder.
+- Pizza: recipe/ingredient variation, portions and overall dietary pattern rather
+  than blanket good/bad judgments. Fixed nutrient, general preparation, safety,
+  limitations and healthier-alternative answers reuse the nutrition catalog.
+- Eating-disorder signs: the existing source-supported awareness response is now
+  explicitly registered as a signs answer; no new medical claims were added.
+- Frequency classification exists, but no personal food-frequency targets or
+  cooking-duration recommendations were invented. Unknown foods/facets remain
+  unsupported. Individual portions, allergy advice and restrictive diets retain
+  the existing professional-referral boundaries.
+
+### Before/after examples
+
+| Question | Before | Now |
+| --- | --- | --- |
+| How many hours of sleep are good for me? | Default hygiene advice | Qualified adult age-group duration guidance |
+| Is pizza good for me? | Unsupported | Ingredients, portions and dietary-pattern explanation |
+| How often should I eat broccoli? | Generic food facts | Approved safe unsupported-facet fallback |
+| What are the signs of sleep deprivation? | Default hygiene advice | Fixed poor-quality signs, explicitly not a diagnosis |
+| What nutrients are in sleep? | Unsupported | Remains unsupported |
+
+Verified on 8 November 2026: [CDC About Sleep](https://www.cdc.gov/sleep/about/index.html),
+[Health Canada pizza/label guidance](https://www.canada.ca/en/health-canada/services/nutrients/sodium/detector/processed-foods.html),
+and [WHO Healthy diet](https://www.who.int/news-room/fact-sheets/detail/healthy-diet).
+These sources support general education, not a clinical approval or individualized
+assessment. No uniform pizza nutrient quantities were copied or invented.
+
+### Actual validation and limits
+
+**583 unique tests pass across 15 suites**, combining the main focused run with
+latest affected-suite replacements. Intermediate failures are recorded in the
+[evidence](evidence/health-chatbot-question-intents.json): age-range text encoding,
+an outdated expectation for the newly explicit signs facet, and an overbroad safety
+rule that misclassified adjectival safe-water wording. All are resolved without
+weakening safety assertions. Mobile TypeScript passes; final whitespace evidence
+is recorded with the checkpoint results.
+
+New labelled intent evaluation: **26/26**, measuring topic plus requested facet or
+expected refusal/fallback. The first and final measured runs both scored 26/26.
+This is developer-authored synthetic evaluation, not independent held-out evidence,
+clinical validation or a user study. Historical fixtures remain unchanged:
+nutrition **32/32**, comparison **23/24** (ambiguous nursing still clarifies),
+original held-out **20/20**. Fixture hashes and per-question results are recorded.
+
+Reproduce from `mobile/` with the existing focused command in the nutrition
+section below, adding `__tests__/questionIntent.test.js` and
+`__tests__/questionIntentEvaluation.test.js`, followed by
+`node node_modules/typescript/bin/tsc --noEmit` and `git diff --check`.
+
+Emergency-first handling, clinical refusals, one unchanged disclaimer per response,
+guest/patient access and memory-only session isolation remain tested. No Firebase
+requests/data changes, transcript persistence, external AI, dependencies or native
+configuration changes were added. **Fresh Pixel 7 visual/TalkBack verification:
+NOT VERIFIED.** Reload the existing client, ask both observed questions, check an
+unsupported frequency question, reset the conversation and ask an ellipsis follow-up
+without context. No native rebuild is required. Finite vocabulary, pending clinical
+review and lack of independent intent/usability evaluation remain limitations.
+
+## Nutrition intelligence expansion ? 7 November 2026
+
+Current bundled catalog version: `2026-11-07.1`: **49 entries**, including
+**21 nutrition entries**, with **82 predefined follow-up answers** across the
+catalog (69 nutrition). Earlier catalog counts below are historical evidence.
+All content remains **pending clinical review**.
+
+### Observed defect and recognition
+
+Before this checkpoint, ?What foods are good for me?? had no matching pattern,
+phrase or keyword, so selection returned none and the service used the approved
+fallback. General nutrition now recognizes that question and ?What should I eat
+to stay healthy?? through bounded question patterns. Scoring still uses explicit
+priorities, phrase specificity and meaningful coverage; it does not infer intent
+through a model. Food entities supply explicit phrase evidence. Generic nutrition
+and nutrient entries yield to a recognized food, while independent medical topics
+and unknown mixed clauses require clarification.
+
+Controlled normalization includes green grams/mung beans ? ndengu,
+sukumawiki ? sukuma wiki, balanced plate ? balanced meals, and a finite set of
+misspellings (brocolli, brocoli, spinich, avacado, protien, lentiles). No edit-distance
+search, learned synonyms or fuzzy override of safety checks was introduced.
+Non-food meanings such as Java beans, protein in urine and iron gates do not
+select food education. Recognition is finite English coverage, not language understanding.
+
+### Supported education and foods
+
+Coverage includes balanced eating, healthy food choices, food groups, fruit and
+vegetables, protein, fibre and digestive health, carbohydrate, fat quality,
+vitamins/minerals, iron food sources, hydration, preparation, salt and free sugars.
+Supported foods: **broccoli, spinach, sukuma wiki, eggs, bananas, avocados, beans,
+lentils, fish, milk, rice, oats, ugali and ndengu**. Leafy greens share one entry;
+rice/oats/ugali share one staple entry; beans/lentils/ndengu reuse the existing
+whole-grain/pulse entry. Grouping does not imply identical nutrient composition.
+
+Food questions recognize benefits, nutrients and general healthy-food wording.
+Fixed contextual forms include ?What are the benefits??, ?What nutrients are in
+it??, ?How can I prepare it?? and ?Any limitations??. They use only the identified
+entry's exact authored answer. Unsupported facets clarify or use the approved
+fallback; unknown topics clear old context. Preparation advice is general safe
+handling, not a recipe. There are no nutrient quantities or individual portion,
+fluid, supplement or meal prescriptions. Restrictive diets, food-based treatment,
+personal allergy questions and individual quantities receive professional referrals.
+Emergency checks and medication/diagnosis refusals still run first. Eating-disorder
+awareness remains separate from ordinary food advice.
+
+### Verified sources and boundaries
+
+- [WHO Healthy diet](https://www.who.int/news-room/fact-sheets/detail/healthy-diet): general food groups and nutrients.
+- [FAO/Government of Kenya composition tables](https://www.fao.org/food-composition/tables-and-databases/detail/kenya-food-composition-tables/en): qualitative food facts, with table locators in source metadata/evidence. The publisher PDF was downloaded to temporary storage; a readable copy of the same publication was inspected through the browser. No PDF or extracted database was added to the repository.
+- [FAO food chapters](https://www.fao.org/4/W0073e/w0073e06.htm): basic food composition only; historical clinical/infant-feeding recommendations were not adopted.
+- [WHO Five keys to safer food](https://www.who.int/publications/i/item/9789241594639): general handling guidance.
+- [WHO Drinking-water](https://www.who.int/news-room/fact-sheets/detail/drinking-water): water safety, not fluid targets.
+- [CDC Healthy Eating Tips](https://www.cdc.gov/nutrition/features/healthy-eating-tips.html): fibre/digestion and protein foods.
+
+Sources were checked on 7 November 2026. Entries retain stable IDs, category,
+predefined responses, question patterns, editorial matching metadata, source URLs,
+review status and catalog version. Source verification does not establish clinical
+approval, suitability for an individual, or endorsement of CallADoc by publishers.
+
+### Actual validation and evaluation
+
+**520 unique tests pass across 13 suites**, using the main 510/510 focused run
+plus the latest six affected suites (348/348) after additional follow-ups and
+regressions. One intermediate development regression failed because a recognized
+phrase fell below the score threshold; explicit phrase specificity fixed it.
+Mobile TypeScript passes. Whitespace results and per-question evidence are in
+[nutrition evidence](evidence/health-chatbot-nutrition.json).
+
+The separate 32-question synthetic nutrition fixture scored **28/32 initially**.
+It exposed everyday food-choice/plate wording, supply-iron wording and a
+food-hygiene collision. The fixture and labels remained unchanged; these misses
+informed development refinements. Final score: **32/32**, no remaining failures.
+This is a **development evaluation**, not held-out generalization or clinical
+validation. Existing unchanged fixtures: comparison **23/24** (ambiguous ?nursing
+a baby? still clarifies), original held-out **20/20**. Fixture hashes are recorded.
+All ten requested example questions resolve to intended entries with one disclaimer.
+
+Reproduce from `mobile/`:
+
+```powershell
+node node_modules/jest/bin/jest.js --runInBand __tests__/healthChatbot.test.js __tests__/healthChatbotUI.test.js __tests__/healthKnowledgeBase.test.js __tests__/healthConversation.test.js __tests__/healthChatbotFinal.test.js __tests__/chatbotEvaluation.test.js __tests__/healthTopicFixes.test.js __tests__/nutrition.test.js __tests__/nutritionEvaluation.test.js __tests__/authNavigation.test.js __tests__/patientExperience.test.js __tests__/onboardingUI.test.js __tests__/theme.test.js
+node node_modules/typescript/bin/tsc --noEmit
+git diff --check
+```
+
+The unchanged UI retains per-response disclaimers, safe-area/keyboard handling,
+guest/patient navigation and reset/logout/background isolation. No new Firebase
+requests, transcript storage, network inference or dependencies were introduced.
+**Fresh Pixel 7 usability/TalkBack verification: NOT VERIFIED.** Reload the existing
+client (no rebuild), ask the observed food question, then ask broccoli nutrients,
+preparation and limitations. Check an unsupported food, a mixed medical topic and
+an emergency phrase; reset/leave chat and confirm follow-up context is gone.
+Clinical review and independent nutrition evaluation remain required.
+
+## Pixel 7 reported topic fixes ? 6 November 2026
+
+Current catalog version: `2026-11-06.3`, **33 entries and 13 fixed follow-up answers**.
+Coverage: symptoms 6, common diseases 6, maternal/child health 5, nutrition 5,
+mental health 6, medication guidance 5. All content remains **pending clinical review**.
+
+The eating-disorder question previously had no catalog entry and correctly reached
+the safe fallback. The cold question also had no entry, but the broad causes-question
+facet incorrectly forced contextual clarification. Explicit supported topics now
+resolve before conversation context; explicit unsupported topics/aspects use the
+approved verified-doctor fallback. Only bounded referential/incomplete questions
+request context. Bare ?cold? and ?nursing? remain ambiguous; cold weather, water,
+feet and sores are not mapped to a respiratory infection. Missing contextual
+facets are never synthesized, and unsupported responses clear the prior topic.
+
+- ?What are signs of an eating disorder??: unknown ? eating-disorder awareness.
+- ?What causes a cold??: clarification ? fixed common-cold causes answer.
+- ?What causes eczema??: clarification ? safe unsupported-topic fallback.
+- ?What causes it?? without context: clarification remains unchanged.
+
+Source verification used the actual WHO [hMPV Q&A](https://www.who.int/news-room/questions-and-answers/item/human-metapneumovirus-(hmpv)-infection)
+and [Mental disorders fact sheet](https://www.who.int/news-room/fact-sheets/detail/mental-disorders).
+The former supports a conservative viral-cold explanation, explicitly identifying
+hMPV as only one example; the latter supports general eating-disorder awareness.
+Neither new entry diagnoses, prescribes, gives individualized dosing or provides
+a treatment plan. Source verification is not clinical approval.
+
+Every response still contains one unchanged approved disclaimer. Its own separated
+?Medical guidance? section uses 16-point text, spacing, a divider and muted theme
+color. One accessible response label includes the complete answer and disclaimer;
+only the latest reply announces. Automated light/dark contrast and UI semantics
+pass, but fresh Pixel 7 visual/TalkBack verification is **NOT VERIFIED**.
+
+Fresh checks: **351 unique tests pass across 11 suites**, combining the initial
+350/351 run with the affected UI suite's 35/35 rerun after fixing a test selector
+that double-counted native wrappers. Mobile TypeScript passes. Original synthetic
+fixtures are unchanged: comparison **23/24**, held-out **20/20**. The comparison
+failure remains the intentionally ambiguous ?Information on nursing a baby?. These
+are development evaluations, not clinical or independent usability validation.
+Detailed traces, fixture hashes and test evidence: [topic-fix evidence](evidence/health-chatbot-topic-fixes.json).
+Earlier counts and evidence below are historical, not current catalog totals.
+
+Manual Pixel 7 check: reload Metro's existing development client, open Health
+assistant as guest or patient, submit both reported inputs, inspect the separated
+disclaimer in light/dark themes, and use TalkBack to confirm one complete latest
+response announcement. Ask a contextual ?What causes it??, then reset or leave
+and reopen chat to confirm that context is gone. No Firebase data changes required.
+
 ## Independent commit-snapshot finalization — 6 November 2026
 
 This section records fresh isolated-snapshot checks, superseding the earlier

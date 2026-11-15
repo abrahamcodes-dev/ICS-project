@@ -288,3 +288,7 @@ Record first-run failures and exact retry results. Do not relax assertions or
 security boundaries to obtain a pass. Native two-party media, permission-prompt
 recovery and connected-call network recovery retain the 10C limitations until
 separately verified. See the 10D report for commands, counts and release caveats.
+
+### Guarded demo startup shortcut (AUTH-FIX-1)
+
+Use `scripts/Start-DemoEmulators.ps1` with the documented existing Node 22 executable and Java home; see `AUTH_FIX_1.md` for the exact invocation. It explicitly selects `demo-calladoc` and isolates operator credentials. Bare `firebase emulators:start` selects the repository's live-project default **even though the services are local**, causing the mobile demo Functions URL to return 404. Do not change the app to that project to work around the error. The correct unauthenticated demo `completeRegistration` probe returns 401, not 404.
