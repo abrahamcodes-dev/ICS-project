@@ -50,5 +50,8 @@
     "moduleNameMapper": {
       "^@shared/(.*)$": "<rootDir>/../shared/$1"
     }
+  },
+  "overrides": {
+    "re2js": "2.8.7"
   }
 }

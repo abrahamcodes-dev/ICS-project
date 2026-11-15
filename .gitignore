@@ -57,3 +57,8 @@ replay_pid*.log
 /.vscode/settings.json
 /mobile/assets/consult-doctor-original.png
 /mobile/assets/consult-doctor-checkerboard-original.png
+
+# Disposable academic-demo build workspaces (normally created outside the repo).
+calladoc-academic-build-*/
+calladoc-academic-release-*/
+functions/.academic-test/

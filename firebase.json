@@ -1,24 +1,76 @@
 {
   "firestore": {
     "rules": "functions/firestore.rules",
-    "indexes": "functions/firestore.indexes.json"
+    "indexes": "functions/firestore.indexes.json",
+    "predeploy": [
+      "node scripts/Check-AcademicRelease.cjs"
+    ]
   },
   "storage": {
-    "rules": "functions/storage.rules"
+    "rules": "functions/storage.rules",
+    "predeploy": [
+      "node scripts/Check-AcademicRelease.cjs"
+    ]
   },
   "functions": [
     {
       "source": "functions",
       "codebase": "default",
-      "ignore": ["node_modules", ".git", "firebase-debug.log", "*.local"],
-      "predeploy": ["npm --prefix \"$RESOURCE_DIR\" run build"]
+      "ignore": [
+        "node_modules",
+        ".git",
+        ".firebase",
+        "src",
+        "__tests__",
+        "emulator-checks",
+        "scripts",
+        "coverage",
+        "backups",
+        "emulator-demo-backup",
+        "firebase-export-*",
+        ".env",
+        ".env.*",
+        "*.local",
+        "*.log",
+        "*.bak",
+        "*.tmp",
+        "*.pem",
+        "*.key",
+        "*.p12",
+        "*.pfx",
+        "*.jks",
+        "*.keystore",
+        "*serviceAccount*.json",
+        "*service-account*.json",
+        "*firebase-adminsdk*.json",
+        "credentials.json",
+        "application_default_credentials.json",
+        "jest*.config.*",
+        "firebase.*.json",
+        "tsconfig*.json",
+        "c6-emulator",
+        "feature-emulator"
+      ],
+      "predeploy": [
+        "node scripts/Check-AcademicRelease.cjs"
+      ]
     }
   ],
   "emulators": {
-    "auth": { "port": 9099 },
-    "functions": { "port": 5001 },
-    "firestore": { "port": 8080 },
-    "storage": { "port": 9199 },
-    "ui": { "enabled": true }
+    "auth": {
+      "port": 9099
+    },
+    "functions": {
+      "port": 5001
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "storage": {
+      "port": 9199
+    },
+    "ui": {
+      "enabled": true
+    }
   }
 }
