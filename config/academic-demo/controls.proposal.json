@@ -1,0 +1,20 @@
+{
+  "status": "IMPLEMENTED_LOCALLY_NOT_DEPLOYED",
+  "region": "us-central1",
+  "androidApplicationId": "com.calladoc.academicdemo",
+  "admission": {
+    "collection": "academicDemoTesters",
+    "serverManaged": true,
+    "enabledAndExpiryRequired": true,
+    "googleInvitationBeforeAccountCreationAndMinting": true,
+    "protectCallableAndDirectRulesAccess": true,
+    "identityPlatformBlockingTriggersRequired": true,
+    "verifiedEmailBeforeMembership": true,
+    "hostedStorageAccess": "authorized callable proxies only"
+  },
+  "http": {"minInstances": 0, "maxInstances": 2, "concurrency": 10},
+  "scheduled": {"minInstances": 0, "maxInstances": 1, "concurrency": 1},
+  "budget": {"currency": "USD", "monthlyAmount": 5, "alertThresholds": [0.5, 0.8, 1.0], "spendingCap": false},
+  "retention": {"finalAssessmentAt": null, "disposalDeadlineAt": null, "daysAfterFinalAssessment": 30, "automaticPurge": false},
+  "deferred": ["FCM remote delivery", "STUN/TURN", "physical-device audio", "complete manual consultation/payment acceptance"]
+}
