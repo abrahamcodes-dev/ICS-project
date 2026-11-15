@@ -22,7 +22,7 @@ const locks = () => scheduledLocks(appointment()).map(x => x.lock);
 const availability = () => planAvailabilityReplacement('doctor1', null, input(), ts(start - 3600000)).availability;
 
 describe('scheduling primitives and strict transport', () => {
-  test('central policy values', () => expect(SCHEDULING).toEqual({ appointmentDurationMs: duration, slotIntervalMs: duration,
+  test('central policy values', () => expect(SCHEDULING).toEqual({ appointmentDurationMs: duration, slotIntervalMs: 900000,
     bookingLeadMs: 300000, horizonDays: 90, maxWindowsPerUtcDay: 8, maxDiscoveryDays: 7, cancellationReasonMax: 500, schemaVersion: 1, utcDayMs: 86400000 }));
   test.each([NaN, Infinity, -Infinity, 1.2, Number.MAX_SAFE_INTEGER + 1, MIN_TIMESTAMP_MS - 1, MAX_TIMESTAMP_MS + 1, '2026-10-04T10:00:00', null])('rejects invalid epoch %p', value => expect(() => epochMilliseconds(value)).toThrow());
   test.each([MIN_TIMESTAMP_MS, MAX_TIMESTAMP_MS, -1, 0, start])('epoch round trip %p', value => expect(toMilliseconds(ts(value))).toBe(value));
@@ -96,7 +96,7 @@ describe('availability and half-open intervals', () => {
     expect(availabilityWindows(eight, day)).toHaveLength(8);
     const midnight = Date.parse(day + 'T00:00:00Z');
     expect(availabilityWindows([window(midnight, midnight + 86400000)], day)).toHaveLength(1);
-    expect(deriveSlots([window(midnight, midnight + 86400000)], day)).toHaveLength(48);
+    expect(deriveSlots([window(midnight, midnight + 86400000)], day)).toHaveLength(95);
   });
   test.each([
     [window(start, start + 2 * duration), window()], [window(start + duration, start + 2 * duration), window()],
@@ -107,14 +107,15 @@ describe('availability and half-open intervals', () => {
   test('derived candidates are ordered, unique, contained, exactly 30 minutes', () => {
     const windows = [window(start, start + 2 * duration), window(start + 2 * duration, start + 3 * duration)];
     const slots = deriveSlots(windows, day);
-    expect(slots.map(s => toMilliseconds(s.startAt))).toEqual([start, start + duration, start + 2 * duration]);
+    expect(slots.map(s => toMilliseconds(s.startAt))).toEqual([start, start + 900000, start + duration, start + duration + 900000, start + 2 * duration]);
     for (const slot of slots) {
       expect(toMilliseconds(slot.endAt) - toMilliseconds(slot.startAt)).toBe(duration);
       expect(fitsAvailability(slot, windows, day)).toBe(true);
     }
     expect(deriveSlots(windows, day)).toEqual(slots);
     expect(fitsAvailability(window(start + 3 * duration, start + 4 * duration), windows, day)).toBe(false);
-    expect(() => fitsAvailability(window(start, start + 2 * duration), windows, day)).toThrow();
+    expect(fitsAvailability(window(start, start + 2 * duration), windows, day)).toBe(true);
+    expect(() => fitsAvailability(window(start, start + 4500000), windows, day)).toThrow();
   });
   test('transport validates and normalizes', () => {
     expect(validateAvailabilityInput(input())).toEqual(input());
@@ -162,7 +163,7 @@ describe('revisions and booking retries', () => {
 
 describe('appointment schema, reservations and lifecycle', () => {
   test.each([{ status: 'booked' }, { status: 'pending' }, { status: 'confirmed' }, { patientId: 'doctor1' }, { appointmentId: 'bad' },
-    { availabilityId: 'bad' }, { availabilityRevision: 0 }, { schemaVersion: 2 }, { endAt: ts(start + 2 * duration) },
+    { availabilityId: 'bad' }, { availabilityRevision: 0 }, { schemaVersion: 2 }, { endAt: ts(start + 2700000) },
     { doctorDisplay: { professionalName: '', specialty: 'General' } }, { doctorDisplay: { professionalName: ' A ', specialty: 'General' } },
     { doctorDisplay: { professionalName: 'A', specialty: 'General', health: 'bad' } }, { diagnosis: 'forbidden' },
     { cancellation: {} }, { outcome: {} }, { createdAt: ts(start) }])('rejects invalid appointment %p', patch => expect(() => validateAppointment({ ...appointment(), ...patch })).toThrow());

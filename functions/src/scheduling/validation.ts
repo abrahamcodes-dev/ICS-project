@@ -4,11 +4,12 @@ import { SCHEDULING } from './constants';
 import { alignedStart, bookingRequestId, compareTimes, fromMilliseconds, positiveRevision, schedulingTimestamp, timeZone, toMilliseconds, utcDate } from './primitives';
 import { availabilityWindows, interval } from './intervals';
 import { availabilityId, digestId, resourceType } from './ids';
+import {durationMinutes,intervalDuration} from './durations';
 
 export function validateBookingRequest(value: unknown): BookingRequest {
-  const data = strictRecord(value, ['doctorId', 'startAt', 'bookingRequestId'], ['doctorId', 'startAt', 'bookingRequestId']);
-  const startAt = alignedStart(data.startAt); fromMilliseconds(startAt + SCHEDULING.appointmentDurationMs);
-  return Object.freeze({ doctorId: safeId(data.doctorId), startAt, bookingRequestId: bookingRequestId(data.bookingRequestId) });
+  const data = strictRecord(value, ['doctorId', 'startAt', 'bookingRequestId','durationMinutes'], ['doctorId', 'startAt', 'bookingRequestId']);
+  const duration=durationMinutes(data.durationMinutes),startAt = alignedStart(data.startAt); fromMilliseconds(startAt + duration*60000);
+  return Object.freeze({ doctorId: safeId(data.doctorId), startAt, bookingRequestId: bookingRequestId(data.bookingRequestId),...(data.durationMinutes!==undefined?{durationMinutes:duration}:{}) });
 }
 export function validateAvailabilityInput(value: unknown): AvailabilityReplacementInput {
   const fields = ['utcDate', 'timeZone', 'windows', 'expectedRevision'];
@@ -50,7 +51,7 @@ export function validateAppointment(value: unknown): Appointment {
   const data = strictRecord(value, fields, fields);
   const patientId = safeId(data.patientId), doctorId = safeId(data.doctorId);
   const times = interval({ startAt: data.startAt, endAt: data.endAt }), start = alignedStart(toMilliseconds(times.startAt));
-  if (toMilliseconds(times.endAt) - start !== SCHEDULING.appointmentDurationMs || patientId === doctorId) fail('invalid-appointment');
+  intervalDuration(start,toMilliseconds(times.endAt));if (patientId === doctorId) fail('invalid-appointment');
   const day = new Date(start).toISOString().slice(0, 10);
   if (data.availabilityId !== availabilityId(doctorId, day) || data.schemaVersion !== SCHEDULING.schemaVersion) fail('invalid-appointment');
   const display = strictRecord(data.doctorDisplay, ['professionalName', 'specialty'], ['professionalName', 'specialty']);
@@ -82,7 +83,8 @@ export function validateBookingLock(value: unknown): BookingLock {
   const fields = ['resourceType', 'resourceId', 'appointmentId', 'startAt', 'endAt', 'schemaVersion', 'createdAt'];
   const data = strictRecord(value, fields, fields), times = interval({ startAt: data.startAt, endAt: data.endAt });
   const start = alignedStart(toMilliseconds(times.startAt)), createdAt = schedulingTimestamp(data.createdAt);
-  if (data.schemaVersion !== SCHEDULING.schemaVersion || toMilliseconds(times.endAt) - start !== SCHEDULING.appointmentDurationMs
+  intervalDuration(start,toMilliseconds(times.endAt));
+  if (data.schemaVersion !== SCHEDULING.schemaVersion
     || compareTimes(createdAt, times.startAt) >= 0) fail('invalid-booking-lock');
   return Object.freeze({ resourceType: resourceType(data.resourceType), resourceId: safeId(data.resourceId), appointmentId: digestId(data.appointmentId),
     ...times, schemaVersion: SCHEDULING.schemaVersion, createdAt });

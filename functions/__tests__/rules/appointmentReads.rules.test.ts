@@ -160,7 +160,7 @@ test.each(['patient2', 'doctor2', 'administrator', 'admin', 'guest', 'claim-only
 test.each([
   { schemaVersion: 2 }, { status: 'unknown' }, { patientId: 1 }, { doctorId: null }, { doctorId: 'patient' },
   { doctorId: 'bad/id' }, { doctorId: 'bad\\id' }, { doctorId: 'bad\u0000id' },
-  { startAt: new Date(start).toISOString() }, { endAt: time(start) }, { endAt: time(start + 3600000) },
+  { startAt: new Date(start).toISOString() }, { endAt: time(start) }, { endAt: time(start + 2700000) },
   { startAt: time(start + 1), endAt: time(start + 1800001) }, { appointmentId: key(42) },
   { availabilityId: 'wrong' }, { availabilityRevision: 0 }, { createdAt: time(start) }, { updatedAt: time(now - 1) },
   { cancellation: { cancelledBy: 'patient' } }, { doctorDisplay: { professionalName: 'Doctor', specialty: 'Medicine', patientId: 'patient' } },

@@ -1,14 +1,19 @@
 export { completeRegistration } from "./auth/completeRegistration";
+export { signInWithGoogle } from "./auth/googleSignIn";
+export { getConsultationFee, setDoctorConsultationFee, createConsultationCheckout, submitSimulatedPaymentDecision, getConsultationPayment, cancelConsultationPayment, retryConsultationRefund, listConsultationPayments, getDoctorPaymentSummary, reconcileConsultationPayments } from "./payments/callables";
+export { requestOwnAccountDeletion, getOwnAccountDeletion, resumeAccountDeletions } from "./accounts/deletionCallables";
+export { getOwnPatientConsent, updateOwnPatientConsent } from "./privacy/consentCallables";
 export { saveDoctorProfileDraft } from "./profiles/saveDoctorProfileDraft";
 export { prepareDoctorCredential, finalizeDoctorCredential } from "./profiles/credentialCallables";
 export { submitDoctorVerification, reviewDoctorVerification } from "./profiles/verificationCallables";
 export { listPendingDoctorVerifications } from "./profiles/verificationQueueCallable";
-export { replaceDoctorAvailabilityDay, getAvailableAppointmentTimes } from "./scheduling/availabilityCallables";
+export { replaceDoctorAvailabilityDay, replaceDoctorAvailabilityDays, getAvailableAppointmentTimes } from "./scheduling/availabilityCallables";
 export { listApprovedDoctors, getOwnDoctorAvailabilityDay } from "./scheduling/readCallables";
 export { bookAppointment } from "./scheduling/bookingCallable";
 export { cancelAppointment, recordAppointmentOutcome } from "./scheduling/lifecycleCallables";
 export { openConsultation } from "./consultations/openConsultation";
 export { sendConsultationMessage } from "./consultations/sendConsultationMessage";
+export { prepareConsultationAttachment, uploadConsultationAttachment, finalizeConsultationAttachment, getConsultationAttachment, discardConsultationAttachment, cleanupConsultationAttachments } from "./consultations/attachmentCallables";
 export { startConsultationCall } from "./consultations/calls/startConsultationCall";
 export { respondToConsultationCall, endConsultationCall, getConsultationCall } from "./consultations/calls/lifecycleCallables";
 export { publishConsultationIce } from "./consultations/calls/publishConsultationIce";
@@ -17,3 +22,4 @@ export { rateDoctor, getOwnConsultationRating, getOwnDoctorRatingSummary } from 
 export { listNotifications, markNotificationRead, openNotification, setNotificationDevice } from "./notifications/callables";
 // Later-workflow callables remain in source but are inactive pending authorization
 // and workflow design. Never export onUserCreate or operator provisioning here.
+export { changeProfileAvatar, getProfileAvatar } from "./profiles/avatarCallables";

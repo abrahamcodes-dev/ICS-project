@@ -1,4 +1,5 @@
 const React = require('react');
+jest.mock('@react-navigation/native',()=>({useNavigation:()=>({navigate:jest.fn()})}));
 const {act, create} = require('react-test-renderer');
 const {Action, Field} = require('../src/ui/design');
 let mockRows, mockError, mockIdentity;
@@ -60,4 +61,11 @@ test('new draft after acknowledged send uses a fresh request ID',async()=>{
  await render();mockSend.mockResolvedValue({consultationId:room.consultationId,senderId:'p',type:'text'});
  await draft();await press('Send message');await draft('Second');await press('Send message');
  expect(mockSend.mock.calls[0][0].messageRequestId).not.toBe(mockSend.mock.calls[1][0].messageRequestId);
+});
+
+test('message bubbles distinguish participants without changing chronological order',async()=>{
+ await render();await act(async()=>mockRows([row('new',2000),row('old',1000)]));
+ const {Card}=require('../src/ui/design');const bubbles=tree.root.findAllByType(Card).filter(n=>n.props.style?.maxWidth==='92%');
+ expect(bubbles.map(n=>n.props.tone)).toEqual(['mint','surface']);
+ expect(bubbles.map(n=>n.props.style.alignSelf)).toEqual(['flex-end','flex-start']);
 });

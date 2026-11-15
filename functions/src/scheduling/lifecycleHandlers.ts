@@ -56,10 +56,14 @@ export function createLifecycleHandlers(deps: AvailabilityDependencies) {
         // Refresh trusted time after reads on every retry. Terminal replays deliberately skip lock reads.
         const plan = planAppointmentTransition(appointment, { uid, role: identity.role }, input.decision, deps.now(), observed);
         if (plan.appointment.status === 'scheduled') fail('terminal-state-required');
+        const refund = kind === 'cancel' ? await tx.prepareCancellation?.(plan.appointment) : undefined;
+        const releaseCells=plan.changed?await tx.prepareCellRelease?.(appointment):undefined;
         if (plan.changed) {
           // Policy has verified both deterministic resources, appointment references, times and creation metadata.
           tx.saveTerminalAppointment(plan.appointment);
           for (const id of plan.releaseLockIds) tx.deleteLock(id);
+          refund?.();
+          releaseCells?.();
         }
         return { appointmentId: plan.appointment.appointmentId, status: plan.appointment.status, replayed: !plan.changed };
       });

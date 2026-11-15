@@ -19,6 +19,8 @@ import type {
 } from "@shared/types/consultationContracts";
 import { app, db } from "./firebaseConfig";
 import { onIdentityRefresh } from "./authService";
+import {parseAttachment} from './consultationAttachments';
+import type {ConsultationAttachment} from '@shared/types/consultationAttachments';
 
 export const DEFAULT_MESSAGE_PAGE_SIZE = 30;
 export const MAX_MESSAGE_PAGE_SIZE = 50;
@@ -39,8 +41,9 @@ export interface ConsultationView {
 export interface ConsultationMessageView {
   messageId: string;
   senderId: string;
-  type: "text";
+  type: "text" | "attachment";
   text: string;
+  attachment?:ConsultationAttachment;
   createdAt: number;
   readonly createdAtTimestamp: Timestamp;
   schemaVersion: 1;
@@ -77,11 +80,13 @@ function safeSegment(value: string, name: string) {
 
 function parseMessage(snapshot: QueryDocumentSnapshot<DocumentData>): ConsultationMessageView {
   const data = snapshot.data();
-  if (data.messageId !== snapshot.id || typeof data.senderId !== "string" || data.type !== "text"
-    || typeof data.text !== "string" || data.schemaVersion !== 1 || !(data.createdAt instanceof Timestamp)) {
+  if (data.messageId !== snapshot.id || typeof data.senderId !== "string" || !['text','attachment'].includes(data.type)
+    || (data.type==='text'&&typeof data.text !== "string") || data.schemaVersion !== 1 || !(data.createdAt instanceof Timestamp)) {
     throw new Error("Invalid consultation message received.");
   }
-  return { messageId: data.messageId, senderId: data.senderId, type: "text", text: data.text,
+  const attachment=data.type==='attachment'?parseAttachment(data.attachment):undefined;
+  if(attachment&&(attachment.messageId!==data.messageId||attachment.senderId!==data.senderId))throw new Error('Document message binding changed.');
+  return { messageId: data.messageId, senderId: data.senderId, type: data.type, text: data.type==='text'?data.text:'',...(attachment?{attachment}:{}),
     createdAt: data.createdAt.toMillis(), createdAtTimestamp: data.createdAt, schemaVersion: 1 };
 }
 

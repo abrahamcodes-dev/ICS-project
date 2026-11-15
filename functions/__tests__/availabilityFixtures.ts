@@ -13,6 +13,7 @@ export function approvedDocuments(): Record<string, any> {
   const professional = { professionalName: 'Doctor Name', specialty: 'Medicine', registrationNumber: 'private-registration', issuingAuthority: 'Authority' };
   return {
     'users/doctor': identity(), 'users/patient': identity('patient', 'patient'),
+    'doctorFees/doctor': {doctorId:'doctor',amountMinor:0,currency:'KES',revision:1,demo:true,updatedAt:time},
     'doctorProfiles/doctor': { uid: 'doctor', ...professional, phoneNumber: '+251111111', revision: 2, activeRequestId: null,
       approvedRequestId: 'approved', schemaVersion: 1, createdAt: time, updatedAt: time },
     'doctorPublicProfiles/doctor': { uid: 'doctor', professionalName: professional.professionalName, specialty: professional.specialty,

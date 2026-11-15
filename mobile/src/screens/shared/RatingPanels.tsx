@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createRatingSession, validateRatingInput, type ConsultationRating, type DoctorRatingSummary } from '../../services/ratingService';
 import { onIdentityRefresh } from '../../services/authService';
-import { Action, Card, Copy, Field, Loading, Notice } from '../../ui/design';
+import { Action, Card, Copy, Field, Loading, Notice, Status } from '../../ui/design';
 import RatingStars from '../../components/RatingStars';
 function useRatingSession(uid: string, clear: () => void) {
   const session = useRef<ReturnType<typeof createRatingSession> | null>(null), alive = useRef(false);
@@ -36,14 +36,14 @@ export function PatientRating({ uid, cid }: { uid: string; cid: string }) {
     finally { busy.current = false; if (alive.current) setSending(false); }
   }
   if (blocked) return <Copy>Session changed. Reopen your appointment.</Copy>;
-  return <Card><Copy title>Your consultation rating</Copy>
+  return <Card><Copy variant="heading">Your consultation rating</Copy><Copy tone="muted">Share feedback on your completed consultation.</Copy>
     {loading && <Loading/>}<Notice message={error}/>
     <Action title="Refresh my rating" disabled={loading || sending} onPress={() => { void read(); }}/>
-    {record ? <><Copy>Submitted rating: {record.score} / 5</Copy><Copy>{new Date(record.createdAt).toLocaleString()}</Copy>
+    {record ? <><Status label="Feedback submitted" tone="success"/><Copy>Submitted rating: {record.score} / 5</Copy><Copy>{new Date(record.createdAt).toLocaleString()}</Copy>
       {record.comment !== '' && <Copy selectable>{record.comment}</Copy>}<Copy>This rating cannot be edited.</Copy></> : loaded && !loading && <>
-      <Copy>No rating submitted. Select 0–5. Your comment is optional and is not shown to the doctor.</Copy>
+      <Copy>No rating submitted. Select 0ï¿½5. Your comment is optional and is not shown to the doctor.</Copy>
       <RatingStars value={score} onChange={setScore} disabled={confirm || uncertain}/>
-      <Field label="Optional comment (1000 characters)" value={comment} onChangeText={setComment} maxLength={1000} editable={!confirm && !uncertain}/>
+      <Field label="Optional comment (1000 characters)" multiline placeholder="Share your experience (optional)" value={comment} onChangeText={setComment} maxLength={1000} editable={!confirm && !uncertain}/>
       <Copy>Do not include diagnoses, medication details or identifying information in your comment.</Copy>
       {!confirm ? <Action title="Review rating" disabled={score === null} onPress={() => {
         try { validateRatingInput(score!, comment); setConfirm(true); setError(null); } catch { setError('Choose a score and keep the comment within 1000 characters.'); }
@@ -68,7 +68,7 @@ export function DoctorRatingSummaryPanel({ uid }: { uid: string }) {
   if (blocked) return <Copy>Session changed.</Copy>;
   return <Card><Copy title>Consultation ratings</Copy>{loading && <Loading/>}
     <Notice message={error ? 'Unable to load your rating summary.' : null}/>
-    {value && <><Copy>{value.count === 0 ? 'No submitted ratings yet.' : `Average ${value.average!.toFixed(1)} / 5 · ${value.count} ratings`}</Copy>
+    {value && <><Copy>{value.count === 0 ? 'No submitted ratings yet.' : `Average ${value.average!.toFixed(1)} / 5 ï¿½ ${value.count} ratings`}</Copy>
       <Copy>Individual comments and patient identities are private.</Copy></>}
     <Action title="Refresh rating summary" disabled={loading} onPress={() => { void load(); }}/>
   </Card>;

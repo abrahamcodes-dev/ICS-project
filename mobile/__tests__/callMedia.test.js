@@ -1,4 +1,6 @@
 const mockPermission=jest.fn(),mockGetUserMedia=jest.fn();
+const mockStopAudio=jest.fn(),mockSpeaker=jest.fn();
+jest.mock('../src/services/calls/audio',()=>({startCallAudio:jest.fn(()=>({stop:mockStopAudio,speaker:mockSpeaker}))}));
 jest.mock('react-native-webrtc',()=>({permissions:{request:mockPermission},mediaDevices:{getUserMedia:mockGetUserMedia}}));
 const {createCallMedia,releaseCallMedia}=require('../src/services/calls/media');
 function stream(video=true){const audio={kind:'audio',enabled:true,stop:jest.fn()},camera={kind:'video',enabled:true,stop:jest.fn(),_switchCamera:jest.fn()};
@@ -32,4 +34,28 @@ test('mute/camera controls change existing tracks without reacquiring media',asy
 });
 test('unsupported switching returns false',async()=>{
  const m=createCallMedia(),s=stream(false);mockGetUserMedia.mockResolvedValue(s);await m.acquire('audio');expect(m.switchCamera()).toBe(false);m.clear();
+});
+
+test('audio routing starts before capture, and peer release also stops the audio session',async()=>{
+ const {startCallAudio}=require('../src/services/calls/audio');
+ const m=createCallMedia(),s=stream(false);mockGetUserMedia.mockResolvedValue(s);await m.acquire('audio');
+ expect(startCallAudio.mock.invocationCallOrder.at(-1)).toBeLessThan(mockGetUserMedia.mock.invocationCallOrder.at(-1));
+ releaseCallMedia(s);expect(mockStopAudio).toHaveBeenCalled();m.clear();
+});
+test('capture failure releases native audio focus',async()=>{
+ mockGetUserMedia.mockRejectedValue(new Error('capture'));await expect(createCallMedia().acquire('audio')).rejects.toMatchObject({reason:'unavailable'});
+ expect(mockStopAudio).toHaveBeenCalled();
+});
+test('focus interruption cancels capture and does not adopt a late stream',async()=>{
+ const {startCallAudio}=require('../src/services/calls/audio');
+ const interrupt=jest.fn(),m=createCallMedia(interrupt),d=deferred(),s=stream(false);
+ mockGetUserMedia.mockReturnValue(d.promise);const pending=m.acquire('audio');
+ for(let i=0;i<5;i++)await Promise.resolve();startCallAudio.mock.calls.at(-1)[1]();
+ d.resolve(s);expect(await pending).toBeNull();expect(interrupt).toHaveBeenCalledTimes(1);
+ expect(s.release).toHaveBeenCalledTimes(1);expect(m.stream).toBeNull();
+});
+test.each(['ended','disabled'])('unusable local audio (%s) cannot be negotiated',async state=>{
+ const s=stream(false);if(state==='ended')s.audio.readyState='ended';else s.audio.enabled=false;
+ mockGetUserMedia.mockResolvedValue(s);await expect(createCallMedia().acquire('audio')).rejects.toMatchObject({reason:'unavailable'});
+ expect(s.release).toHaveBeenCalledTimes(1);expect(mockStopAudio).toHaveBeenCalled();
 });

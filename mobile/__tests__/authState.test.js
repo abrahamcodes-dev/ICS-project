@@ -65,3 +65,18 @@ test("unmount cancels subscriptions and ignores late data", async () => {
   h.emit.mockClear(); resolve(base); await pending;
   expect(h.emit).not.toHaveBeenCalled(); expect(h.stopAuth).toHaveBeenCalled(); expect(h.stopRefresh).toHaveBeenCalled();
 });
+
+test('restoration waits for Auth callback and canonical identity without emitting signedOut', async()=>{
+ const h=setup(base,null);let resolve;
+ h.loadIdentity.mockReturnValue(new Promise(done=>{resolve=done;}));
+ // Auth.currentUser is initially null while the SDK reads persistent storage.
+ await Promise.resolve();expect(h.emit).not.toHaveBeenCalled();expect(h.loadIdentity).not.toHaveBeenCalled();
+ h.changeUid('u1');expect(h.emit.mock.lastCall[0].status).toBe('loadingIdentity');
+ resolve(base);await Promise.resolve();await Promise.resolve();
+ expect(h.emit.mock.calls.map(([state])=>state.status)).toEqual(['loadingIdentity','ready']);
+ h.controller.stop();
+});
+test('empty persistent session becomes signedOut only after Auth resolves',()=>{
+ const h=setup(null,null);expect(h.emit).not.toHaveBeenCalled();
+ h.changeUid(null);expect(h.emit.mock.lastCall[0].status).toBe('signedOut');h.controller.stop();
+});

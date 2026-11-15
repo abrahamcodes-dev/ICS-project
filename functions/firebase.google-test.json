@@ -1,0 +1,11 @@
+{
+ "functions":{"source":".","runtime":"nodejs22","predeploy":["node -e \"throw new Error('Google authentication test configuration must never be deployed')\""]},
+ "firestore":{"rules":"firestore.rules","indexes":"firestore.indexes.json"},
+ "emulators":{
+  "auth":{"host":"127.0.0.1","port":9107},
+  "firestore":{"host":"127.0.0.1","port":8107,"websocketPort":9157},
+  "hub":{"host":"127.0.0.1","port":4427},
+  "logging":{"host":"127.0.0.1","port":4527},
+  "ui":{"enabled":false},"singleProjectMode":true
+ }
+}

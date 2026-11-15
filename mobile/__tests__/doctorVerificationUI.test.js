@@ -1,5 +1,7 @@
 const React=require('react'),{act,create}=require('react-test-renderer');
 jest.mock('../src/hooks/useAuth',()=>({useAuth:jest.fn()}));
+// Avatar behavior has its own suite; keep verification failures scoped to this workflow.
+jest.mock('../src/components/ProfileAvatar',()=>({AvatarEditor:()=>null}));
 jest.mock('expo-document-picker',()=>({getDocumentAsync:jest.fn()}));
 jest.mock('firebase/firestore',()=>({doc:jest.fn(),getDoc:jest.fn()}));
 jest.mock('firebase/functions',()=>({httpsCallable:jest.fn()}));

@@ -1,11 +1,15 @@
+import {PatientIcon,type PatientIconName} from '../../ui/PatientIcon';
 import React from 'react';
+import {ProfileAvatar} from '../../components/ProfileAvatar';
 import {View,Pressable,Text} from 'react-native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import type {PatientStackParams} from '../../navigation/types';
-import {usePalette} from '../../ui/design';
+import {usePalette,Copy} from '../../ui/design';
 type Nav=Pick<NativeStackScreenProps<PatientStackParams,'Home'>['navigation'],'navigate'>;
-export function PatientMenu({navigation}:{navigation:Nav}){
+export function PatientMenu({navigation,active}:{navigation:Nav;active?:'Home'|'Doctors'|'Appointments'|'Profile'}){
  const colors=usePalette();
- const icons={Home:'⌂',Doctors:'✚',Appointments:'▦',Profile:'○'};
- return <View style={{flexDirection:'row',flexWrap:'wrap',gap:4,borderTopWidth:1,borderColor:colors.border,paddingTop:12}}>{(['Home','Doctors','Appointments','Profile'] as const).map(name=><Pressable key={name} accessibilityRole="button" accessibilityLabel={name} onPress={()=>navigation.navigate(name)} style={({pressed})=>({flex:1,minWidth:64,minHeight:64,alignItems:'center',justifyContent:'center',borderRadius:12,backgroundColor:pressed?colors.surface:colors.background})}><Text accessible={false} style={{color:colors.accent,fontSize:24}}>{icons[name]}</Text><Text style={{color:colors.text,fontSize:12,textAlign:'center'}}>{name}</Text></Pressable>)}</View>;
+ const icons:Record<string,PatientIconName>={Home:'home',Doctors:'stethoscope',Appointments:'calendar',Profile:'profile'};
+ return <View style={{flexDirection:'row',flexWrap:'wrap',gap:4,borderTopWidth:1,borderColor:colors.border,paddingTop:8}}>{(['Home','Doctors','Appointments','Profile'] as const).map(name=><Pressable key={name} accessibilityRole="tab" accessibilityState={{selected:active===name}} accessibilityLabel={name} onPress={()=>navigation.navigate(name)} style={({pressed})=>({flex:1,minWidth:64,minHeight:68,alignItems:'center',justifyContent:'center',gap:4,borderRadius:16,backgroundColor:pressed||active===name?colors.mint:colors.tabBarBackground})}><PatientIcon name={icons[name]} color={active===name?colors.tabActive:colors.tabInactive} size={28}/><Text style={{color:active===name?colors.tabActive:colors.tabInactive,fontWeight:active===name?'700':'400',fontSize:13,textAlign:'center'}}>{name}</Text></Pressable>)}</View>;
 }
+
+export function PatientAvatar({name,uid}:{name:string;uid?:string}){return <ProfileAvatar name={name} uid={uid}/>;}

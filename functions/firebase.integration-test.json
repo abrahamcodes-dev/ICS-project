@@ -9,6 +9,8 @@
     "storage": { "host": "127.0.0.1", "port": 9205 },
     "hub": { "host": "127.0.0.1", "port": 4425 },
     "logging": { "host": "127.0.0.1", "port": 4525 },
+    "eventarc": { "host": "127.0.0.1", "port": 9305 },
+    "tasks": { "host": "127.0.0.1", "port": 9505 },
     "ui": { "enabled": false },
     "singleProjectMode": true
   }

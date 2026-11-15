@@ -5,4 +5,5 @@ import { createAvailabilityStore } from './availabilityStore';
 
 const handlers = createAvailabilityHandlers(createAvailabilityStore(db));
 export const replaceDoctorAvailabilityDay = onCall(request => handlers.replace(request));
+export const replaceDoctorAvailabilityDays = onCall(request => handlers.replaceMany(request));
 export const getAvailableAppointmentTimes = onCall(request => handlers.discover(request));

@@ -3,7 +3,7 @@ const {act, create} = require('react-test-renderer');
 const {Action:Button} = require('../src/ui/design');
 let mockState, mockNext;
 const mockSession = {start:jest.fn(),accept:jest.fn(),end:jest.fn(),dispose:jest.fn(),load:jest.fn()};
-const mockMedia = {acquire:jest.fn(),clear:jest.fn(),microphone:jest.fn(),camera:jest.fn(),switchCamera:jest.fn()};
+const mockMedia = {acquire:jest.fn(),clear:jest.fn(),microphone:jest.fn(),speaker:jest.fn(),camera:jest.fn(),switchCamera:jest.fn()};
 const mockStop = jest.fn();
 jest.mock('../src/hooks/useConsultationCall',()=>({useConsultationCall:()=>({session:mockSession,state:mockState})}));
 jest.mock('../src/hooks/useAuth',()=>({useAuth:()=>({status:'ready',firebaseUid:'p',user:{status:'active',role:'patient'}})}));
@@ -28,6 +28,9 @@ test('discovery gates outgoing media; controls use existing session and tracks',
  await act(async()=>mockNext(null));await press('Start video call');
  expect(mockMedia.acquire).toHaveBeenCalledWith('video');expect(mockSession.start).toHaveBeenCalledWith('video');
  await press('Mute microphone');expect(mockMedia.microphone).toHaveBeenCalledWith(false);
+ await press('Use speaker');expect(mockMedia.speaker).toHaveBeenLastCalledWith(true);
+ await press('Use earpiece');expect(mockMedia.speaker).toHaveBeenLastCalledWith(false);
+ await press('Use automatic audio');expect(mockMedia.speaker).toHaveBeenLastCalledWith(null);
  await press('Disable camera');expect(mockMedia.camera).toHaveBeenCalledWith(false);
  await press('Enable camera');await press('Switch camera');expect(mockMedia.switchCamera).toHaveBeenCalled();
  expect(mockStop).toHaveBeenCalled();
@@ -72,4 +75,15 @@ test.each([{patientId:'other',doctorId:'another'},{consultationId:'b'.repeat(64)
  await act(async()=>{tree=create(<Screen route={{params:{appointmentId:id}}}/>);});
  expect(tree.root.findAllByType(require('../src/screens/shared/ConsultationChat'))).toHaveLength(0);
  expect(tree.root.findAllByType(CallRoom)).toHaveLength(0);
+});
+
+test('active consultation mounts exactly one chat instance',async()=>{
+ const Chat=require('../src/screens/shared/ConsultationChat');
+ await act(async()=>{tree=create(<CallRoom consultationId={'a'.repeat(64)} uid="p" restart={jest.fn()} chatRoom={{consultationId:'a'.repeat(64),patientId:'p',doctorId:'d',canSend:true}}/>);});
+ expect(tree.root.findAllByType(Chat)).toHaveLength(1);
+});
+test('video stage shows only acquired local preview without inventing remote video',async()=>{
+ await render();await act(async()=>mockNext(null));await press('Start video call');
+ const views=tree.root.findAllByType('RTCView');expect(views).toHaveLength(1);expect(views[0].props.testID).toBe('local-video');
+ expect(views[0].props.streamURL).toBe('local');
 });

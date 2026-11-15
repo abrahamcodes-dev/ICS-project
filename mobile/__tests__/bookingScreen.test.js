@@ -1,42 +1,20 @@
 const React=require('react'),{create,act}=require('react-test-renderer');
-let mockUid='patient';const mockSession={selectBooking:jest.fn(),book:jest.fn(),dispose:jest.fn()};
-jest.mock('../src/hooks/useSchedulingSession',()=>({useSchedulingSession:()=>mockSession}));
+let mockUid='patient';const mockSession={fee:jest.fn(),checkout:jest.fn(),decide:jest.fn(),dispose:jest.fn(),history:jest.fn(),status:jest.fn()};
+jest.mock('../src/services/payments',()=>({...jest.requireActual('../src/services/payments'),createPaymentSession:()=>mockSession}));
 jest.mock('../src/hooks/useAuth',()=>({useAuth:()=>({firebaseUid:mockUid,status:'ready',user:{role:'patient',status:'active'}})}));
 jest.mock('../src/services/patientDoctors',()=>({getPatientDoctor:jest.fn(async()=>({uid:'doctor',professionalName:'Doctor',specialty:'Medicine'}))}));
-jest.mock('../src/services/schedulingService',()=>({schedulingError:()=> 'Result uncertain. Retry same request.'}));
-const Screen=require('../src/screens/patient/BookAppointmentScreen').default,{Action,Copy,Notice}=require('../src/ui/design');
-const start=Math.ceil((Date.now()+3600000)/1800000)*1800000,route={params:{doctorId:'doctor',startAt:start}},navigation={navigate:jest.fn()};
+const Screen=require('../src/screens/patient/BookAppointmentScreen').default,{Action,Field}=require('../src/ui/design');
+const start=Math.ceil((Date.now()+3600000)/1800000)*1800000,route={params:{doctorId:'doctor',startAt:start,durationMinutes:30}},navigation={navigate:jest.fn()};
+const pending={paymentId:'a'.repeat(64),doctorId:'doctor',patientId:'patient',doctorDisplay:{professionalName:'Doctor',specialty:'Medicine'},startAt:start,endAt:start+1800000,amountMinor:150000,status:'pending',provider:'simulated-mpesa',demo:true,expiresAt:Date.now()+300000,createdAt:Date.now()};
 let tree;const button=title=>tree.root.findAllByType(Action).find(n=>n.props.title===title);
 async function render(){await act(async()=>{tree=create(<Screen route={route} navigation={navigation}/>);});}
 async function press(title){await act(async()=>button(title).props.onPress());}
-beforeEach(()=>{jest.clearAllMocks();mockUid='patient';mockSession.book.mockResolvedValue({status:'scheduled'});jest.spyOn(require('react-native').AccessibilityInfo,'isReduceMotionEnabled').mockResolvedValue(true);});
-afterEach(async()=>{if(tree)await act(async()=>tree.unmount());tree=null;});
-test('review requires explicit submit then shows validated adapter success and appointment navigation',async()=>{
- await render();expect(mockSession.selectBooking).toHaveBeenCalledWith('doctor',start);expect(mockSession.book).not.toHaveBeenCalled();
- await press('Confirm booking');expect(tree.root.findAllByType(Copy).some(n=>n.props.children==='Appointment confirmed.')).toBe(true);
- await press('View appointments');expect(navigation.navigate).toHaveBeenCalledWith('Appointments');
-});
-test('uncertain response retries same session intent',async()=>{
- mockSession.book.mockRejectedValueOnce({code:'functions/deadline-exceeded'}).mockResolvedValue({status:'scheduled'});
- await render();await press('Confirm booking');expect(tree.root.findAllByType(Notice).some(n=>!!n.props.message)).toBe(true);
- await press('Retry same booking');expect(mockSession.selectBooking).toHaveBeenCalledTimes(1);expect(mockSession.book).toHaveBeenCalledTimes(2);
-});
-test('duplicate taps do not issue another request',async()=>{
- let resolve;mockSession.book.mockImplementation(()=>new Promise(r=>{resolve=r;}));await render();const click=button('Confirm booking').props.onPress;
- await act(async()=>{click();click();});expect(mockSession.book).toHaveBeenCalledTimes(1);
- await act(async()=>resolve({status:'scheduled'}));
-});
-test('slot conflict disables retry and never selects another time',async()=>{
- mockSession.book.mockRejectedValue({code:'functions/already-exists'});await render();await press('Confirm booking');
- expect(button('Retry same booking').props.disabled).toBe(true);expect(mockSession.selectBooking).toHaveBeenCalledTimes(1);
- await press('Return to available times');expect(navigation.navigate).toHaveBeenCalledWith('DoctorProfile',{doctorId:'doctor'});
-});
-test('late result after logout cannot display success',async()=>{
- let resolve;mockSession.book.mockImplementation(()=>new Promise(r=>{resolve=r;}));await render();await press('Confirm booking');
- mockUid=null;await act(async()=>tree.update(<Screen route={route} navigation={navigation}/>));await act(async()=>resolve({status:'scheduled'}));
- expect(tree.root.findAllByType(Copy).some(n=>n.props.children==='Appointment confirmed.')).toBe(false);
-});
-test('terminal replay is not presented as a new booking',async()=>{
- mockSession.book.mockResolvedValue({status:'cancelled'});await render();await press('Confirm booking');
- expect(tree.root.findAllByType(Copy).some(n=>typeof n.props.children==='string'&&n.props.children.includes('No new appointment'))).toBe(true);
-});
+async function begin(){await render();await act(async()=>tree.root.findByType(Field).props.onChangeText('0700000000'));await press('Confirm demo payment');}
+beforeEach(()=>{jest.clearAllMocks();mockUid='patient';mockSession.fee.mockResolvedValue({amountMinor:150000,totalMinor:150000,revision:1});mockSession.checkout.mockResolvedValue({kind:'payment',paymentId:pending.paymentId,payment:pending});mockSession.decide.mockResolvedValue({...pending,status:'succeeded',appointmentId:pending.paymentId});jest.spyOn(require('react-native').AccessibilityInfo,'isReduceMotionEnabled').mockResolvedValue(true);});
+afterEach(async()=>{if(tree)await act(async()=>tree.unmount());tree=null;jest.restoreAllMocks();});
+test('booking initiates payment and navigates only after backend approval',async()=>{await begin();expect(mockSession.checkout).toHaveBeenCalledTimes(1);expect(navigation.navigate).not.toHaveBeenCalled();expect(button('View confirmed appointment')).toBeUndefined();await press('Approve simulated payment');await press('View confirmed appointment');expect(navigation.navigate).toHaveBeenCalledWith('Appointments');});
+test('uncertain checkout reuses original intent',async()=>{mockSession.checkout.mockRejectedValueOnce(Error('lost reply'));await begin();await press('Retry same checkout');expect(mockSession.checkout.mock.calls[0][0]).toEqual(mockSession.checkout.mock.calls[1][0]);});
+test('duplicate confirmation taps issue one checkout',async()=>{let finish;mockSession.checkout.mockReturnValue(new Promise(resolve=>{finish=resolve;}));await render();await act(async()=>tree.root.findByType(Field).props.onChangeText('0700000000'));const click=button('Confirm demo payment').props.onPress;await act(async()=>{click();click();});expect(mockSession.checkout).toHaveBeenCalledTimes(1);await act(async()=>finish({kind:'payment',paymentId:pending.paymentId,payment:pending}));});
+test('conflicting reservation never confirms or chooses another time',async()=>{mockSession.checkout.mockRejectedValue({code:'functions/already-exists'});await begin();expect(JSON.stringify(tree.toJSON())).toContain('already booked or reserved');expect(button('View confirmed appointment')).toBeUndefined();await press('Return to available times');expect(navigation.navigate).toHaveBeenCalledWith('DoctorProfile',{doctorId:'doctor'});});
+test('late approval after logout cannot display confirmation',async()=>{let finish;mockSession.decide.mockReturnValue(new Promise(resolve=>{finish=resolve;}));await begin();await press('Approve simulated payment');mockUid=null;await act(async()=>tree.update(<Screen route={route} navigation={navigation}/>));await act(async()=>finish({...pending,status:'succeeded',appointmentId:pending.paymentId}));expect(JSON.stringify(tree.toJSON())).not.toContain('Appointment confirmed');expect(navigation.navigate).not.toHaveBeenCalled();expect(mockSession.dispose).toHaveBeenCalled();});
+test('cancelled payment replay is not a confirmed booking',async()=>{mockSession.checkout.mockResolvedValue({kind:'payment',paymentId:pending.paymentId,payment:{...pending,status:'cancelled'}});await begin();expect(button('View confirmed appointment')).toBeUndefined();expect(button('Approve simulated payment')).toBeUndefined();expect(button('Start a new demo checkout')).toBeDefined();});

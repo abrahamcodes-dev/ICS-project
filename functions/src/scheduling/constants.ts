@@ -1,7 +1,7 @@
 const minute = 60 * 1000;
 export const SCHEDULING = Object.freeze({
   appointmentDurationMs: 30 * minute,
-  slotIntervalMs: 30 * minute,
+  slotIntervalMs: 15 * minute,
   bookingLeadMs: 5 * minute,
   horizonDays: 90,
   maxWindowsPerUtcDay: 8,

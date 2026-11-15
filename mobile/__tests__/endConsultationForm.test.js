@@ -1,0 +1,10 @@
+const React=require('react'),{create,act}=require('react-test-renderer'),{Switch,Modal}=require('react-native');
+const Form=require('../src/screens/doctor/EndConsultationForm').default,{Action,Field}=require('../src/ui/design');
+let tree;const submit=jest.fn(),back=jest.fn(),setConfirm=jest.fn();
+const props={submit,back,setConfirm,confirm:false,busy:false,error:null,retrying:false,eligible:true};
+afterEach(async()=>{if(tree)await act(async()=>tree.unmount());tree=null;jest.clearAllMocks();});
+async function render(extra={}){await act(async()=>{tree=create(<Form {...props} {...extra}/>);});}
+const button=title=>tree.root.findAllByType(Action).find(n=>n.props.title===title);
+test('unsupported fields are disabled and outcome is explicitly required',async()=>{await render();expect(tree.root.findByType(Field).props.editable).toBe(false);expect(tree.root.findByType(Field).props.multiline).toBe(true);expect(tree.root.findByType(Switch).props.value).toBe(false);expect(tree.root.findByType(Switch).props.disabled).toBe(true);expect(button('End consultation').props.disabled).toBe(true);await act(async()=>button('Select outcome').props.onPress());await act(async()=>button('Completed').props.onPress());await act(async()=>button('End consultation').props.onPress());expect(setConfirm).toHaveBeenCalledWith(true);expect(submit).not.toHaveBeenCalled();});
+test('ineligible completion remains blocked and confirmation can be dismissed',async()=>{await render({eligible:false,confirm:true});expect(button('End consultation').props.disabled).toBe(true);await act(async()=>button('Keep consultation open').props.onPress());expect(setConfirm).toHaveBeenCalledWith(false);expect(submit).not.toHaveBeenCalled();await act(async()=>tree.root.findByType(Modal).props.onRequestClose());expect(submit).not.toHaveBeenCalled();});
+test('retry retains completed outcome and busy state prevents confirmation',async()=>{await render({retrying:true,confirm:true,busy:true});expect(button('Completed').props.disabled).toBe(true);expect(button('Closing consultation...').props.disabled).toBe(true);expect(button('Keep consultation open').props.disabled).toBe(true);});

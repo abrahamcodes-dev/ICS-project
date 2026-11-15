@@ -57,6 +57,7 @@ beforeEach(async () => {
   const docs = approvedDocuments();
   docs['users/patient2'] = identity('patient2', 'patient');
   docs['users/doctor2'] = identity('doctor2');
+  docs['doctorFees/doctor2'] = {...docs['doctorFees/doctor'],doctorId:'doctor2'};
   docs['doctorProfiles/doctor2'] = { ...docs['doctorProfiles/doctor'], uid: 'doctor2', approvedRequestId: 'approved2' };
   docs['doctorPublicProfiles/doctor2'] = { ...docs['doctorPublicProfiles/doctor'], uid: 'doctor2', approvedRequestId: 'approved2' };
   docs['verificationRequests/approved2'] = { ...docs['verificationRequests/approved'], requestId: 'approved2', doctorUid: 'doctor2' };
@@ -67,6 +68,10 @@ beforeEach(async () => {
 });
 afterAll(async () => { if (env) await env.cleanup(); if (admin) await admin.terminate(); });
 
+test('all required appointment fields remain mandatory for reads',async()=>{
+ const result=await book()(booking()),ref=admin.doc('appointments/'+result.appointmentId),original=(await ref.get()).data()!;
+ try{for(const key of Object.keys(original)){const changed={...original};delete changed[key];await ref.set(changed);await assertFails(getDoc(doc(env.authenticatedContext('patient').firestore(),'appointments',result.appointmentId)));}}finally{await ref.set(original);}
+});
 test('persisted appointment and reservations have exact schema and real Timestamps', async () => {
   const response = await book()(booking());
   const value = (await admin.doc('appointments/' + response.appointmentId).get()).data()!;
@@ -132,7 +137,7 @@ test('coverage-preserving update succeeds; empty/removing replacements fail with
 });
 test('occupied discovery is sanitized and stale response cannot authorize booking', async () => {
   const discover = () => availability().discover({ auth: { uid: 'patient2' }, data: { doctorId: 'doctor', fromDate: day, days: 1 } });
-  expect((await discover()).times.map(t => t.startAt)).toEqual([start, start + 1800000]);
+  expect((await discover()).times.map(t => t.startAt)).toEqual([start,start+900000,start+1800000]);
   await book()(booking());
   expect((await discover()).times).toEqual([{ doctorId: 'doctor', startAt: start + 1800000, endAt: start + 3600000, availabilityId: availabilityKey, availabilityRevision: 1 }]);
   await expect(book()(booking('patient2'))).rejects.toMatchObject({ code: 'already-exists' }); await counts(1, 2);

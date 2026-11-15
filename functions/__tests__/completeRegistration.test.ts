@@ -8,7 +8,7 @@ const mockRunTransaction = jest.fn();
 jest.mock("firebase-admin/auth", () => ({ getAuth: () => ({ getUser: mockGetUser }) }));
 jest.mock("../src/shared/firestoreRefs", () => ({
   usersCol: { doc: (uid: string) => mockDoc(uid) },
-  db: { runTransaction: (callback: unknown) => mockRunTransaction(callback) },
+  db: { doc:(path:string)=>({path,collection:()=>({doc:(id:string)=>path+'/history/'+id})}), runTransaction: (callback: unknown) => mockRunTransaction(callback) },
 }));
 // Exercise the production handler and transaction adapter without an HTTP server.
 jest.mock("firebase-functions/v2/https", () => ({
@@ -18,7 +18,7 @@ jest.mock("firebase-functions/v2/https", () => ({
 import { completeRegistration } from "../src/auth/completeRegistration";
 import { createRegistrationHandler } from "../src/auth/registrationHandler";
 const call = completeRegistration as unknown as ReturnType<typeof createRegistrationHandler>;
-const request = (data: unknown = { role: "patient", fullName: " Amina " }) => ({ auth: { uid: "auth-uid" }, data });
+const request = (data: unknown = { role: "patient", fullName: " Amina " }) => ({ auth: { uid: "auth-uid" }, data:(data as any)?.role==='patient'?{...(data as any),consent:{requestId:'a'.repeat(20),expectedRevision:0,documentVersion:'development-2026-11-03-v1',privacyAcknowledged:true,sharingDecision:'declined',source:'registration'}}:data });
 const stored = () => ({ uid: "auth-uid", email: "original@example.test", fullName: "Original", role: "patient", status: "active", createdAt: "2026-09-30T12:00:00.000Z", updatedAt: "2026-09-30T12:00:00.000Z", schemaVersion: 1 });
 
 beforeEach(() => {

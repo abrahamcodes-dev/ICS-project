@@ -1,3 +1,4 @@
+import {durationMinutes} from './durations';
 import { HttpsError } from 'firebase-functions/v2/https';
 import type { Appointment, BookingResult } from '../../../shared/types/scheduling';
 import { createAuthorization, requireAuthenticated } from '../shared/authorization';
@@ -8,7 +9,7 @@ import { assertBookableStart, fromMilliseconds, schedulingTimestamp, toMilliseco
 import { SCHEDULING } from './constants';
 import { matchBookingRetry, scheduledLocks } from './policy';
 import { validateAppointment, validateAvailability, validateBookingRequest } from './validation';
-import { assertCoverage, assertScheduledPair } from './reservationGuards';
+import { assertCoverage, assertScheduledPair,assertFullCoverage } from './reservationGuards';
 
 function response(appointment: Appointment, replayed: boolean): BookingResult {
   return { appointmentId: appointment.appointmentId, doctorId: appointment.doctorId,
@@ -38,12 +39,18 @@ export function createBookingHandler(deps: AvailabilityDependencies) {
             await assertScheduledPair(tx, existing);
             const availability = await tx.availability(availabilityKey);
             if (!availability) fail('missing-reserved-availability');
-            assertCoverage(existing, validateAvailability(availability));
+            await assertFullCoverage(tx,existing,validateAvailability(availability));
           }
           // Retry intent is patient + UUID-derived ID + doctor + start. No writes or new clock checks.
           // Terminal history never reads, recreates or deletes locks.
           return response(existing, true);
         }
+        await tx.requireFreeBooking?.(input.doctorId);
+        const end=input.startAt+durationMinutes(input.durationMinutes)*60000;
+        if(await tx.isResourceBusy?.('doctor',input.doctorId,input.startAt,end)||await tx.isResourceBusy?.('patient',uid,input.startAt,end))reject('already-exists','Scheduling conflict. Choose another time.');
+        const heldDoctor = await tx.paymentHold?.(bookingLockId('doctor', input.doctorId, input.startAt));
+        const heldPatient = await tx.paymentHold?.(bookingLockId('patient', uid, input.startAt));
+        if (heldDoctor || heldPatient) reject('already-exists', 'Scheduling conflict. Choose another time.');
         const stored = await tx.availability(availabilityKey);
         if (!stored) fail('missing-availability');
         const availability = validateAvailability(stored);
@@ -55,10 +62,10 @@ export function createBookingHandler(deps: AvailabilityDependencies) {
         assertBookableStart(input.startAt, now);
         const appointment = validateAppointment({ appointmentId: id, patientId: uid, doctorId: input.doctorId,
           availabilityId: availabilityKey, availabilityRevision: availability.revision,
-          startAt: fromMilliseconds(input.startAt), endAt: fromMilliseconds(input.startAt + SCHEDULING.appointmentDurationMs),
+          startAt: fromMilliseconds(input.startAt), endAt: fromMilliseconds(end),
           doctorDisplay: display, status: 'scheduled', cancellation: null, outcome: null,
           schemaVersion: SCHEDULING.schemaVersion, createdAt: now, updatedAt: now });
-        assertCoverage(appointment, availability);
+        await assertFullCoverage(tx,appointment,availability);
         const locks = scheduledLocks(appointment);
         // All reads and complete document validation precede these three atomic creates.
         tx.createAppointment(appointment);

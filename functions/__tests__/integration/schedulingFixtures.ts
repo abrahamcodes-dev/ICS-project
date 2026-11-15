@@ -67,6 +67,7 @@ export async function resetFixtures() {
       role, status: name.startsWith('disabled') ? 'disabled' : 'active', schemaVersion: 1, createdAt: iso, updatedAt: iso,
       ...(role === 'doctor' ? { verificationStatus: name === 'pendingDoctor' ? 'pending' : name === 'rejectedDoctor' ? 'rejected' : 'approved' } : {}) });
     if (role !== 'doctor') continue;
+    batch.set(db.doc('doctorFees/'+c.uid),{doctorId:c.uid,amountMinor:0,currency:'KES',revision:1,demo:true,updatedAt:time});
     const requestId = 'synthetic-approved-' + c.uid;
     batch.set(db.doc('doctorProfiles/' + c.uid), { uid: c.uid, ...professional, revision: 1, activeRequestId: null,
       approvedRequestId: requestId, schemaVersion: 1, createdAt: time, updatedAt: time });

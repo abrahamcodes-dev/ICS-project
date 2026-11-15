@@ -6,6 +6,7 @@ import { compareTimes, dateStart, fromMilliseconds, positiveRevision, scheduling
 import { sameInterval } from './intervals';
 import { appointmentId, bookingLockId } from './ids';
 import { validateAppointment, validateAvailability, validateAvailabilityInput, validateBookingLock, validateBookingRequest, validateDecision } from './validation';
+import {durationMinutes} from './durations';
 
 /** Pure plan only. Later transactions must additionally protect booked coverage and recheck canonical authorization. */
 export function planAvailabilityReplacement(doctorId: string, existing: DoctorAvailability | null, input: unknown, trustedNow: DomainTimestamp) {
@@ -34,7 +35,8 @@ export function matchBookingRetry(patientId: string, input: unknown, existing: A
   if (existing === null) return null;
   const stored = validateAppointment(existing);
   if (stored.appointmentId !== appointmentId(patientId, request.bookingRequestId) || stored.patientId !== patientId
-    || stored.doctorId !== request.doctorId || toMilliseconds(stored.startAt) !== request.startAt) fail('conflicting-booking-retry');
+    || stored.doctorId !== request.doctorId || toMilliseconds(stored.startAt) !== request.startAt
+    || toMilliseconds(stored.endAt)-request.startAt!==durationMinutes(request.durationMinutes)*60000) fail('conflicting-booking-retry');
   return stored;
 }
 export function scheduledLocks(value: Appointment): readonly { lockId: string; lock: BookingLock }[] {

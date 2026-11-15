@@ -58,7 +58,8 @@ test('real store persists Timestamp windows/audits; no-op preserves bytes and di
   expect(await backend(now + 1).replace(mutation({ ...input(), expectedRevision: 1 }))).toMatchObject({ changed: false, revision: 1 });
   expect((await admin.doc(path).get()).data()).toEqual(before);
   const response = await handler.discover({ auth: { uid: 'patient' }, data: { doctorId: 'doctor', fromDate: day, days: 1 } });
-  expect(response.times).toHaveLength(2);
+  expect(response.times).toHaveLength(3);
+  expect(response.times.map(slot => slot.startAt)).toEqual([start, start + 900000, start + 1800000]);
   expect(Object.keys(response.times[0]).sort()).toEqual(['availabilityId', 'availabilityRevision', 'doctorId', 'endAt', 'startAt']);
   expect(typeof response.times[0].startAt).toBe('number');
   expect((await admin.collection('availabilitySlots').get()).size).toBe(1);

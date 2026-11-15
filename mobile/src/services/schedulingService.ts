@@ -5,7 +5,9 @@ import { auth, functions } from './firebaseConfig';
 import type { ApprovedDoctor, DoctorDirectoryPage, OwnAvailabilityResult } from '@shared/types/schedulingReads';
 import type { AvailabilityReplacementInput, AvailabilityReplacementResult, AvailableAppointmentTime,
   AvailabilityDiscoveryResult, BookingResult, AppointmentLifecycleResult } from '@shared/types/scheduling';
+import type {AvailabilityBatchInput,AvailabilityBatchResult} from '@shared/types/scheduling';
 
+export const GRID_MS=15*60*1000;
 export const SLOT_MS = 30 * 60 * 1000, DAY_MS = 86400000;
 const invalid = (): never => { throw new Error('Invalid scheduling response or input.'); };
 function record(value: any, keys: string[]) {
@@ -52,8 +54,8 @@ export function validateWindows(day: string, windows: Array<{ startAt: number; e
   if (!Array.isArray(windows) || windows.length > 8) invalid();
   windows.forEach((w, i) => {
     record(w, ['startAt', 'endAt']); millis(w.startAt); millis(w.endAt);
-    if (w.startAt % SLOT_MS || w.endAt % SLOT_MS || w.startAt < start || w.endAt > start + DAY_MS
-      || w.endAt - w.startAt < SLOT_MS || (i > 0 && windows[i - 1].endAt > w.startAt)) invalid();
+    if (w.startAt % GRID_MS || w.endAt % GRID_MS || w.startAt < start || w.endAt > start + DAY_MS
+      || w.endAt - w.startAt < GRID_MS || (i > 0 && windows[i - 1].endAt > w.startAt)) invalid();
   });
   return windows;
 }
@@ -61,7 +63,7 @@ export function windowInputs(day: string, rows: Array<{ start: string; end: stri
   const base = utcDayStart(day);
   const parse = (value: string, end: boolean) => {
     if (end && value === '24:00') return base + DAY_MS;
-    if (!/^(?:[01]\d|2[0-3]):(?:00|30)$/.test(value)) return invalid();
+    if (!/^(?:[01]\d|2[0-3]):(?:00|15|30|45)$/.test(value)) return invalid();
     const [h, m] = value.split(':').map(Number); return base + (h * 60 + m) * 60000;
   };
   return validateWindows(day, rows.map(r => ({ startAt: parse(r.start, false), endAt: parse(r.end, true) })).sort((a, b) => a.startAt - b.startAt));
@@ -76,7 +78,7 @@ export function schedulingError(error: unknown) {
 }
 export function createSchedulingSession(uid: string, makeId = () => uuid.v4()) {
   schedulingId(uid);
-  let disposed = false, stop = () => {}, booking: { doctorId: string; startAt: number; bookingRequestId: string } | null = null;
+  let disposed = false, stop = () => {}, booking: { doctorId: string; startAt: number; bookingRequestId: string;durationMinutes?:15|30|60 } | null = null;
   let pendingBooking: Promise<BookingResult> | null = null;
   function check() { if (disposed || auth.currentUser?.uid !== uid) throw new Error('Scheduling session ended.'); }
   function dispose() { disposed = true; booking = null; stop(); }
@@ -116,16 +118,32 @@ export function createSchedulingSession(uid: string, makeId = () => uuid.v4()) {
       digest(result.availabilityId); positive(result.revision); if (typeof result.changed !== 'boolean') invalid();
       return result as AvailabilityReplacementResult;
     },
-    async times(doctorId: string, day: string): Promise<AvailableAppointmentTime[]> {
+    async replaceMany(input: AvailabilityBatchInput): Promise<AvailabilityBatchResult> {
+      if(!Array.isArray(input.days)||input.days.length<1||input.days.length>3)invalid();
+      input.days.forEach((day,i)=>{
+        validateWindows(day.utcDate,day.windows);
+        if(i&&utcDayStart(day.utcDate)!==utcDayStart(input.days[i-1].utcDate)+DAY_MS)invalid();
+      });
+      const result=record(await call<AvailabilityBatchResult>('replaceDoctorAvailabilityDays',input),['days']);
+      if(!Array.isArray(result.days)||result.days.length!==input.days.length)invalid();
+      result.days.forEach((day:any,i:number)=>{
+        record(day,['utcDate','availabilityId','revision','changed']);
+        if(day.utcDate!==input.days[i].utcDate||typeof day.changed!=='boolean')invalid();
+        digest(day.availabilityId);positive(day.revision);
+        if(day.revision!==input.days[i].expectedRevision+(day.changed?1:0))invalid();
+      });
+      return result;
+    },
+    async times(doctorId: string, day: string,durationMinutes:15|30|60=30): Promise<AvailableAppointmentTime[]> {
       schedulingId(doctorId); check();
       const range = discoveryPartitions(day); if (!range) return [];
-      const data = record(await call<AvailabilityDiscoveryResult>('getAvailableAppointmentTimes', { doctorId, fromDate: range.fromDate, days: range.days }), ['times']);
-      if (!Array.isArray(data.times) || data.times.length > range.days * 48) invalid();
+      const data = record(await call<AvailabilityDiscoveryResult>('getAvailableAppointmentTimes', { doctorId, fromDate: range.fromDate, days: range.days,...(durationMinutes!==30?{durationMinutes}:{}) }), ['times']);
+      if (!Array.isArray(data.times) || data.times.length > range.days * 96) invalid();
       let previous = -Infinity;
       for (const t of data.times) {
         record(t, ['doctorId', 'startAt', 'endAt', 'availabilityId', 'availabilityRevision']);
         millis(t.startAt); millis(t.endAt); digest(t.availabilityId); positive(t.availabilityRevision);
-        if (t.doctorId !== doctorId || t.startAt % SLOT_MS || t.endAt - t.startAt !== SLOT_MS || t.startAt <= previous
+        if (t.doctorId !== doctorId || t.startAt % GRID_MS || t.endAt - t.startAt !== durationMinutes*60000 || t.startAt <= previous
           || t.startAt < utcDayStart(range.fromDate) || t.startAt >= utcDayStart(range.fromDate) + range.days * DAY_MS) invalid();
         previous = t.startAt;
       }
@@ -133,11 +151,11 @@ export function createSchedulingSession(uid: string, makeId = () => uuid.v4()) {
       return data.times.filter((t: AvailableAppointmentTime) => t.startAt >= range.start && t.startAt < range.end
         && t.startAt >= now + 300000 && t.startAt <= now + 90 * DAY_MS);
     },
-    selectBooking(doctorId: string, startAt: number) {
-      check(); schedulingId(doctorId); millis(startAt); if (startAt % SLOT_MS) invalid();
+    selectBooking(doctorId: string, startAt: number,durationMinutes:15|30|60=30) {
+      check(); schedulingId(doctorId); millis(startAt); if (startAt % GRID_MS||![15,30,60].includes(durationMinutes)) invalid();
       if (pendingBooking) throw new Error('Wait for the current booking attempt.');
-      if (!booking || booking.doctorId !== doctorId || booking.startAt !== startAt) {
-        booking = { doctorId, startAt, bookingRequestId: makeId() };
+      if (!booking || booking.doctorId !== doctorId || booking.startAt !== startAt||(booking.durationMinutes??30)!==durationMinutes) {
+        booking = { doctorId, startAt, bookingRequestId: makeId(),...(durationMinutes!==30?{durationMinutes}:{}) };
       }
     },
     book(): Promise<BookingResult> {
@@ -147,7 +165,7 @@ export function createSchedulingSession(uid: string, makeId = () => uuid.v4()) {
       pendingBooking = (async () => {
         const result = record(await call<BookingResult>('bookAppointment', intent), ['appointmentId', 'doctorId', 'startAt', 'endAt', 'status', 'replayed']);
         digest(result.appointmentId);
-        if (result.doctorId !== intent.doctorId || result.startAt !== intent.startAt || result.endAt !== intent.startAt + SLOT_MS
+        if (result.doctorId !== intent.doctorId || result.startAt !== intent.startAt || result.endAt !== intent.startAt + (intent.durationMinutes??30)*60000
           || !['scheduled', 'cancelled', 'completed', 'no_show'].includes(result.status) || typeof result.replayed !== 'boolean') invalid();
         return result as BookingResult;
       })().finally(() => { pendingBooking = null; });

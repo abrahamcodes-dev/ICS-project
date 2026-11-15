@@ -1,0 +1,13 @@
+import {durationMinutes,proportionalPrice,cellStarts} from '../src/scheduling/durations';
+import {deriveSlots} from '../src/scheduling/intervals';
+import {fromMilliseconds as t} from '../src/scheduling/primitives';
+import {assertSendWindow} from '../src/consultations/policy';
+import {assertFullCoverage} from '../src/scheduling/reservationGuards';
+test.each([15,30,60])('supported duration %s',d=>expect(durationMinutes(d)).toBe(d));
+test.each([0,14,16,45,90,'15',null])('unsupported duration %s rejected',d=>expect(()=>durationMinutes(d)).toThrow());
+test('absent duration remains 30 minutes',()=>expect(durationMinutes()).toBe(30));
+test.each([[101,15,51],[100,15,50],[150001,15,75001],[101,30,101],[101,60,202],[0,15,0],[0,60,0]])('minor-unit price %s for %s is %s',(base,d,price)=>expect(proportionalPrice(base,d)).toBe(price));
+test('adjacent availability is continuous; a real gap cannot be crossed',()=>{const day='2026-11-05',start=Date.parse(day+'T09:00:00Z'),w=(a:number,b:number)=>({startAt:t(start+a*60000),endAt:t(start+b*60000)});expect(deriveSlots([w(0,30),w(30,60)],day,60)).toHaveLength(1);expect(deriveSlots([w(0,15),w(30,60)],day,60)).toHaveLength(0);expect(deriveSlots([w(0,60)],day,15)).toHaveLength(4);expect(deriveSlots([w(0,60)],day,30)).toHaveLength(3);});
+test('occupancy cells are half-open and cover a full hour',()=>expect(cellStarts(0,3600000)).toEqual([0,900000,1800000,2700000]));
+test.each([15,30,60])('%s minute clinical window follows actual end plus existing grace',duration=>{const start=Date.parse('2026-11-05T09:15:00Z'),end=start+duration*60000,a={appointmentId:'a'.repeat(64),patientId:'patient',doctorId:'doctor',startAt:t(start),endAt:t(end),status:'scheduled' as const};expect(()=>assertSendWindow(a,t(start-1))).toThrow();expect(()=>assertSendWindow(a,t(end+900000-1))).not.toThrow();expect(()=>assertSendWindow(a,t(end+900000))).toThrow();});
+test('cross-day coverage cannot substitute a misbound UTC partition',async()=>{const start=Date.parse('2026-11-05T23:45:00Z'),a={doctorId:'doctor',startAt:t(start),endAt:t(start+3600000)} as any;const tx={availability:async()=>({doctorId:'doctor',utcDate:'2026-11-06',windows:[{startAt:t(start+900000),endAt:t(start+3600000)}]})} as any;await expect(assertFullCoverage(tx,a)).rejects.toThrow('availability-partition-binding');});

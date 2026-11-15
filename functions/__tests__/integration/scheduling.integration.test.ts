@@ -52,7 +52,8 @@ test('real callable publish -> discover -> book -> participant read -> cancel ->
   const available = await read('doctorAvailability/' + published.availabilityId);
   expect(available.windows[0].startAt.toMillis()).toBe(start);
   const discovered = await discover(patientA, doctorA, start);
-  expect(discovered.times).toHaveLength(2);
+  expect(discovered.times).toHaveLength(3);
+  expect(discovered.times.map((slot: any) => slot.startAt)).toEqual([start, start + 900000, start + halfHour]);
   expect(discovered.times[0]).toEqual({ doctorId: doctorA.uid, startAt: start, endAt: start + halfHour,
     availabilityId: published.availabilityId, availabilityRevision: 1 });
   const input = intent(doctorA, start), result = await book(patientA, input);
@@ -363,16 +364,17 @@ test('failed early outcome, conflicting intent and invalid replacement leave all
   expect(await state()).toEqual(stable); await assertIntegrity();
 });
 
-test('production and emulator expose thirty approved callables, legacy endpoints fail, and five indexes remain', async () => {
+test('production and emulator expose approved callables, legacy endpoints fail, and ten approved indexes remain', async () => {
   const response = await fetch('http://127.0.0.1:5105/backends'); expect(response.ok).toBe(true);
   // Only inspect trigger names, never log backend environment/configuration payloads.
   const manifest: any = await response.json();
   const names = manifest.backends.flatMap((b: any) => b.functionTriggers.map((t: any) => t.name)).sort();
-  const productionNames = ['completeRegistration', 'saveDoctorProfileDraft', 'prepareDoctorCredential', 'finalizeDoctorCredential',
+  const productionNames = ['signInWithGoogle', 'submitSimulatedPaymentDecision',"getConsultationFee","setDoctorConsultationFee","createConsultationCheckout","getConsultationPayment","cancelConsultationPayment","retryConsultationRefund","listConsultationPayments","getDoctorPaymentSummary","reconcileConsultationPayments",'requestOwnAccountDeletion','getOwnAccountDeletion','resumeAccountDeletions','prepareConsultationAttachment','uploadConsultationAttachment','finalizeConsultationAttachment','getConsultationAttachment','discardConsultationAttachment','cleanupConsultationAttachments','completeRegistration', 'getOwnPatientConsent', 'updateOwnPatientConsent', 'saveDoctorProfileDraft', 'prepareDoctorCredential', 'finalizeDoctorCredential',
     'listPendingDoctorVerifications', 'listApprovedDoctors', 'getOwnDoctorAvailabilityDay', 'issuePrescription', 'getConsultationPrescription',
     'rateDoctor', 'getOwnConsultationRating', 'getOwnDoctorRatingSummary',
     'listNotifications', 'markNotificationRead', 'openNotification', 'setNotificationDevice',
-    'submitDoctorVerification', 'reviewDoctorVerification', 'replaceDoctorAvailabilityDay', 'getAvailableAppointmentTimes',
+    'submitDoctorVerification', 'reviewDoctorVerification', 'replaceDoctorAvailabilityDay', 'replaceDoctorAvailabilityDays', 'getAvailableAppointmentTimes',
+    'changeProfileAvatar', 'getProfileAvatar',
     'bookAppointment', 'cancelAppointment', 'recordAppointmentOutcome', 'openConsultation', 'sendConsultationMessage',
     'startConsultationCall', 'respondToConsultationCall', 'endConsultationCall', 'getConsultationCall', 'publishConsultationIce'].sort();
   const productionSource = readFileSync(resolve(__dirname, '../../src/index.ts'), 'utf8');
@@ -387,11 +389,48 @@ test('production and emulator expose thirty approved callables, legacy endpoints
   }
   await denied(call(actors.patientA, 'bookAppointment', { slotId: 'retired-slot' }), 'functions/invalid-argument');
   const config = JSON.parse(readFileSync(resolve(__dirname, '../../firestore.indexes.json'), 'utf8'));
-  expect(config.indexes).toHaveLength(5);
+  expect(config.indexes).toHaveLength(10);
+  expect(config.indexes.filter((entry: any) => entry.collectionGroup === 'consultationPayments')).toHaveLength(5);
   for (const owner of ['patientId', 'doctorId']) for (const fields of [
     [{ fieldPath: owner, order: 'ASCENDING' }, { fieldPath: 'status', order: 'ASCENDING' }, { fieldPath: 'startAt', order: 'ASCENDING' }],
     [{ fieldPath: owner, order: 'ASCENDING' }, { fieldPath: 'startAt', order: 'DESCENDING' }],
   ]) expect(config.indexes).toContainEqual({ collectionGroup: 'appointments', queryScope: 'COLLECTION', fields });
   expect(config.indexes).toContainEqual({ collectionGroup: 'verificationRequests', queryScope: 'COLLECTION', fields: [
     { fieldPath: 'doctorUid', order: 'ASCENDING' }, { fieldPath: 'profileRevision', order: 'DESCENDING' }] });
+});
+
+describe('atomic multi-day availability',()=>{
+ const DAY=86400000;
+ function days(){const midnight=Date.parse(dayOf(tomorrowStart())+'T00:00Z');return [midnight,midnight+DAY].map((base,i)=>({utcDate:dayOf(base),timeZone:'Africa/Nairobi',expectedRevision:0,windows:[{startAt:i?base:base+22*3600000,endAt:i?base+2*3600000:base+DAY}]}));}
+ const batch=(input=days())=>call(actors.doctorA,'replaceDoctorAvailabilityDays',{days:input});
+ test('Nairobi 01:00 to 05:00 crosses UTC midnight and reloads both days',async()=>{
+  const input=days(),result=await batch(input);expect(result.days.map((d:any)=>d.revision)).toEqual([1,1]);
+  for(const d of input)expect((await call(actors.doctorA,'getOwnDoctorAvailabilityDay',{utcDate:d.utcDate})).day).toEqual({utcDate:d.utcDate,timeZone:d.timeZone,revision:1,windows:d.windows});
+  const fmt=new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Nairobi',hour:'2-digit',minute:'2-digit'});expect(fmt.format(input[0].windows[0].startAt)).toBe('01:00');expect(fmt.format(input[1].windows[0].endAt)).toBe('05:00');
+ });
+ test.each([0,1])('stale partition %s rolls back all changes',async index=>{
+  const input=days();await batch(input);const before=await state(),update=input.map(d=>({...d,expectedRevision:1,windows:[]}));update[index].expectedRevision=0;await denied(batch(update),'functions/failed-precondition');expect(await state()).toEqual(before);
+ });
+ test.each([0,1])('booking in partition %s prevents removal atomically',async index=>{
+  const input=days();await batch(input);await book(actors.patientA,intent(actors.doctorA,input[index].windows[0].startAt));const before=await state();await denied(batch(input.map(d=>({...d,expectedRevision:1,windows:[]}))),'functions/failed-precondition');expect(await state()).toEqual(before);await assertIntegrity();
+ });
+ test('preserves unrelated hours and reservations in both partitions',async()=>{
+  const input=days();for(const d of input){const base=Date.parse(d.utcDate+'T00:00Z');d.windows.push({startAt:base+12*3600000,endAt:base+13*3600000});d.windows.sort((a,b)=>a.startAt-b.startAt);}
+  await batch(input);for(const [i,d] of input.entries())await book(i?actors.patientB:actors.patientA,intent(actors.doctorA,Date.parse(d.utcDate+'T12:00Z')));
+  const updated=input.map(d=>({...d,expectedRevision:1,windows:d.windows.map(w=>({...w}))}));updated[0].windows[1].startAt+=halfHour;updated[1].windows[0].endAt-=halfHour;
+  await batch(updated);for(const d of updated)expect((await call(actors.doctorA,'getOwnDoctorAvailabilityDay',{utcDate:d.utcDate})).day.windows).toEqual(d.windows);await assertIntegrity();
+ });
+ test('concurrent batches have one winner and never mixed partitions',async()=>{
+  const first=days(),second=days();second[0].windows[0].startAt+=halfHour;second[1].windows[0].endAt-=halfHour;
+  const results=await race([()=>batch(first),()=>batch(second)]);expect(results.filter(r=>r.status==='fulfilled')).toHaveLength(1);
+  const winner=results[0].status==='fulfilled'?first:second;for(const d of winner)expect((await call(actors.doctorA,'getOwnDoctorAvailabilityDay',{utcDate:d.utcDate})).day.windows).toEqual(d.windows);
+ });
+ test('started-window restriction rejects batch without any booking',async()=>{
+  const start=Math.floor(Date.now()/halfHour)*halfHour,utcDate=dayOf(start),createdAt=stamp(start-halfHour),id=hash(actors.doctorA.uid,utcDate);
+  await db.doc('doctorAvailability/'+id).set({doctorId:actors.doctorA.uid,utcDate,timeZone:'Africa/Nairobi',revision:1,schemaVersion:1,createdAt,updatedAt:createdAt,windows:[{startAt:stamp(start),endAt:stamp(start+halfHour)}]});
+  const next=Date.parse(utcDate+'T00:00Z')+DAY,before=await state();await denied(batch([{utcDate,timeZone:'Africa/Nairobi',expectedRevision:1,windows:[]},availabilityInput(next+10*3600000)]),'functions/failed-precondition');expect(await state()).toEqual(before);
+ });
+ test('three partitions and existing single-day endpoint retain revisions',async()=>{const input=days(),last=Date.parse(input[1].utcDate+'T00:00Z')+DAY;input.push(availabilityInput(last+10*3600000));await batch(input);expect(await call(actors.doctorA,'replaceDoctorAvailabilityDay',{...input[1],expectedRevision:1})).toMatchObject({revision:1,changed:false});});
+ test.each(['guest','patientA','pendingDoctor','disabledDoctor','rejectedDoctor','administrator'])('batch rejects %s',async name=>{await denied(call(actors[name],'replaceDoctorAvailabilityDays',{days:days()}),name==='guest'?'functions/unauthenticated':'functions/permission-denied');expect((await db.collection('doctorAvailability').get()).size).toBe(0);});
+ test('invalid later input cannot write first partition',async()=>{const input=days();input[1].windows[0].startAt+=1;await denied(batch(input),'functions/invalid-argument');expect((await db.collection('doctorAvailability').get()).size).toBe(0);});
 });

@@ -3,6 +3,8 @@ import { httpsCallable } from 'firebase/functions';
 import { auth, functions } from './firebaseConfig';
 let registration: { uid: string; token: string } | null = null;
 let pending: Promise<string> | null = null;
+/** CP15: server cleanup owns device-token revocation after access is disabled. */
+export function clearDeletedAccountNotificationState(){registration=null;}
 /** Tokens never enter logs, navigation or identity documents. Native setup may be unavailable. */
 export function registerForPushNotifications(): Promise<string> {
   if (pending) return pending;

@@ -2,14 +2,14 @@
 import {AppState, Image, Modal, View} from 'react-native';
 import Pdf from 'react-native-pdf';
 import {AuthContext} from '../../context/AuthContext';
-import {Action, Card, Copy, Field, Loading, Notice, Screen, usePalette} from '../../ui/design';
+import {Action, Card, Copy, Field, Loading, Status, Notice, Screen, usePalette} from '../../ui/design';
 import {adminVerificationError, createAdminVerificationSession, type PrivateCredential} from '../../services/adminVerification';
 import type {VerificationQueueItem} from '@shared/types/verificationQueue';
 
 export default function VerificationQueueScreen() {
   const account = useContext(AuthContext);
   if (account.status !== 'ready' || account.user?.role !== 'administrator' || account.user.status !== 'active')
-    return <Screen><Notice message="An active administrator account is required." /></Screen>;
+    return <Screen variant="dashboard"><Notice message="An active administrator account is required." /></Screen>;
   return <Dashboard key={account.user.uid} uid={account.user.uid} logout={account.logout} />;
 }
 function Dashboard({uid, logout}: {uid: string; logout(): Promise<void>}) {
@@ -65,13 +65,13 @@ function Dashboard({uid, logout}: {uid: string; logout(): Promise<void>}) {
     finally { locked.current = false; if (active.current) setBusy(false); }
   }
   return <Screen>
-    <Copy title>Doctor verification</Copy>
+    <Copy tone="muted">Administrator workspace</Copy><Copy title>Doctor verification</Copy>
     <Copy>Review professional details and supporting evidence before making a decision.</Copy>
     <Notice message={error} />
     {success && <Copy accessibilityLiveRegion="polite">{success}</Copy>}
     {busy && <Loading label="Loading verification information…" />}
     {selected ? <Card>
-      <Copy title>{selected.professional.professionalName}</Copy>
+      <Status label="Pending review" tone="warning"/><Copy title>{selected.professional.professionalName}</Copy>
       <Copy>Specialty: {selected.professional.specialty}</Copy>
       <Copy>Registration: {selected.professional.registrationNumber}</Copy>
       <Copy>Issuing authority: {selected.professional.issuingAuthority}</Copy>
@@ -83,7 +83,7 @@ function Dashboard({uid, logout}: {uid: string; logout(): Promise<void>}) {
         onPress={() => {void openDocument(credential.credentialId);}} />)}
       {opening && <Loading label="Downloading selected credential securely…" />}
       {opening && <Action title="Cancel document download" secondary onPress={closeViewer} />}
-      <Field label="Rejection reason" value={reason} onChangeText={setReason} maxLength={1000} editable={!busy} />
+      <Field multiline helperText="Required for rejection. Explain what the doctor needs to correct." label="Rejection reason" value={reason} onChangeText={setReason} maxLength={1000} editable={!busy} />
       {confirm ? <>
         <Copy>{confirm === 'approved' ? 'Approve this doctor and publish their verified professional profile?' : 'Reject this submission with the reason shown above?'}</Copy>
         <Action title={confirm === 'approved' ? 'Confirm approval' : 'Confirm rejection'} danger={confirm === 'rejected'} disabled={busy || opening} onPress={() => {void decide();}} />
@@ -96,8 +96,8 @@ function Dashboard({uid, logout}: {uid: string; logout(): Promise<void>}) {
     </Card> : <>
       <Action title="Refresh queue" disabled={busy} onPress={() => {setSuccess(null); void load();}} />
       {!busy && !items.length && !error && <Card><Copy>No pending verification requests.</Copy></Card>}
-      {items.map(item => <Card key={item.requestId}>
-        <Copy title>{item.professional.professionalName}</Copy><Copy>{item.professional.specialty}</Copy>
+      {items.map(item => <Card key={item.requestId}><Status label="Pending review" tone="warning"/>
+        <Copy variant="heading">{item.professional.professionalName}</Copy><Copy>{item.professional.specialty}</Copy>
         <Copy>{item.credentials.length} credential(s) · Revision {item.profileRevision}</Copy>
         <Action title={`Review ${item.professional.professionalName}`} disabled={busy} onPress={() => {setSelected(item); setSuccess(null); setError(null);}} />
       </Card>)}

@@ -1,5 +1,5 @@
 const mockInstances=[];
-jest.mock('react-native-webrtc',()=>({RTCPeerConnection:jest.fn().mockImplementation(function(config){
+jest.mock('react-native-webrtc',()=>({MediaStream:jest.fn().mockImplementation(function(tracks){this.getTracks=()=>tracks;this.release=jest.fn();}),RTCPeerConnection:jest.fn().mockImplementation(function(config){
  this.config=config;this.addTrack=jest.fn();this.addTransceiver=jest.fn();this.close=jest.fn();this.createOffer=jest.fn(async()=>({type:'offer',sdp:'v=0\r\n'}));
  this.setLocalDescription=jest.fn(async()=>{});this.setRemoteDescription=jest.fn(async()=>{});this.addIceCandidate=jest.fn(async()=>{});mockInstances.push(this);
 })}));
@@ -26,4 +26,30 @@ test('cleanup stops owned tracks, releases streams, detaches callbacks and clear
 });
 test('receive-only video negotiates audio/video without opening devices',()=>{
  const peer=createNativePeer('video',{ice:jest.fn(),connection:jest.fn()});expect(mockInstances[0].addTransceiver.mock.calls).toEqual([['audio',{direction:'recvonly'}],['video',{direction:'recvonly'}]]);peer.close();
+});
+
+test('unusable incoming audio is reported without modifying remote mute state or video',()=>{
+ const unavailable=jest.fn(),onRemoteStream=jest.fn(),audio={kind:'audio',enabled:false,readyState:'live'},stream={release:jest.fn()};
+ const peer=createNativePeer('video',{ice:jest.fn(),connection:jest.fn()},{onRemoteAudioUnavailable:unavailable,onRemoteStream});
+ mockInstances[0].ontrack({track:audio,streams:[stream]});expect(unavailable).toHaveBeenCalledTimes(1);
+ expect(audio.enabled).toBe(false);expect(onRemoteStream).toHaveBeenCalledWith(stream);peer.close();
+});
+test('streamless remote audio and video are retained together and released on teardown',()=>{
+ const onRemoteStream=jest.fn(),peer=createNativePeer('video',{ice:jest.fn(),connection:jest.fn()},{onRemoteStream});
+ const audio={id:'audio',kind:'audio',enabled:true,readyState:'live'},video={id:'video',kind:'video',enabled:true,readyState:'live'};
+ mockInstances[0].ontrack({track:video,streams:[]});mockInstances[0].ontrack({track:audio,streams:[]});
+ const result=onRemoteStream.mock.calls.at(-1)[0];expect(result.getTracks()).toEqual([video,audio]);peer.close();expect(result.release).toHaveBeenCalledTimes(1);
+});
+test('development audio sample contains counts only and is cancelled on close',async()=>{
+ jest.useFakeTimers();const log=jest.spyOn(console,'info').mockImplementation(()=>{});
+ const peer=createNativePeer('audio',{ice:jest.fn(),connection:jest.fn()}),pc=mockInstances[0];
+ pc.getStats=jest.fn(async()=>new Map([['out',{type:'outbound-rtp',kind:'audio',packetsSent:25}],['in',{type:'inbound-rtp',kind:'audio',packetsReceived:20}]]));
+ pc.getReceivers=()=>[{track:{kind:'audio',readyState:'live',enabled:true}}];pc.connectionState='connected';pc.onconnectionstatechange();
+ jest.advanceTimersByTime(5000);await Promise.resolve();expect(log).toHaveBeenCalledWith('[call audio]',{packetsSent:25,packetsReceived:20,liveRemoteAudioTracks:1});
+ peer.close();log.mockRestore();jest.useRealTimers();
+});
+test('closing before diagnostic sampling prevents late native reads',()=>{
+ jest.useFakeTimers();const peer=createNativePeer('audio',{ice:jest.fn(),connection:jest.fn()}),pc=mockInstances[0];
+ pc.getStats=jest.fn();pc.connectionState='connected';pc.onconnectionstatechange();peer.close();
+ jest.advanceTimersByTime(5000);expect(pc.getStats).not.toHaveBeenCalled();jest.useRealTimers();
 });

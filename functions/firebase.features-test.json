@@ -1,0 +1,17 @@
+{
+  "functions": {"source": "lib/feature-emulator", "runtime": "nodejs22", "predeploy": ["node -e \"throw new Error('Feature test Functions must never be deployed')\""]},
+  "firestore": {"rules": "firestore.rules", "indexes": "firestore.indexes.json"},
+  "storage": {"rules": "storage.rules"},
+  "emulators": {
+    "auth": {"host": "127.0.0.1", "port": 9108},
+    "functions": {"host": "127.0.0.1", "port": 5108},
+    "firestore": {"host": "127.0.0.1", "port": 8108, "websocketPort": 9158},
+    "storage": {"host": "127.0.0.1", "port": 9208},
+    "hub": {"host": "127.0.0.1", "port": 4428},
+    "logging": {"host": "127.0.0.1", "port": 4528},
+    "eventarc": {"host": "127.0.0.1", "port": 9308},
+    "tasks": {"host": "127.0.0.1", "port": 9508},
+    "ui": {"enabled": false},
+    "singleProjectMode": true
+  }
+}

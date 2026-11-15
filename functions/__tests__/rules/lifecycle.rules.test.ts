@@ -62,7 +62,7 @@ test.each(['cancelled', 'completed', 'no_show'])('%s stores trusted terminal met
 test('book -> hidden slot -> cancel -> rediscovery -> another patient rebooks -> stale retry preserves new locks', async () => {
   expect((await discover()).times.map(time => time.startAt)).toEqual([start + 1800000]);
   await lifecycle().cancel(cancel()); expect(await locks()).toEqual([]);
-  expect((await discover()).times.map(time => time.startAt)).toEqual([start, start + 1800000]);
+  expect((await discover()).times.map(time => time.startAt)).toEqual([start,start+900000,start+1800000]);
   const replacement = await createBookingHandler(deps())(bookRequest('patient2')); expect(replacement.appointmentId).not.toBe(id);
   const owned = await locks(); expect(owned).toHaveLength(2);
   expect(await lifecycle().cancel(cancel())).toMatchObject({ replayed: true }); expect(await locks()).toEqual(owned);

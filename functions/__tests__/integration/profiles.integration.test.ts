@@ -45,7 +45,7 @@ async function account(role?: 'patient' | 'doctor') {
   const c = client();
   const result = await createUserWithEmailAndPassword(c.auth, randomUUID() + '@example.test', randomUUID());
   c.uid = result.user.uid;
-  if (role) await call(c, 'completeRegistration', { role, fullName: 'Synthetic Integration User' });
+  if (role) await call(c, 'completeRegistration', { role, fullName: 'Synthetic Integration User',...(role==='patient'?{consent:{requestId:randomUUID().replace(/-/g,'').slice(0,20),expectedRevision:0,documentVersion:'development-2026-11-03-v1',privacyAcknowledged:true,sharingDecision:'declined',source:'registration'}}:{}) });
   return c;
 }
 async function administrator() {

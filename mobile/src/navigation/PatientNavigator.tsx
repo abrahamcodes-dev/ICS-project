@@ -17,11 +17,11 @@ export default function PatientNavigator() {
   const colors=usePalette();
   return (
     <Stack.Navigator initialRouteName="Home" screenOptions={{headerStyle:{backgroundColor:colors.background},headerTintColor:colors.text,contentStyle:{backgroundColor:colors.background}}}>
-      <Stack.Screen name="Home" component={PatientHomeScreen} />
-      <Stack.Screen name="Doctors" component={DoctorsScreen} />
+      <Stack.Screen name="Home" component={PatientHomeScreen} options={{headerShown:false}} />
+      <Stack.Screen name="Doctors" component={DoctorsScreen} options={{headerShown:false}} />
       <Stack.Screen name="DoctorProfile" component={DoctorProfileScreen} options={{title:'Doctor profile'}} />
       <Stack.Screen name="Profile" component={PatientProfileScreen} />
-      <Stack.Screen name="Appointments" component={PatientAppointments} />
+      <Stack.Screen name="Appointments" component={PatientAppointments} options={{headerShown:false}} />
       <Stack.Screen name="HealthProfile" component={HealthProfileScreen} />
       <Stack.Screen name="BookAppointment" component={BookAppointmentScreen} />
       <Stack.Screen name="Consultation" component={ConsultationScreen} />

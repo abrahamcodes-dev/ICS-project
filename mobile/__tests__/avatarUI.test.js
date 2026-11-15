@@ -1,0 +1,47 @@
+const React=require('react'),{create,act}=require('react-test-renderer');
+const {Image}=require('react-native');
+const mockSession={read:jest.fn(),upload:jest.fn(),remove:jest.fn(),recover:jest.fn(),dispose:jest.fn()};
+jest.mock('../src/services/firebaseConfig',()=>({auth:{currentUser:{uid:'owner'}}}));
+jest.mock('../src/services/avatarService',()=>({createAvatarSession:jest.fn(()=>mockSession),chooseAvatar:jest.fn()}));
+const {chooseAvatar}=require('../src/services/avatarService');
+const {ProfileAvatar,AvatarEditor}=require('../src/components/ProfileAvatar');
+const {Action}=require('../src/ui/design');
+let tree;
+beforeEach(()=>{jest.clearAllMocks();mockSession.read.mockResolvedValue({revision:1,image:null,pending:null});jest.spyOn(require('react-native').AccessibilityInfo,'isReduceMotionEnabled').mockResolvedValue(true);});
+afterEach(async()=>{if(tree)await act(async()=>tree.unmount());tree=null;});
+const render=async node=>{await act(async()=>{tree=create(node);});};
+const press=async title=>act(async()=>tree.root.findAllByType(Action).find(n=>n.props.title===title).props.onPress());
+test('fallback initials shown without photo and on image failure',async()=>{await render(<ProfileAvatar uid="owner" name="Ada Patient"/>);expect(JSON.stringify(tree.toJSON())).toContain('AP');mockSession.read.mockResolvedValue({image:'data:image/jpeg;base64,AA==',revision:1,pending:null});await act(async()=>tree.update(<ProfileAvatar uid="doctor" name="Doctor Example"/>));expect(tree.root.findByType(Image)).toBeDefined();await act(async()=>tree.root.findByType(Image).props.onError());expect(JSON.stringify(tree.toJSON())).toContain('DE');});
+test('preview can be canceled without upload',async()=>{const photo={uri:'file:///preview',dispose:jest.fn()};chooseAvatar.mockResolvedValue(photo);await render(<AvatarEditor uid="owner"/>);await press('Choose profile picture');await press('Cancel picture selection');expect(photo.dispose).toHaveBeenCalled();expect(mockSession.upload).not.toHaveBeenCalled();});
+test('save reloads persisted state and clears local selection',async()=>{const photo={uri:'file:///preview',dispose:jest.fn()};chooseAvatar.mockResolvedValue(photo);await render(<AvatarEditor uid="owner"/>);await press('Choose profile picture');await press('Save profile picture');expect(mockSession.upload).toHaveBeenCalledWith(photo,1);expect(mockSession.read).toHaveBeenCalledTimes(2);expect(photo.dispose).toHaveBeenCalled();});
+test('removal reloads and uncertain failure remains recoverable',async()=>{mockSession.read.mockResolvedValue({revision:2,image:'data:image/jpeg;base64,AA==',pending:null});mockSession.remove.mockRejectedValueOnce(Error('offline'));await render(<AvatarEditor uid="owner"/>);await press('Remove profile picture');expect(JSON.stringify(tree.toJSON())).toContain('not confirmed');mockSession.remove.mockResolvedValue({});await press('Remove profile picture');expect(mockSession.read).toHaveBeenCalledTimes(2);});
+test('unmount disposes session and selected cache file',async()=>{const photo={uri:'file:///preview',dispose:jest.fn()};chooseAvatar.mockResolvedValue(photo);await render(<AvatarEditor uid="owner"/>);await press('Choose profile picture');await act(async()=>tree.unmount());tree=null;expect(mockSession.dispose).toHaveBeenCalled();expect(photo.dispose).toHaveBeenCalled();});
+jest.mock('../src/services/authService',()=>({registerUser:jest.fn(),completeUserRegistration:jest.fn(),loginUser:jest.fn()}));
+test.each([false,true])('registration preserves doctor role with optional photo=%s',async withPhoto=>{
+ const {default:AuthForm}=require('../src/screens/auth/AuthForm');
+ const {Field}=require('../src/ui/design');
+ const {registerUser}=require('../src/services/authService');
+ const completed=jest.fn();registerUser.mockResolvedValue({uid:'owner'});
+ const service=require('../src/services/avatarService');service.uploadRegistrationAvatar=jest.fn(async()=>{throw Error('offline');});
+ const photo={uri:'file:///preview',dispose:jest.fn()};chooseAvatar.mockResolvedValue(photo);
+ await render(<AuthForm mode="register" initialRole="doctor" onComplete={completed}/>);
+ for(const [label,value] of [['Full name','Doctor Test'],['Email','doctor@example.test'],['Password','password123'],['Confirm password','password123']])await act(async()=>tree.root.findAllByType(Field).find(n=>n.props.label===label).props.onChangeText(value));
+ if(withPhoto)await act(async()=>tree.root.findByProps({accessibilityLabel:'Choose optional profile picture',accessibilityRole:'button'}).props.onPress());
+ await press('Create account');
+ expect(registerUser).toHaveBeenCalledWith('doctor@example.test','password123','Doctor Test','doctor');
+ expect(completed).toHaveBeenCalledWith('owner');
+ if(withPhoto){expect(service.uploadRegistrationAvatar).toHaveBeenCalledWith('owner',photo);expect(photo.dispose).toHaveBeenCalled();}else expect(service.uploadRegistrationAvatar).not.toHaveBeenCalled();
+});
+
+test('registration photo selector preserves preview on cancellation and disposes removed photo',async()=>{
+ const Form=require('../src/screens/auth/AuthForm').default;
+ const photo={uri:'file:///selected',dispose:jest.fn()};chooseAvatar.mockResolvedValueOnce(photo).mockResolvedValueOnce(null);
+ await render(<Form mode="register"/>);
+ const tap=label=>act(async()=>tree.root.findByProps({accessibilityLabel:label,accessibilityRole:'button'}).props.onPress());
+ const previews=()=>tree.root.findAllByType(Image).filter(node=>node.props.accessibilityLabel==='Selected profile picture');
+ await tap('Choose optional profile picture');expect(previews()).toHaveLength(1);expect(previews()[0].props.source.uri).toBe(photo.uri);
+ await tap('Choose optional profile picture');expect(previews()).toHaveLength(1);expect(previews()[0].props.source.uri).toBe(photo.uri);expect(photo.dispose).not.toHaveBeenCalled();
+ await tap('Remove selected picture');expect(photo.dispose).toHaveBeenCalledTimes(1);expect(previews()).toHaveLength(0);
+ chooseAvatar.mockRejectedValueOnce(Error('permission denied'));await tap('Choose optional profile picture');
+ expect(JSON.stringify(tree.toJSON())).toContain('You can continue without one');
+});

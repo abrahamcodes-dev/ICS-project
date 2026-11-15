@@ -168,3 +168,9 @@ test('rejects numeric or structural timestamp cursors before querying', async ()
   }
   expect(mockGetDocs).not.toHaveBeenCalled();
 });
+
+ test('finalized attachment messages preserve existing chronological pagination',async()=>{
+ const id='b'.repeat(64),cid='a'.repeat(64);const attachment={attachmentId:id,messageId:id,consultationId:cid,senderId:'doctor',filename:'synthetic.pdf',contentType:'application/pdf',sizeBytes:20,storagePath:'consultationAttachments/'+cid+'/'+id+'/document',status:'finalized'};
+ mockGetDocs.mockResolvedValue({docs:[{id,data:()=>({messageId:id,senderId:'doctor',type:'attachment',attachment,createdAt:mockTimestamp.fromMillis(1000),schemaVersion:1})}]});
+ const page=await service.loadOlderMessages(cid,{createdAt:mockTimestamp.fromMillis(2000),messageId:'c'.repeat(64)});expect(page.messages[0]).toMatchObject({type:'attachment',attachment});
+ });

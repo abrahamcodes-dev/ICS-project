@@ -1,0 +1,14 @@
+{
+ "functions":{"source":".","runtime":"nodejs22","predeploy":["node -e \"throw new Error('Payment test configuration must never be deployed')\""]},
+ "firestore":{"rules":"firestore.rules","indexes":"firestore.indexes.json"},
+ "emulators":{
+  "auth":{"host":"127.0.0.1","port":9106},
+  "functions":{"host":"127.0.0.1","port":5106},
+  "firestore":{"host":"127.0.0.1","port":8106,"websocketPort":9156},
+  "hub":{"host":"127.0.0.1","port":4426},
+  "logging":{"host":"127.0.0.1","port":4526},
+  "eventarc":{"host":"127.0.0.1","port":9306},
+  "tasks":{"host":"127.0.0.1","port":9506},
+  "ui":{"enabled":false},"singleProjectMode":true
+ }
+}

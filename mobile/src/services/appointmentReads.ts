@@ -1,4 +1,4 @@
-import {collection, query, where, orderBy, limit, onSnapshot, Timestamp, getDocs, startAfter, documentId,
+import {collection, doc, query, where, orderBy, limit, onSnapshot, Timestamp, getDocs, startAfter, documentId,
   type QueryDocumentSnapshot, type DocumentData, type QueryConstraint} from 'firebase/firestore';
 import type {AppointmentStatus} from '@shared/types/scheduling';
 import {db} from './firebaseConfig';
@@ -6,6 +6,16 @@ import {db} from './firebaseConfig';
 export type ParticipantRole = 'patient' | 'doctor';
 export type AppointmentCursor = QueryDocumentSnapshot<DocumentData>;
 export type AppointmentPageMode = 'upcoming' | 'history' | 'day';
+/** Rules authorize the participant; parse again before exposing any appointment state. */
+export function observeAppointment(uid:string,role:ParticipantRole,id:string,next:(row:AppointmentRow)=>void,error:()=>void){
+  if(!/^[a-f0-9]{64}$/.test(id)){error();return()=>{};}
+  let active=true;
+  const stop=onSnapshot(doc(db,'appointments',id),snapshot=>{
+    if(!active)return;
+    try{if(!snapshot.exists())throw new Error('Unavailable');next(parseAppointment(snapshot.id,snapshot.data(),uid,role));}catch{error();}
+  },()=>{if(active)error();});
+  return()=>{active=false;stop();};
+}
 export async function readAppointmentPage(uid: string, role: ParticipantRole, mode: AppointmentPageMode,
   boundary: number, cursor?: AppointmentCursor, end?: number) {
   const constraints: QueryConstraint[] = [where(`${role}Id`, '==', uid)];
@@ -49,7 +59,7 @@ export function observeAppointments(uid: string, role: ParticipantRole,
   next: (rows: AppointmentRow[]) => void, error: () => void, upcoming = false) {
   let active = true;
   const filters: QueryConstraint[] = [where(`${role}Id`,'==',uid)];
-  if (upcoming) filters.push(where('status','==','scheduled'), where('startAt','>=',Timestamp.fromMillis(Date.now()-45*60000)));
+  if (upcoming) filters.push(where('status','==','scheduled'), where('startAt','>=',Timestamp.fromMillis(Date.now()-75*60000)));
   const stop = onSnapshot(query(collection(db,'appointments'), ...filters,
     orderBy('startAt',upcoming?'asc':'desc'), limit(50)), snapshot => {
       if (!active) return;

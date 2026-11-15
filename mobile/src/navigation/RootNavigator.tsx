@@ -15,9 +15,10 @@ import { NotificationInbox } from '../screens/shared/NotificationsScreen';
 // Routes to the correct role-based navigator once auth state is known.
 // Sprint 1 deliverable: Guest -> Login/Register -> role-specific stack.
 export default function RootNavigator() {
-  const { user, loading, status } = useAuth();
+  const { user, loading, status, registrationOpen } = useAuth();
   const theme=navigationTheme(useColorScheme());
 
+  if (registrationOpen) return <NavigationContainer theme={theme}><GuestNavigator /></NavigationContainer>;
   if (loading) return <AccountStatusScreen />;
 
   if (status === "signedOut") return <NavigationContainer theme={theme}><GuestNavigator /></NavigationContainer>;

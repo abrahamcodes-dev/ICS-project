@@ -122,10 +122,10 @@ test('message event targets counterpart and never includes text', async () => {
   const rows = Object.keys(f.data).filter(p => p.startsWith('notificationInboxes/')); expect(rows).toHaveLength(1);
   expect(rows[0]).toContain('/doctor/'); expect(JSON.stringify(f.data[rows[0]])).not.toContain('private message');
 });
-test('refresh reminders deduplicate and require upcoming scheduled appointment', async () => {
+test.each([15,30,60])('refresh reminders deduplicate for a %s minute scheduled appointment', async duration => {
   const f = fixture(); const a = f.data['appointments/' + id];
   const startAt = Math.ceil((Date.now() + 600000) / 1800000) * 1800000;
-  a.startAt = Timestamp.fromMillis(startAt); a.endAt = Timestamp.fromMillis(startAt + 1800000);
+  a.startAt = Timestamp.fromMillis(startAt); a.endAt = Timestamp.fromMillis(startAt + duration*60000);
   // Appointment validation derives availability ID from start day.
   a.availabilityId = require('../src/scheduling/ids').availabilityId('doctor', new Date(startAt).toISOString().slice(0, 10));
   await f.h.list(req()); await f.h.list(req());

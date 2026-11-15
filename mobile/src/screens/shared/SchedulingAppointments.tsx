@@ -5,8 +5,8 @@ import { readAppointmentPage, consultationUnavailable, type AppointmentRow, type
 import { useSchedulingSession } from '../../hooks/useSchedulingSession';
 import { schedulingError } from '../../services/schedulingService';
 
-export default function SchedulingAppointments({ uid, role, open, rate, mode = 'upcoming', boundary, end }:
-  { uid: string; role: ParticipantRole; open(id: string): void; rate?(id: string): void; mode?: AppointmentPageMode; boundary: number; end?: number }) {
+export default function SchedulingAppointments({ uid, role, open, rate, mode = 'upcoming', boundary, end, patientPresentation, header, findDoctor, renderCard }:
+  { uid: string; role: ParticipantRole; open(id: string): void; rate?(id: string): void; mode?: AppointmentPageMode; boundary: number; end?: number; patientPresentation?: boolean; header?(refresh:()=>void,disabled:boolean):React.ReactNode; findDoctor?():void; renderCard?(a:AppointmentRow,content:React.ReactNode,now:number):React.ReactNode }) {
   const session = useSchedulingSession(uid), generation = useRef(0), busy = useRef(false), deciding = useRef(false);
   const [rows, setRows] = useState<AppointmentRow[]>([]), [cursor, setCursor] = useState<AppointmentCursor | null>(null);
   const [loading, setLoading] = useState(true), [error, setError] = useState<string | null>(null), [retry, setRetry] = useState(0);
@@ -51,12 +51,12 @@ export default function SchedulingAppointments({ uid, role, open, rate, mode = '
     finally { deciding.current = false; if (token === generation.current) setPending(false); }
   }
   return <>
-    <Action secondary title="Refresh appointments" disabled={loading || pending} onPress={() => { setMessage(null); setRetry(v => v + 1); }}/>
+    {header ? header(()=>{setMessage(null);setRetry(v=>v+1);},loading||pending) : <Action secondary title="Refresh appointments" disabled={loading || pending} onPress={() => { setMessage(null); setRetry(v => v + 1); }}/>}
     {loading && <Loading label="Loading appointments..."/>}<Notice message={error}/>{message && <Copy>{message}</Copy>}
-    {!loading && !error && !rows.length && <Card><Copy>No appointments in this view.</Copy></Card>}
+    {!loading && !error && !rows.length && <Card>{patientPresentation?<><Copy variant="heading">{mode==='upcoming'?'No upcoming appointments':'No appointment history yet'}</Copy><Copy tone="muted">{mode==='upcoming'?'Your booked consultations will appear here.':'Your past consultations will appear here.'}</Copy>{findDoctor&&<Action title="Find a doctor" onPress={findDoctor}/>}</>:<Copy>No appointments in this view.</Copy>}</Card>}
     {rows.map(a => {
       const unavailable = consultationUnavailable(a, uid, role, now);
-      return <Card key={a.appointmentId}><Copy title>{new Date(a.startAt).toLocaleString()}</Copy><Copy>{a.status.replace('_', ' ')}</Copy>
+      const content=<>
         {unavailable && <Copy>{unavailable}</Copy>}<Action title="Open consultation" disabled={!!unavailable} onPress={() => {
           if (!consultationUnavailable(a, uid, role, Date.now())) open(a.appointmentId);
         }}/>
@@ -67,7 +67,8 @@ export default function SchedulingAppointments({ uid, role, open, rate, mode = '
             if (a.endAt <= Date.now()) { setComplete(a); setUncertain(false); setMessage(null); setError(null); }
           }} />}
         {role === 'patient' && a.status === 'scheduled' && a.startAt > now && <Action secondary title="Cancel appointment" disabled={pending || !!cancel}
-          onPress={() => { setCancel(a); setReason(''); setUncertain(false); setMessage(null); }}/>}</Card>;
+          onPress={() => { setCancel(a); setReason(''); setUncertain(false); setMessage(null); }}/>}</>;
+      return renderCard?<React.Fragment key={a.appointmentId}>{renderCard(a,content,now)}</React.Fragment>:<Card key={a.appointmentId}><Copy title>{new Date(a.startAt).toLocaleString()}</Copy><Copy>{a.status.replace('_',' ')}</Copy>{content}</Card>;
     })}
     {cursor && <Action title="Load more appointments" disabled={loading || pending} onPress={() => void load(true)}/>}
     {complete && <Card><Copy title>Confirm appointment completion</Copy><Copy>{new Date(complete.startAt).toLocaleString()}</Copy>

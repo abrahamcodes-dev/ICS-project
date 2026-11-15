@@ -113,6 +113,28 @@ service firebase.storage {
     allow create: if request.auth != null && resource == null && upload(uid, id);
     allow list, update, delete: if false;
   }
+  function avatarOwner(uid) {
+    let data = identity();
+    return request.auth.uid == uid && validIdentity(data) && patientIdentityStrings(data)
+      && identityCalendar(data.createdAt) && identityCalendar(data.updatedAt)
+      && data.uid == uid && data.status == 'active' && data.role in ['patient','doctor']
+      && (data.role != 'doctor' || data.verificationStatus in ['pending','rejected','approved']);
+  }
+  match /avatars/{uid}/{id}/image.jpg {
+    allow create: if request.auth != null && resource == null && avatarOwner(uid)
+      && id.matches('[a-f0-9-]{36}')
+      && firestore.get(/databases/(default)/documents/users/$(uid)/avatar/state).data.pending == id
+      && firestore.get(/databases/(default)/documents/users/$(uid)/avatar/state).data.expiresAt > request.time.toMillis()
+      && request.resource.size > 0 && request.resource.size <= 262144
+      && request.resource.contentType == 'image/jpeg' && request.resource.metadata.size() == 0;
+    // Reads are delivered by the authorized callable; no bearer download URLs.
+    allow read, update, delete: if false;
+  }
+  match /consultationAttachments/{cid}/{id}/document {
+    // Trusted upload/finalization/view callables enforce participant access.
+    // No Firebase upload API: it automatically creates bearer download tokens.
+    allow read, write: if false;
+  }
   match /{path=**} { allow read, write: if false; }
 
  }

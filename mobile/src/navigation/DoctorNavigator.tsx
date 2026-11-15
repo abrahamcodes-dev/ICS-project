@@ -1,3 +1,4 @@
+import ConsultationDetailsScreen from '../screens/doctor/ConsultationDetailsScreen';
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import SubmitVerificationScreen from "../screens/doctor/SubmitVerificationScreen";
@@ -19,10 +20,11 @@ export default function DoctorNavigator() {
       <Stack.Screen name="DoctorWorkspace" component={DoctorWorkspace} options={{headerShown:false}} />
       <Stack.Screen name="Appointments" component={DoctorAppointmentsScreen} />
       <Stack.Screen name="SubmitVerification" component={SubmitVerificationScreen} />
-      <Stack.Screen name="SetAvailability" component={SetAvailabilityScreen} />
+      <Stack.Screen name="SetAvailability" component={SetAvailabilityScreen} options={{headerShown:false,gestureEnabled:false}} />
+      <Stack.Screen name="ConsultationDetails" component={ConsultationDetailsScreen} options={{headerShown:false}} />
       <Stack.Screen name="ConsultationRoom" component={ConsultationRoomScreen} />
-      <Stack.Screen name="IssuePrescription" component={IssuePrescriptionScreen} />
-      <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="IssuePrescription" component={IssuePrescriptionScreen} options={{title:"Create Prescription",headerTitleAlign:"center"}} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} options={{headerShown:false}} />
     </Stack.Navigator>
   );
 }

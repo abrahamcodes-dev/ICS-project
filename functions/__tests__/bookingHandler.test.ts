@@ -69,7 +69,7 @@ describe('booking authorization and input', () => {
     await expect(s.book(request(data))).rejects.toMatchObject({ code: 'invalid-argument' }); expect(s.reads).toEqual([]);
   });
   test.each([{ bookingRequestId: 'not-uuid' }, { bookingRequestId: uuid.toUpperCase() }, { startAt: NaN }, { startAt: Infinity }, { startAt: '2026-10-05T10:00:00' },
-    { startAt: start + 1 }, { startAt: start + 900000 }, { doctorId: '' }])('invalid transport %p', async patch => {
+    { startAt: start + 1 }, { startAt: start + 450000 }, { doctorId: '' }])('invalid transport %p', async patch => {
     await expect(setup().book(request({ ...request().data as object, ...patch }))).rejects.toMatchObject({ code: 'invalid-argument' });
   });
 });
@@ -92,7 +92,7 @@ describe('authoritative booking and retries', () => {
     const soon = setup(); soon.clock(start - 300000 + 1); await expect(soon.book(request())).rejects.toMatchObject({ code: 'failed-precondition' }); expect(soon.writes).toEqual([]);
     const far = setup(); far.clock(start - 90 * 86400000 - 1); await expect(far.book(request())).rejects.toMatchObject({ code: 'failed-precondition' });
   });
-  test.each([null, { windows: [] }, { doctorId: 'wrong' }, { revision: 0 }, { windows: [{ startAt: ts(start), endAt: ts(start + 900000) }, { startAt: ts(start + 900000), endAt: ts(start + 1800000) }] }])('missing/malformed/uncovered availability %#', async patch => {
+  test.each([null, { windows: [] }, { doctorId: 'wrong' }, { revision: 0 }, { windows: [{ startAt: ts(start), endAt: ts(start + 900000) }, { startAt: ts(start + 1800000), endAt: ts(start + 2700000) }] }])('missing/malformed/uncovered availability %#', async patch => {
     const s = setup(); s.docs['doctorAvailability/' + availabilityKey] = patch ? { ...s.docs['doctorAvailability/' + availabilityKey], ...patch } : null;
     await expect(s.book(request())).rejects.toMatchObject({ code: 'failed-precondition' }); expect(s.writes).toEqual([]);
   });
@@ -143,7 +143,7 @@ describe('authoritative booking and retries', () => {
     expect(s.reads.filter(path => path === 'users/patient')).toHaveLength(2);
   });
   test('stale discovery cannot bypass a generic occupied-slot conflict', async () => {
-    const s = setup(); expect((await s.availability.discover(discovery)).times).toHaveLength(2);
+    const s = setup(); expect((await s.availability.discover(discovery)).times).toHaveLength(3);
     await s.book(request()); s.docs['users/other-patient'] = identity('other-patient', 'patient');
     await expect(s.book(request(request().data, 'other-patient'))).rejects.toMatchObject({ code: 'already-exists', message: 'Scheduling conflict. Choose another time.' });
     const times = (await s.availability.discover(discovery)).times;
@@ -173,6 +173,6 @@ describe('reservation coverage protection', () => {
   test('unrelated doctor reservation does not block replacement', async () => {
     const s = setup(); s.docs['bookingLocks/' + bookingLockId('doctor', 'other', start)] = { deliberately: 'not read' };
     await expect(s.availability.replace({ auth: { uid: 'doctor' }, data: { ...input(), expectedRevision: 1, windows: [] } })).resolves.toMatchObject({ revision: 2 });
-    expect(s.reads.filter(path => path.startsWith('bookingLocks/'))).toHaveLength(48);
+    expect(s.reads.filter(path => path.startsWith('bookingLocks/'))).toHaveLength(192);
   });
 });

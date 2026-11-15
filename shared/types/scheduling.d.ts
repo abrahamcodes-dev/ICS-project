@@ -17,7 +17,7 @@ export interface DoctorAvailability extends DomainDocument {
   readonly windows: readonly SchedulingInterval[];
   readonly revision: number;
 }
-export interface BookingRequest { doctorId: string; startAt: number; bookingRequestId: string }
+export interface BookingRequest { doctorId: string; startAt: number; bookingRequestId: string; durationMinutes?:15|30|60 }
 export interface CancelAppointmentInput { appointmentId: string; reason?: string | null }
 export interface RecordAppointmentOutcomeInput { appointmentId: string; outcome: 'completed' | 'no_show' }
 export interface AppointmentLifecycleResult {
@@ -34,8 +34,11 @@ export interface BookingResult {
   replayed: boolean;
 }
 export interface AvailabilityReplacementResult { availabilityId: string; revision: number; changed: boolean }
+/** Bounded atomic replacement of 1–3 distinct UTC partitions, in ascending order. */
+export interface AvailabilityBatchInput { days: AvailabilityReplacementInput[] }
+export interface AvailabilityBatchResult { days: Array<AvailabilityReplacementResult & { utcDate: string }> }
 /** fromDate is a UTC date partition; days is an inclusive partition count, 1 through 7. */
-export interface AvailabilityDiscoveryInput { doctorId: string; fromDate: string; days: number }
+export interface AvailabilityDiscoveryInput { doctorId: string; fromDate: string; days: number; durationMinutes?:15|30|60 }
 /** Candidate only. Booking must recheck authorization, coverage and occupancy transactionally. */
 export interface AvailableAppointmentTime {
   doctorId: string;

@@ -1,9 +1,10 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth, connectAuthEmulator } from "firebase/auth";
+import { getAuth, initializeAuth, getReactNativePersistence, connectAuthEmulator } from "firebase/auth";
 import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getStorage, connectStorageEmulator } from "firebase/storage";
 import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Values come from .env (see .env.example) — never commit real keys.
 const flag = process.env.EXPO_PUBLIC_USE_FIREBASE_EMULATORS;
@@ -11,9 +12,12 @@ if (flag !== undefined && flag !== '' && flag !== 'true' && flag !== 'false') {
   throw new Error('Firebase emulator flag must be exactly true or false. Reload after correcting configuration.');
 }
 const emulatorMode = flag === 'true';
+// 127.0.0.1 works on physical Android devices and emulators
+// when ADB reverse forwarding is configured.
+const emulatorHost = process.env.EXPO_PUBLIC_FIREBASE_EMULATOR_HOST || '127.0.0.1';
 if (emulatorMode && !__DEV__) throw new Error('Firebase emulator mode is forbidden in production builds.');
 if (emulatorMode && Platform.OS !== 'android') {
-  throw new Error('Firebase emulator mode currently supports Android Studio emulators only (10.0.2.2).');
+  throw new Error('Firebase emulator mode currently supports Android only.');
 }
 // Deliberately independent of the live .env values. This demo project has no live resources.
 const demoConfig = {
@@ -35,7 +39,7 @@ const existing = getApps().find(candidate => candidate.name === '[DEFAULT]');
 if (existing && Object.entries(firebaseConfig).some(([key,value]) => existing.options[key as keyof typeof firebaseConfig] !== value)) {
   throw new Error('Firebase app configuration mismatch. Fully reload the app; refusing to reuse another project or mode.');
 }
-const marker = Symbol.for('calladoc.firebase.initialization.v1');
+const marker = Symbol.for('calladoc.firebase.initialization.v2');
 type InitState = {mode: 'emulator' | 'live'; ready: boolean};
 type MarkedApp = ReturnType<typeof getApp> & {[marker]?: InitState};
 const mode = emulatorMode ? 'emulator' : 'live';
@@ -46,12 +50,26 @@ if (existing && ((previous && (previous.mode !== mode || !previous.ready)) || (e
 export const app = existing ?? initializeApp(firebaseConfig);
 if (emulatorMode && app.options.projectId !== 'demo-calladoc') throw new Error('Firebase emulator project must be demo-calladoc.');
 (app as MarkedApp)[marker] = {mode, ready:false};
-export const auth = getAuth(app);
-if (emulatorMode && !previous) connectAuthEmulator(auth, 'http://10.0.2.2:9099');
+// Reuse only initialization marked complete by this module. Initialization errors
+// propagate rather than retrying getAuth(), which would select memory persistence.
+export const auth = previous || Platform.OS === 'web'
+  ? getAuth(app)
+  : initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) });
+if (emulatorMode && !previous) {
+  connectAuthEmulator(auth, `http://${emulatorHost}:9099`);
+}
 export const db = getFirestore(app);
-if (emulatorMode && !previous) connectFirestoreEmulator(db, '10.0.2.2', 8080);
+if (emulatorMode && !previous) {
+  connectFirestoreEmulator(db, emulatorHost, 8080);
+}
 export const functions = getFunctions(app, 'us-central1');
-if (emulatorMode && !previous) connectFunctionsEmulator(functions, '10.0.2.2', 5001);
+if (emulatorMode && !previous) {
+  connectFunctionsEmulator(functions, emulatorHost, 5001);
+}
 export const storage = getStorage(app);
-if (emulatorMode && !previous) connectStorageEmulator(storage, '10.0.2.2', 9199);
+if (emulatorMode && !previous) {
+  connectStorageEmulator(storage, emulatorHost, 9199);
+}
+// Mark ready only after every initialization/connection succeeded. Otherwise a
+// module reload rejects a healthy persistent Auth instance as partially initialized.
 (app as MarkedApp)[marker] = {mode, ready:true};

@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
+import {ConsultationAttachmentComposer,ConsultationAttachmentViewer} from './ConsultationAttachments';
+import type {ConsultationAttachment} from '@shared/types/consultationAttachments';
 import { uuid } from 'expo-modules-core';
-import { Action, Card, Copy, Field, Loading, Notice } from '../../ui/design';
+import { Action, Card, Copy, Field, Loading, Notice, Status } from '../../ui/design';
 import { onIdentityRefresh } from '../../services/authService';
 import { createConsultationMessageSession, sendConsultationMessage,
   type ConsultationView, type ConsultationMessageView, type MessageCursor } from '../../services/consultationService';
@@ -8,6 +10,7 @@ import { createConsultationMessageSession, sendConsultationMessage,
 /** Mounted only inside the authorized appointment gate; server authorization remains authoritative. */
 export default function ConsultationChat({ room, uid }: { room: ConsultationView; uid: string }) {
   const [messages, setMessages] = useState<ConsultationMessageView[]>([]);
+  const [attachment,setAttachment]=useState<ConsultationAttachment|null>(null);
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(true);
   const [readingError, setReadingError] = useState(false);
@@ -28,7 +31,7 @@ export default function ConsultationChat({ room, uid }: { room: ConsultationView
     const current = createConsultationMessageSession(); session.current = current;
     function close() {
       alive.current = false; current.dispose(); session.current = null;
-      intent.current = null; setMessages([]); setText(''); setNotice(null); setBlocked(true);
+      intent.current = null; setMessages([]); setText(''); setNotice(null); setAttachment(null); setBlocked(true);
     }
     const stopIdentity = onIdentityRefresh(close);
     current.start(room.consultationId, rows => {
@@ -74,20 +77,22 @@ export default function ConsultationChat({ room, uid }: { room: ConsultationView
   }
   if (blocked) return <Card><Copy>Session changed. Reopen the consultation to continue.</Copy></Card>;
   return <Card>
-    <Copy title>Consultation messages</Copy>
+    <Copy variant="heading">Consultation messages</Copy><Status label={room.canSend?'Private conversation':'Read-only history'}/>
     <Copy>Messages are private to the appointment participants. History may be cached while offline.</Copy>
     {loading && <Loading label="Loading messages..." />}
     {readingError && <><Notice message="Unable to refresh message history. Check your connection and access." /><Action title="Retry message history" onPress={retryReads} /></>}
     {!loading && !messages.length && <Copy>No messages loaded yet.</Copy>}
     {messages.length > 0 && !exhausted && <Action title={olderBusy ? 'Loading older messages...' : 'Load older messages'} disabled={olderBusy} onPress={() => { void older(); }} />}
-    {messages.map(message => <Card key={message.messageId}>
-      <Copy>{message.senderId === uid ? 'You' : message.senderId === room.doctorId ? 'Doctor' : 'Patient'} · {new Date(message.createdAt).toLocaleString()}</Copy>
-      <Copy selectable>{message.text}</Copy>
+    {messages.map(message => <Card key={message.messageId} tone={message.senderId===uid?'mint':'surface'} style={{alignSelf:message.senderId===uid?'flex-end':'flex-start',maxWidth:'92%',borderBottomRightRadius:message.senderId===uid?6:24,borderBottomLeftRadius:message.senderId===uid?24:6}}>
+      <Copy variant="caption" tone="muted">{message.senderId === uid ? 'You' : message.senderId === room.doctorId ? 'Doctor' : 'Patient'} · {new Date(message.createdAt).toLocaleString()}</Copy>
+      {message.type==='attachment'&&message.attachment?<><Copy>{message.attachment.contentType==='application/pdf'?'PDF document':'Image document'}</Copy><Copy numberOfLines={3}>{message.attachment.filename}</Copy><Copy tone="muted">{Math.ceil(message.attachment.sizeBytes/1024)} KiB · Shared</Copy><Action secondary title="View private document" onPress={()=>setAttachment(message.attachment!)}/></>:<Copy selectable>{message.text}</Copy>}
     </Card>)}
     {!room.canSend && <Copy>This consultation is not available for new messages.</Copy>}
-    <Field label="Message" multiline maxLength={4000} value={text} editable={!sending && !sendError && room.canSend} onChangeText={setText} />
+    <Field label="Message" multiline placeholder="Type a message..." maxLength={4000} value={text} editable={!sending && !sendError && room.canSend} onChangeText={setText} />
     <Notice message={notice} />
     <Action title={sending ? 'Sending...' : sendError ? 'Retry same message' : 'Send message'} disabled={sending || (!sendError && (!text.trim() || !room.canSend))} onPress={() => { void send(); }} />
     {sendError && <Copy>The pending text stays unchanged for safe retries. Leaving discards its retry key; check history before composing it again.</Copy>}
+    <ConsultationAttachmentComposer room={room} uid={uid}/>
+    {attachment&&<ConsultationAttachmentViewer room={room} uid={uid} attachment={attachment} onClose={()=>setAttachment(null)}/>}
   </Card>;
 }

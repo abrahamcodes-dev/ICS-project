@@ -33,3 +33,9 @@ test('late download cannot reopen closed viewer',async()=>{let finish;api.openCr
 test('logout disposes session before sign-out',async()=>{await render();await press('Sign out');expect(api.dispose).toHaveBeenCalled();expect(account.logout).toHaveBeenCalledTimes(1);});
 test('identity change removes private UI and disposes session',async()=>{await render();await press('Review Doctor Example');await press('View medical license (1)');account={status:'signedOut',user:null};await act(async()=>tree.update(element()));expect(tree.root.findAllByType('Pdf')).toHaveLength(0);expect(api.dispose).toHaveBeenCalledTimes(1);});
 test.each(['patient','doctor'])('%s cannot mount administrator dashboard',async role=>{account.user.role=role;await render();expect(createAdminVerificationSession).not.toHaveBeenCalled();});
+
+test('pending review status and multiline reason never imply approval',async()=>{
+ await render();const {Status}=require('../src/ui/design');expect(tree.root.findAllByType(Status).map(n=>n.props.label)).toContain('Pending review');
+ await press('Review Doctor Example');expect(tree.root.findByType(Field).props.multiline).toBe(true);
+ expect(api.review).not.toHaveBeenCalled();expect(JSON.stringify(tree.toJSON())).not.toContain('Doctor verification approved.');
+});

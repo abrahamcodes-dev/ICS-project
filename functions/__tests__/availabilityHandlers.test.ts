@@ -145,11 +145,11 @@ describe('sanitized candidate discovery', () => {
     const seven = await s.handlers.discover(discovery({ doctorId: 'doctor', fromDate: day, days: 7 }));
     expect(seven).toEqual(await s.handlers.discover(discovery()));
     expect(Object.keys(seven)).toEqual(['times']);
-    expect(seven.times.map(time => time.startAt)).toEqual([start, start + 1800000]);
+    expect(seven.times.map(time => time.startAt)).toEqual([start,start+900000,start+1800000]);
     expect(seven.times[0]).toEqual({ doctorId: 'doctor', startAt: start, endAt: start + 1800000, availabilityId: availabilityId('doctor', day), availabilityRevision: 1 });
     expect(JSON.stringify(seven)).not.toMatch(/private|credential|phone|professional|reviewer/);
-    s.setClock(start - 300000); expect((await s.handlers.discover(discovery())).times).toHaveLength(2);
-    s.setClock(start - 300000 + 1); expect((await s.handlers.discover(discovery())).times.map(time => time.startAt)).toEqual([start + 1800000]);
+    s.setClock(start - 300000); expect((await s.handlers.discover(discovery())).times).toHaveLength(3);
+    s.setClock(start - 300000 + 1); expect((await s.handlers.discover(discovery())).times.map(time => time.startAt)).toEqual([start+900000,start+1800000]);
     s.setClock(start + 1800000); expect((await s.handlers.discover(discovery())).times).toEqual([]);
   });
   test('missing/empty days return empty; range must not cross calendar horizon', async () => {
@@ -183,4 +183,14 @@ describe('sanitized candidate discovery', () => {
     s.docs[path] = { ...s.docs[path], doctorId: 'other' };
     await expect(s.handlers.discover(discovery())).rejects.toMatchObject({ code: 'failed-precondition' });
   });
+});
+
+describe('atomic UTC-day replacement',()=>{
+ const batch=()=>({days:[input(),{...input(),utcDate:'2026-10-06',windows:input().windows.map(w=>({startAt:w.startAt+86400000,endAt:w.endAt+86400000}))}]});
+ test('all reads precede writes and every changed partition commits',async()=>{const s=setup();const result=await s.handlers.replaceMany(mutation(batch()));expect(result.days.map(d=>d.revision)).toEqual([1,1]);expect(s.writes).toHaveLength(2);});
+ test.each([0,1])('revision conflict in partition %s rejects whole operation',async index=>{const s=setup(),data=batch();data.days[index].expectedRevision=9;await expect(s.handlers.replaceMany(mutation(data))).rejects.toMatchObject({code:'failed-precondition'});expect(s.writes).toEqual([]);});
+ test.each([null,{days:[]},{days:[input(),input()]},{days:[input(),input(),input(),input()]},{days:[{...input(),extra:true}]},{days:[{...input(),windows:[{startAt:start+1,endAt:start+3600000}]}]}])('invalid batch %p rejected before storage',async data=>{const s=setup();await expect(s.handlers.replaceMany(mutation(data))).rejects.toMatchObject({code:'invalid-argument'});expect(s.reads).toEqual([]);});
+ test.each(['patient','administrator','unknown'])('batch denies %s',async role=>{const s=setup();s.docs['users/doctor']=identity('doctor',role);await expect(s.handlers.replaceMany(mutation(batch()))).rejects.toMatchObject({code:'permission-denied'});expect(s.writes).toEqual([]);});
+ test('batch denies unauthenticated and pending doctor',async()=>{const s=setup();await expect(s.handlers.replaceMany({data:batch()})).rejects.toMatchObject({code:'unauthenticated'});s.docs['users/doctor'].verificationStatus='pending';await expect(s.handlers.replaceMany(mutation(batch()))).rejects.toMatchObject({code:'permission-denied'});});
+ test('last partition beyond horizon cannot commit first',async()=>{const s=setup(),data=batch();data.days=data.days.map(d=>({...d,utcDate:new Date(Date.parse(d.utcDate+'T00:00Z')+90*86400000).toISOString().slice(0,10),windows:d.windows.map(w=>({startAt:w.startAt+90*86400000,endAt:w.endAt+90*86400000}))}));await expect(s.handlers.replaceMany(mutation(data))).rejects.toMatchObject({code:'failed-precondition'});expect(s.writes).toEqual([]);});
 });

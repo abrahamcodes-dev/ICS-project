@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Linking, Platform, StyleSheet, View } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
-import {Action as Button,Copy as Text,Screen,Card,Loading,Notice} from '../../ui/design';
+import {Action as Button,Copy as Text,Screen,Card,Loading,Notice,Status,usePalette} from '../../ui/design';
 import { uuid } from 'expo-modules-core';
 import type { MediaStream } from 'react-native-webrtc';
 import type { CallMode } from '@shared/types/consultationCallContracts';
@@ -24,7 +24,7 @@ export function callStatus(state: CallSessionState) {
 
 export type ConsultationCallRoute = { params?: { appointmentId?: string } };
 /** Existing patient/doctor routes supply the appointment ID; IDs never confer authorization. */
-export default function ConsultationCallScreen({route}: {route?: ConsultationCallRoute}) {
+export default function ConsultationCallScreen({route,renderOptions}: {route?: ConsultationCallRoute;renderOptions?(room:ConsultationView):React.ReactNode}) {
   const focused = useIsFocused();
   const identity = useAuth();
   const appointmentId = route?.params?.appointmentId;
@@ -33,10 +33,10 @@ export default function ConsultationCallScreen({route}: {route?: ConsultationCal
     || !['patient','doctor'].includes(identity.user.role)) return <Screen><Text>Sign in with an active patient or doctor account.</Text></Screen>;
   if (!appointmentId || !/^[a-f0-9]{64}$/.test(appointmentId)) return <Screen><Text>Open a scheduled appointment to enter its consultation.</Text></Screen>;
   if (Platform.OS !== 'android' && Platform.OS !== 'ios') return <Screen><Text>Calls require an Android or iOS development build.</Text></Screen>;
-  return <ConsultationGate key={`${identity.firebaseUid}:${appointmentId}`} appointmentId={appointmentId} uid={identity.firebaseUid!} />;
+  return <ConsultationGate key={`${identity.firebaseUid}:${appointmentId}`} appointmentId={appointmentId} uid={identity.firebaseUid!} renderOptions={renderOptions} />;
 }
 
-function ConsultationGate({appointmentId, uid}: {appointmentId: string; uid: string}) {
+function ConsultationGate({appointmentId, uid,renderOptions}: {appointmentId: string; uid: string;renderOptions?(room:ConsultationView):React.ReactNode}) {
   const [room, setRoom] = useState<ConsultationView | null>(null);
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -55,15 +55,16 @@ function ConsultationGate({appointmentId, uid}: {appointmentId: string; uid: str
   if (error) return <Screen><Card><Text>Unable to open this consultation. Check your connection, appointment time and eligibility.</Text>
     <Button title="Retry opening consultation" onPress={() => setAttempt(v => v + 1)} /></Card></Screen>;
   if (!room) return <Screen><Loading label="Opening consultation..."/></Screen>;
-  if (room.state === 'closed') return <Screen><Text title>Consultation history</Text>
+  if (room.state === 'closed') return <Screen>{renderOptions?.(room)}<Text title>Consultation history</Text>
     <Text>This consultation has ended. Calls and new messages are unavailable.</Text>
     <ConsultationChat room={room} uid={uid} /></Screen>;
-  return <CallRoom consultationId={room.consultationId} uid={uid} restart={() => setSessionKey(v => v + 1)} key={sessionKey} chatRoom={room} />;
+  return <View style={{flex:1}}>{renderOptions?.(room)}<CallRoom consultationId={room.consultationId} uid={uid} restart={() => setSessionKey(v => v + 1)} key={sessionKey} chatRoom={room} /></View>;
 }
 
 /** Shared interface; all role and appointment authority remains in the backend. */
 export function CallRoom({consultationId, uid, restart, chatRoom}: {consultationId: string; uid: string; restart(): void; chatRoom?: ConsultationView}) {
-  const media = useMemo(() => createCallMedia(), []);
+  const interrupt = useRef<() => void>(() => {});
+  const media = useMemo(() => createCallMedia(() => interrupt.current()), []);
   const alive = useRef(true);
   const busyRef = useRef(false);
   const [local, setLocal] = useState<MediaStream | null>(null);
@@ -72,6 +73,7 @@ export function CallRoom({consultationId, uid, restart, chatRoom}: {consultation
   const [message, setMessage] = useState<string | null>(null);
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [microphone, setMicrophone] = useState(true);
+  const [speakerOverride, setSpeakerOverride] = useState<boolean | null>(null);
   const [camera, setCamera] = useState(true);
   const [front, setFront] = useState(true);
   const [background, setBackground] = useState(AppState.currentState === 'background');
@@ -81,7 +83,9 @@ export function CallRoom({consultationId, uid, restart, chatRoom}: {consultation
     requestId: () => uuid.v4(),
     get localStream() { return media.stream ?? undefined; },
     onRemoteStream(stream: MediaStream | null) { if (alive.current) setRemote(stream); },
+    onRemoteAudioUnavailable() { if (alive.current) setMessage('The other participant’s microphone is unavailable or muted. Ask them to check their microphone.'); },
   }), [media]);
+  const p=usePalette();
   const {session, state} = useConsultationCall(consultationId, options);
   const terminal = ['ended','error','disposed'].includes(state.phase);
   useEffect(() => {
@@ -112,22 +116,27 @@ export function CallRoom({consultationId, uid, restart, chatRoom}: {consultation
     try {
       const stream = await media.acquire(mode);
       if (!stream || !alive.current) return;
-      setLocal(stream); setMicrophone(true); setCamera(true); setFront(true);
+      setLocal(stream); setMicrophone(true); setCamera(true); setFront(true); setSpeakerOverride(null);
       if (accept) await session.accept(); else await session.start(mode);
     } catch(e) {
+      media.clear();
       if (alive.current) {
+        setLocal(null); setRemote(null);
         setMessage(e instanceof CallMediaError ? e.message : 'Unable to prepare this call.');
         setPermissionDenied(e instanceof CallMediaError && e.reason === 'permission');
       }
     } finally { busyRef.current = false; if (alive.current) setBusy(false); }
   }
   function end() { media.clear(); setLocal(null); setRemote(null); if (state.call) void session?.end(); else session?.dispose(); }
+  interrupt.current = () => {
+    if (!alive.current) return;
+    end(); setMessage('Another call or app interrupted the audio. Start another call when ready.');
+  };
   const incoming = state.phase === 'ringing' && state.call?.recipientId === uid;
   const canStart = state.phase === 'idle' && discovery === 'ready' && !!session && !busy && !background;
   const RTCView = (local || remote) ? (require('react-native-webrtc') as typeof import('react-native-webrtc')).RTCView : null;
-  return <Screen>
-    {chatRoom && <ConsultationChat key={`${uid}:${consultationId}`} room={chatRoom} uid={uid} />}
-    <Text title>Consultation call</Text>
+  return <Screen variant="form">
+    <Text title>Consultation call</Text><Status label={chatRoom?(uid===chatRoom.patientId?'With your doctor':'With your patient'):'Appointment participants'}/>
     <Text accessibilityLiveRegion="polite">{busy ? 'Preparing microphone and camera…' : callStatus(state)}</Text>
     {background && <Text>The call stopped when the app moved to the background. Reopen the consultation when ready.</Text>}
     {state.phase === 'idle' && discovery === 'checking' && <Text>Checking for an incoming call…</Text>}
@@ -137,7 +146,7 @@ export function CallRoom({consultationId, uid, restart, chatRoom}: {consultation
     <Notice message={message}/>
     {permissionDenied && <Button title="Open device settings" onPress={() => { void Linking.openSettings().catch(() => setMessage('Unable to open device settings.')); }} />}
     {state.phase === 'error' && <Text>The call could not continue. Check your connection and consultation eligibility before trying again.</Text>}
-    {incoming && <Card><Text title>Incoming {state.call?.mode === 'video' ? 'video' : 'audio'} call</Text><Text>Your consultation participant is calling. Accept when you are ready.</Text></Card>}
+    {incoming && <Card tone="mint"><Text title>Incoming {state.call?.mode === 'video' ? 'video' : 'audio'} call</Text><Text>Your consultation participant is calling. Accept when you are ready.</Text></Card>}
     {state.phase === 'ringing' && !incoming && <Text>Calling your consultation participant. Waiting for an answer...</Text>}
     {['starting','accepting','connecting'].includes(state.phase) && <Loading label="Establishing a connection..."/>}
     {state.phase === 'idle' && <View style={styles.controls}>
@@ -148,12 +157,20 @@ export function CallRoom({consultationId, uid, restart, chatRoom}: {consultation
       <Button title="Accept call" disabled={busy || background} onPress={() => { void withMedia(state.call!.mode, true); }} />
       <Button danger title="Reject call" onPress={end} />
     </View>}
-    {RTCView && remote && remote.getVideoTracks().length > 0 && <View><Text>Remote video</Text>
-      <RTCView testID="remote-video" streamURL={remote.toURL()} accessibilityLabel="Remote participant video" style={styles.video} objectFit="contain" /></View>}
-    {RTCView && local && local.getVideoTracks().length > 0 && camera && <View><Text>Your video</Text>
-      <RTCView testID="local-video" streamURL={local.toURL()} accessibilityLabel="Your camera preview" style={styles.preview} mirror={front} objectFit="cover" /></View>}
+    {(local || remote) && <View style={[styles.stage,{backgroundColor:p.mediaBackground}]}>
+      {RTCView && remote && remote.getVideoTracks().length > 0 ? <RTCView testID="remote-video" streamURL={remote.toURL()} accessibilityLabel="Remote participant video" style={styles.video} objectFit="contain"/> : <View style={styles.mediaPlaceholder}><Text style={{color:p.onMedia,textAlign:'center'}}>{state.call?.mode==='audio'?'Audio consultation':'Remote video is not available'}</Text><Text style={{color:p.onMedia,textAlign:'center'}}>{callStatus(state)}</Text></View>}
+      {RTCView && local && local.getVideoTracks().length > 0 && camera && <View style={[styles.preview,{backgroundColor:p.mediaBackground}]}><RTCView testID="local-video" streamURL={local.toURL()} accessibilityLabel="Your camera preview" style={{flex:1}} mirror={front} objectFit="cover"/><Text variant="caption" style={{color:p.onMedia,textAlign:'center'}}>You</Text></View>}
+    </View>}
     {local && !terminal && <View style={styles.controls}>
       <Button title={microphone ? 'Mute microphone' : 'Unmute microphone'} onPress={() => { media.microphone(!microphone); setMicrophone(!microphone); }} />
+      <Button title={speakerOverride === true ? 'Use earpiece' : 'Use speaker'} onPress={() => {
+        try { media.speaker(speakerOverride !== true); setSpeakerOverride(speakerOverride !== true); }
+        catch { setMessage('Unable to change the audio output.'); }
+      }} />
+      {speakerOverride !== null && <Button title="Use automatic audio" onPress={() => {
+        try { media.speaker(null); setSpeakerOverride(null); }
+        catch { setMessage('Unable to change the audio output.'); }
+      }} />}
       {local.getVideoTracks().length > 0 && <>
         <Button title={camera ? 'Disable camera' : 'Enable camera'} onPress={() => { media.camera(!camera); setCamera(!camera); }} />
         <Button title="Switch camera" disabled={!camera} onPress={() => {
@@ -164,7 +181,8 @@ export function CallRoom({consultationId, uid, restart, chatRoom}: {consultation
     {!terminal && (busy || !['idle','loading'].includes(state.phase)) && !incoming &&
       <Button danger title="End call" disabled={state.phase === 'ending'} onPress={end} />}
     {terminal && <Button title="Check for another call" onPress={restart} />}
+    {chatRoom && <ConsultationChat key={`${uid}:${consultationId}`} room={chatRoom} uid={uid} />}
   </Screen>;
 }
 const styles = StyleSheet.create({
-  controls:{gap:12},video:{width:'100%',aspectRatio:0.8,minHeight:240,backgroundColor:'#142C28',borderRadius:20},preview:{width:'40%',aspectRatio:0.8,alignSelf:'flex-end',backgroundColor:'#142C28',borderRadius:16}});
+  controls:{gap:12},stage:{height:420,borderRadius:24,overflow:'hidden',position:'relative'},video:{width:'100%',height:'100%'},mediaPlaceholder:{flex:1,justifyContent:'center',padding:24,gap:12},preview:{position:'absolute',right:12,bottom:12,width:'30%',height:150,borderRadius:16,overflow:'hidden'}});

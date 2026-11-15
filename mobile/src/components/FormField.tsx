@@ -1,3 +1,4 @@
+import {usePalette} from '../ui/design';
 import React from "react";
 import { View, Text, TextInput, StyleSheet } from "react-native";
 
@@ -10,11 +11,12 @@ interface Props {
 }
 
 export default function FormField({ label, value, onChangeText, secureTextEntry, keyboardType }: Props) {
+  const p=usePalette();
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.label,{color:p.text}]}>{label}</Text>
       <TextInput
-        style={styles.input}
+        placeholderTextColor={p.textMuted} selectionColor={p.accent} style={[styles.input,{color:p.text,backgroundColor:p.inputBackground,borderColor:p.inputBorder}]}
         value={value}
         onChangeText={onChangeText}
         secureTextEntry={secureTextEntry}
@@ -27,6 +29,6 @@ export default function FormField({ label, value, onChangeText, secureTextEntry,
 
 const styles = StyleSheet.create({
   container: { marginBottom: 12 },
-  label: { fontSize: 13, color: "#555", marginBottom: 4 },
-  input: { borderWidth: 1, borderColor: "#ccc", borderRadius: 6, padding: 10 },
+  label: { fontSize: 13, marginBottom: 4 },
+  input: { borderWidth: 1, borderRadius: 6, padding: 10 },
 });

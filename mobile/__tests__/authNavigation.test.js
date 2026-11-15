@@ -41,3 +41,13 @@ test("signed out routes to guest", () => {
   useAuth.mockReturnValue({ status: "signedOut", loading: false, user: null });
   expect(RootNavigator().props.children.type).toBe("Guest");
 });
+
+test('registration remains mounted through intermediate identity states',()=>{
+ for(const status of ['loadingIdentity','identityMissing','identityError','ready']){
+ useAuth.mockReturnValue({status,registrationOpen:true,loading:true,user:null});expect(RootNavigator().props.children.type).toBe('Guest');
+ }
+});
+test('confirmed registration skips success/completion screens',()=>{
+ useAuth.mockReturnValue({status:'ready',loading:false,setupUid:'p',user:{uid:'p',role:'patient',status:'active'}});expect(RootNavigator().props.children.type).toBe('Patient');
+ useAuth.mockReturnValue({status:'ready',loading:false,setupUid:'d',user:{uid:'d',role:'doctor',status:'active',verificationStatus:'pending'}});expect(RootNavigator().type.name).toBe('PendingDoctor');
+});

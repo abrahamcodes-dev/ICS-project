@@ -95,6 +95,13 @@ test('wrong-doctor and duplicate slots rejected',async()=>{
 test('window conversion sorts, supports end midnight, rejects overlap and misalignment',()=>{
  expect(windowInputs('2026-10-20',[{start:'23:30',end:'24:00'},{start:'10:00',end:'10:30'}])).toHaveLength(2);
  expect(()=>windowInputs('2026-10-20',[{start:'10:00',end:'11:00'},{start:'10:30',end:'11:30'}])).toThrow();
- expect(()=>windowInputs('2026-10-20',[{start:'10:15',end:'11:00'}])).toThrow();
+ expect(()=>windowInputs('2026-10-20',[{start:'10:10',end:'11:00'}])).toThrow();
  expect(()=>windowInputs('2026-10-20',Array(9).fill({start:'10:00',end:'11:00'}))).toThrow();
+});
+
+test('batch replacement validates every acknowledgment and uses one callable',async()=>{
+ const input={days:['2026-10-20','2026-10-21'].map(utcDate=>({utcDate,timeZone:'Africa/Nairobi',expectedRevision:2,windows:[]}))};
+ const data={days:input.days.map(d=>({utcDate:d.utcDate,availabilityId:id,revision:3,changed:true}))};mockCall.mockResolvedValue({data});expect(await session.replaceMany(input)).toEqual(data);expect(httpsCallable).toHaveBeenLastCalledWith({local:true},'replaceDoctorAvailabilityDays');expect(mockCall).toHaveBeenCalledTimes(1);
+ mockCall.mockResolvedValue({data:{days:data.days.slice(0,1)}});await expect(session.replaceMany(input)).rejects.toThrow();
+ mockCall.mockResolvedValue({data:{days:data.days.map(d=>({...d,revision:99}))}});await expect(session.replaceMany(input)).rejects.toThrow();
 });

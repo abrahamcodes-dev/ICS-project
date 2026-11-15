@@ -2,6 +2,7 @@ import type { SchedulingInterval } from '../../../shared/types/scheduling';
 import { fail, strictRecord } from '../profiles/domainValidation';
 import { SCHEDULING } from './constants';
 import { alignedStart, dateStart, fromMilliseconds, toMilliseconds } from './primitives';
+import {durationMinutes,CELL_MS} from './durations';
 
 export function interval(value: unknown): SchedulingInterval {
   const data = strictRecord(value, ['startAt', 'endAt'], ['startAt', 'endAt']);
@@ -28,24 +29,26 @@ export function availabilityWindows(value: unknown, day: string): readonly Sched
   // Index iteration also rejects sparse arrays rather than silently skipping holes.
   for (let i = 0; i < value.length; i++) {
     const next = interval(value[i]), start = alignedStart(toMilliseconds(next.startAt)), end = alignedStart(toMilliseconds(next.endAt));
-    if (end - start < SCHEDULING.appointmentDurationMs || start < startOfDay || end > startOfDay + SCHEDULING.utcDayMs
+    if (end - start < CELL_MS || start < startOfDay || end > startOfDay + SCHEDULING.utcDayMs
       || (i > 0 && start < toMilliseconds(windows[i - 1].endAt))) fail('invalid-windows');
     windows.push(next);
   }
   return Object.freeze(windows);
 }
-export function deriveSlots(windows: unknown, day: string): readonly SchedulingInterval[] {
+export function continuousWindows(windows:readonly SchedulingInterval[]){const merged:SchedulingInterval[]=[];for(const w of windows){const last=merged[merged.length-1];if(last&&toMilliseconds(last.endAt)===toMilliseconds(w.startAt))merged[merged.length-1]={startAt:last.startAt,endAt:w.endAt};else merged.push(w);}return merged;}
+export function deriveSlots(windows: unknown, day: string,duration:unknown=30,nextWindows:readonly SchedulingInterval[]=[]): readonly SchedulingInterval[] {
   const slots: SchedulingInterval[] = [];
-  for (const window of availabilityWindows(windows, day)) {
+  const length=durationMinutes(duration)*60000,dayEnd=dateStart(day)+SCHEDULING.utcDayMs;
+  for (const window of continuousWindows([...availabilityWindows(windows, day),...nextWindows])) {
     const end = toMilliseconds(window.endAt);
-    for (let start = toMilliseconds(window.startAt); start + SCHEDULING.appointmentDurationMs <= end; start += SCHEDULING.slotIntervalMs)
-      slots.push(Object.freeze({ startAt: fromMilliseconds(start), endAt: fromMilliseconds(start + SCHEDULING.appointmentDurationMs) }));
+    for (let start = toMilliseconds(window.startAt); start<dayEnd&&start + length <= end; start += SCHEDULING.slotIntervalMs)
+      slots.push(Object.freeze({ startAt: fromMilliseconds(start), endAt: fromMilliseconds(start + length) }));
   }
   return Object.freeze(slots);
 }
 export function fitsAvailability(candidate: SchedulingInterval, windows: unknown, day: string): boolean {
   const slot = interval(candidate);
   alignedStart(toMilliseconds(slot.startAt));
-  if (toMilliseconds(slot.endAt) - toMilliseconds(slot.startAt) !== SCHEDULING.appointmentDurationMs) fail('invalid-duration');
-  return availabilityWindows(windows, day).some(window => contains(window, slot));
+  if(toMilliseconds(slot.endAt)-toMilliseconds(slot.startAt)>3600000)fail('invalid-duration');
+  return continuousWindows(availabilityWindows(windows, day)).some(window => contains(window, slot));
 }
