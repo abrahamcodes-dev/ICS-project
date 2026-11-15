@@ -1,3 +1,4 @@
+import {isHostedAcademicDemo} from '../../services/academicDemo';
 import React,{useEffect,useRef,useState} from 'react';
 import {Image} from 'react-native';
 import {LoginLayout, LoginFieldIcon} from './LoginLayout';
@@ -18,6 +19,7 @@ export function validateAuth(mode:string,email:string,password:string,name:strin
  return null;
 }
 export function authError(error:unknown){const code=(error as {code?:string})?.code;
+ if(code==='academic-email-verification')return 'Check your invited email for the verification link, then retry registration here with the same account.';
  if(code==='registration-incomplete')return 'Your sign-in account exists, but registration is not confirmed. Retry Create account with these same details; no second account will be created.';
  if(code==='auth/network-request-failed'||code==='functions/unavailable')return 'Unable to connect. Check your connection and try again.';
  if(code==='auth/too-many-requests')return 'Too many attempts. Please wait before trying again.';
@@ -42,7 +44,7 @@ export default function AuthForm({mode,onAlternate,footer,initialRole='patient',
   try{
    if(mode==='login')await loginGoogleUser();
    else {
-    const identity=await registerGoogleUser(name.trim(),role,role==='patient'?consent:undefined);
+    const identity=await registerGoogleUser(name.trim(),role,role==='patient'||isHostedAcademicDemo()?consent:undefined);
     if(identity){
      if(photoRef.current){const chosen=photoRef.current;photoRef.current=null;void Promise.resolve().then(()=>(require('../../services/avatarService') as typeof import('../../services/avatarService')).uploadRegistrationAvatar(identity.uid,chosen)).catch(()=>chosen.dispose());}
      onComplete?.(identity.uid);
@@ -78,7 +80,7 @@ export default function AuthForm({mode,onAlternate,footer,initialRole='patient',
  <RegistrationPassword label="Password" visible={visible} onToggle={()=>setVisible(v=>!v)} disabled={busy}><Field label="Password" value={password} onChangeText={setPassword} editable={!busy} secureTextEntry={!visible} autoCapitalize="none" autoCorrect={false} autoComplete="new-password" style={{paddingRight:56}}/></RegistrationPassword>
  <RegistrationPassword label="Confirm password" visible={confirmVisible} onToggle={()=>setConfirmVisible(v=>!v)} disabled={busy}><Field label="Confirm password" value={confirm} onChangeText={setConfirm} editable={!busy} secureTextEntry={!confirmVisible} autoCapitalize="none" autoCorrect={false} autoComplete="new-password" style={{paddingRight:56}}/></RegistrationPassword>
  {role==='doctor'&&<Copy variant="caption" tone="muted">Doctor accounts require verification and approval before clinical access.</Copy>}
- {role==='patient'&&<PatientConsentControls value={consent} onChange={setConsent} disabled={busy}/>}
+ {(role==='patient'||isHostedAcademicDemo())&&<PatientConsentControls noticeOnly={role==='doctor'} value={consent} onChange={setConsent} disabled={busy}/>}
  <Notice message={error}/><Action title="Create account" loading={busy&&!googleBusy} disabled={busy||picking} onPress={()=>{void submit();}}/>
  <Copy variant="caption" tone="muted">Or use Google with your full name and the choices above. Email and password fields are only required for email registration. Existing accounts keep their current role.</Copy>{googleOption}{footer}
  </RegistrationLayout>;
@@ -86,7 +88,7 @@ export default function AuthForm({mode,onAlternate,footer,initialRole='patient',
  <Copy>Help us personalise your experience. Your name and account type are saved securely.</Copy>
  {<><Action secondary selected={role==='patient'} title={role==='patient'?'Patient selected':'Register as a patient'} disabled={busy} onPress={()=>setRole('patient')}/><Action secondary selected={role==='doctor'} title={role==='doctor'?'Doctor selected':'Register as a doctor'} disabled={busy} onPress={()=>setRole('doctor')}/><Field label="Full name" value={name} onChangeText={setName} editable={!busy} autoComplete="name" maxLength={200}/>{role==='doctor'&&<Copy>Doctor accounts require verification and approval before clinical access. Registration does not grant approval.</Copy>}</>}
  {<><Copy>Profile picture is optional. If upload fails, your account still succeeds; manage or retry it from your profile.</Copy>{photo&&<Image source={{uri:photo.uri}} accessibilityLabel="Selected profile picture" style={{width:80,height:80,borderRadius:40}}/>}<Action secondary title="Choose optional profile picture" disabled={busy||picking} onPress={choosePhoto}/>{photo&&<Action secondary title="Remove selected picture" disabled={busy||picking} onPress={()=>{void photoRef.current?.dispose();photoRef.current=null;setPhoto(null);}}/>}</>}
- {role==='patient'&&<PatientConsentControls value={consent} onChange={setConsent} disabled={busy}/>}
+ {(role==='patient'||isHostedAcademicDemo())&&<PatientConsentControls noticeOnly={role==='doctor'} value={consent} onChange={setConsent} disabled={busy}/>}
  <Notice message={error}/>{busy&&<Loading label="Please wait…"/>}<Action title="Retry account setup" disabled={busy||picking} onPress={()=>{void submit();}}/>
  {onAlternate&&<Action secondary disabled={busy} title="Already registered? Sign in" onPress={onAlternate}/>}{footer}</Card></Screen>;
 }

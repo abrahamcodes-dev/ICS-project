@@ -24,6 +24,12 @@ export interface PublicRegistrationRequest {
   role: PublicRegistrationRole;
   fullName: string;
 }
+/** Callable envelope; the server validates and removes acknowledgements before domain registration. */
+export interface RegistrationSubmission extends PublicRegistrationRequest {
+  consent?: import('./consent').PatientConsentInput;
+  academicNoticeVersion?: string;
+  academicNoticeAcknowledged?: true;
+}
 
 export interface TrustedRegistrationContext {
   uid: string;

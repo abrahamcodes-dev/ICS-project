@@ -17,5 +17,5 @@ export interface PatientConsentState {
   recordedAt: string;
   privacyAcknowledgedAt: string;
   scope: 'medical-records-for-treatment';
-  developmentOnly: true;
+  developmentOnly: boolean;
 }

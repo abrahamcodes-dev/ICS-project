@@ -1,5 +1,7 @@
 import type {PatientConsentInput,PatientConsentState,SharingDecision} from '@shared/types/consent';
-export const CONSENT_VERSION='development-2026-11-03-v1';
+import {isHostedAcademicDemo} from './academicDemo';
+import {ACADEMIC_NOTICE_VERSION} from './academicNotice';
+export const CONSENT_VERSION=isHostedAcademicDemo()?ACADEMIC_NOTICE_VERSION:'development-2026-11-03-v1';
 export type ConsentChoice={privacyAcknowledged:boolean;sharingDecision:'granted'|'declined'|null};
 export function validateConsentChoice(choice?:ConsentChoice) {
  if(!choice?.privacyAcknowledged)throw new Error('Acknowledge the development privacy notice before continuing.');

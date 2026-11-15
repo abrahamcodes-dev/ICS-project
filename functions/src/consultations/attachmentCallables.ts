@@ -1,5 +1,5 @@
-import {onCall,HttpsError} from 'firebase-functions/v2/https';
-import {onSchedule} from 'firebase-functions/v2/scheduler';
+import {onCall,HttpsError} from '../shared/academicHttps';
+import {onSchedule} from '../shared/academicHttps';
 import {Timestamp,type Transaction} from 'firebase-admin/firestore';
 import {db,storage} from '../shared/firestoreRefs';
 import {createAuthorization,requireAuthenticated} from '../shared/authorization';

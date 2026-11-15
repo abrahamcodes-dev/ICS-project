@@ -4,6 +4,9 @@ test("only the approved backend callables are exported",()=>{
  const source=readFileSync(resolve(__dirname,"../src/index.ts"),"utf8");
  expect(source.split(/\r?\n/).filter(line=>line.trim().startsWith("export ")))
  .toEqual(['export { completeRegistration } from "./auth/completeRegistration";',
+  "export {manageAcademicDemoTester} from './auth/academicAdministration';",
+  "export {uploadAcademicDemoObject,readAcademicDemoCredential} from './profiles/academicUploads';",
+  "export {academicBeforeCreate,academicBeforeSignIn} from './auth/academicBlocking';",
   'export { signInWithGoogle } from "./auth/googleSignIn";',
   "export { getConsultationFee, setDoctorConsultationFee, createConsultationCheckout, submitSimulatedPaymentDecision, getConsultationPayment, cancelConsultationPayment, retryConsultationRefund, listConsultationPayments, getDoctorPaymentSummary, reconcileConsultationPayments } from \"./payments/callables\";",
   'export { requestOwnAccountDeletion, getOwnAccountDeletion, resumeAccountDeletions } from "./accounts/deletionCallables";',

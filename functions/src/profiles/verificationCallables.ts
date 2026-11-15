@@ -1,4 +1,4 @@
-import { onCall } from 'firebase-functions/v2/https';
+import { onCall } from '../shared/academicHttps';
 import { db, storage } from '../shared/firestoreRefs';
 import { createVerificationHandlers } from './verificationHandlers';
 import { createVerificationStore } from './verificationStore';

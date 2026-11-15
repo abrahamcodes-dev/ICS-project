@@ -1,6 +1,8 @@
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut,sendEmailVerification,reload,getIdToken } from "firebase/auth";
+import {isHostedAcademicDemo} from './academicDemo';
+import {ACADEMIC_NOTICE_VERSION} from './academicNotice';
 import { getFunctions, httpsCallable } from "firebase/functions";
-import type { PublicRegistrationRole, PublicRegistrationRequest, CallADocIdentity } from "@shared/types/identity";
+import type { PublicRegistrationRole, PublicRegistrationRequest, RegistrationSubmission, CallADocIdentity } from "@shared/types/identity";
 import { auth, app } from "./firebaseConfig";
 import { loadOwnIdentity } from "./identityService";
 import { parseIdentity } from "./identityParser";
@@ -36,9 +38,16 @@ export async function completeUserRegistration(fullName: string, role: PublicReg
   const uid = auth.currentUser?.uid;
   if (!uid) throw new Error("Sign in before completing registration.");
   if(role==='patient')validateConsentChoice(choice);
+  if(isHostedAcademicDemo()){
+    const user=auth.currentUser!;await reload(user);
+    if(!user.emailVerified){await sendEmailVerification(user);throw Object.assign(new Error('Verify the invitation email before retrying registration.'),{code:'academic-email-verification'});}
+    await getIdToken(user,true);
+  }
   try {
-    const complete = httpsCallable<PublicRegistrationRequest, unknown>(getFunctions(app), "completeRegistration");
-    const result = await complete(role==='patient'?{...input,consent:consentRequest(0,choice!.sharingDecision!,'registration')} as PublicRegistrationRequest:input);
+    const complete = httpsCallable<RegistrationSubmission, unknown>(getFunctions(app), "completeRegistration");
+    if(isHostedAcademicDemo()&&!choice?.privacyAcknowledged)throw new Error('Acknowledge the hosted academic notice.');
+    const payload=role==='patient'?{...input,consent:consentRequest(0,choice!.sharingDecision!,'registration')}:input;
+    const result = await complete(isHostedAcademicDemo()?{...payload,academicNoticeVersion:ACADEMIC_NOTICE_VERSION,academicNoticeAcknowledged:true}:payload);
     if (auth.currentUser?.uid !== uid) throw new Error("Authentication changed.");
     parseIdentity(result.data, uid);
     const identity = await loadOwnIdentity(uid);
@@ -89,7 +98,7 @@ export async function registerGoogleUser(fullName:string,role:PublicRegistration
    pendingGoogleUid=user.uid;
   }
   const uid=auth.currentUser!.uid;
-  const existing=await loadOwnIdentity(uid);
+  const existing=isHostedAcademicDemo()?null:await loadOwnIdentity(uid);
   if(currentUid()!==uid)throw new RegistrationIncompleteError();
   // Existing role, approval and consent are authoritative; never rewrite them.
   const identity=existing??await completeUserRegistration(input.fullName,input.role,choice);

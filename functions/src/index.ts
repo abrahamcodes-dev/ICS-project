@@ -1,4 +1,7 @@
 export { completeRegistration } from "./auth/completeRegistration";
+export {manageAcademicDemoTester} from './auth/academicAdministration';
+export {uploadAcademicDemoObject,readAcademicDemoCredential} from './profiles/academicUploads';
+export {academicBeforeCreate,academicBeforeSignIn} from './auth/academicBlocking';
 export { signInWithGoogle } from "./auth/googleSignIn";
 export { getConsultationFee, setDoctorConsultationFee, createConsultationCheckout, submitSimulatedPaymentDecision, getConsultationPayment, cancelConsultationPayment, retryConsultationRefund, listConsultationPayments, getDoctorPaymentSummary, reconcileConsultationPayments } from "./payments/callables";
 export { requestOwnAccountDeletion, getOwnAccountDeletion, resumeAccountDeletions } from "./accounts/deletionCallables";

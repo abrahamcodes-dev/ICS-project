@@ -1,4 +1,4 @@
-import {onCall} from 'firebase-functions/v2/https';
+import {onCall} from '../shared/academicHttps';
 import {FieldPath} from 'firebase-admin/firestore';
 import {db} from '../shared/firestoreRefs';
 import {createVerificationQueue} from './verificationQueue';

@@ -1,7 +1,9 @@
 import {HttpsError} from 'firebase-functions/v2/https';
 import type {PatientConsentInput, PatientConsentState} from '../../../shared/types/consent';
 
-export const DOCUMENT_VERSION = 'development-2026-11-03-v1';
+import {ACADEMIC_NOTICE_VERSION} from '../shared/academicNotice';
+const hosted=!!process.env.GCLOUD_PROJECT?.endsWith('-academic-demo')&&!process.env.FUNCTIONS_EMULATOR;
+export const DOCUMENT_VERSION = hosted?ACADEMIC_NOTICE_VERSION:'development-2026-11-03-v1';
 export function consentInput(value: unknown): PatientConsentInput {
   const v = value as PatientConsentInput;
   const fields = ['requestId','expectedRevision','documentVersion','privacyAcknowledged','sharingDecision','source'];
@@ -23,5 +25,5 @@ export function planConsent(uid: string, input: PatientConsentInput, current: Pa
   return {patientUid:uid,revision:input.expectedRevision+1,documentVersion:input.sharingDecision==='withdrawn'?current!.documentVersion:DOCUMENT_VERSION,
     privacyAcknowledged:true,sharingDecision:input.sharingDecision,source:input.source,recordedAt:now,
     privacyAcknowledgedAt:input.sharingDecision==='withdrawn'?(current!.privacyAcknowledgedAt??current!.recordedAt):now,
-    scope:'medical-records-for-treatment',developmentOnly:true};
+    scope:'medical-records-for-treatment',developmentOnly:!hosted};
 }

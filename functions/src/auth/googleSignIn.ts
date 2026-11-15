@@ -1,15 +1,17 @@
 import {OAuth2Client} from 'google-auth-library';
 import {getAuth} from 'firebase-admin/auth';
-import {onCall,HttpsError} from 'firebase-functions/v2/https';
+import {onGoogleCall as onCall,HttpsError} from '../shared/academicHttps';
 import {db} from '../shared/firestoreRefs';
 import {createGoogleSignInHandler,type GoogleIdentity} from './googleSignInHandler';
 
+import {requireGoogleInvitation,admitVerifiedUser,academicEnvironment} from '../shared/academicAdmission';
 const google=new OAuth2Client();
 export async function verifyGoogleIdentity(token:string):Promise<GoogleIdentity>{
  const audience=process.env.GOOGLE_SIGN_IN_WEB_CLIENT_ID;
  if(!audience||!/^\S+\.apps\.googleusercontent\.com$/.test(audience))throw new Error('Google authentication is not configured');
  const payload=(await google.verifyIdToken({idToken:token,audience})).getPayload();
  if(!payload?.sub||!payload.email||payload.email_verified!==true)throw new Error('Invalid Google identity');
+ await requireGoogleInvitation(payload.email);
  return {sub:payload.sub,email:payload.email,emailVerified:true,name:payload.name};
 }
 const missing=async<T>(action:()=>Promise<T>):Promise<T|null>=>{
@@ -17,7 +19,7 @@ const missing=async<T>(action:()=>Promise<T>):Promise<T|null>=>{
 };
 // Firebase can automatically link a trusted provider by email. This verified
 // exchange deliberately avoids signInWithCredential and preserves explicit linking.
-export const signInWithGoogle=onCall({maxInstances:10},async request=>{
+export const signInWithGoogle=onCall({maxInstances:2},async request=>{
  if(!process.env.GOOGLE_SIGN_IN_WEB_CLIENT_ID)throw new HttpsError('failed-precondition','Google sign-in is not configured for this environment.',{reason:'google_not_configured'});
  const auth=getAuth();
  return createGoogleSignInHandler({
@@ -30,6 +32,6 @@ export const signInWithGoogle=onCall({maxInstances:10},async request=>{
    const [profile,deletion]=await db.getAll(db.doc(`users/${uid}`),db.doc(`accountDeletionJobs/${uid}`));
    return !deletion.exists&&(!profile.exists||profile.data()?.status==='active');
   },
-  mint:uid=>auth.createCustomToken(uid),
+  mint:async uid=>{if(academicEnvironment()==='hosted'){const user=await auth.getUser(uid);if(!user.emailVerified||!user.email)throw new HttpsError('permission-denied','Verified email required.');await admitVerifiedUser(uid,user.email,true);}return auth.createCustomToken(uid);},
  })({auth:request.auth,data:request.data});
 });

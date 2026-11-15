@@ -38,7 +38,8 @@ test('matching app with unknown connection state is refused',()=>{const result=l
 test('hot reload reuses already connected app without duplicate connections',()=>{const first=load();jest.resetModules();const second=load();expect(second.app).toBe(first.app);expect(mockEvents).toEqual(['app','persistentAuth','auth','firestore','functions','storage']);});
 test('partial initialization is not marked ready or retried silently',()=>{require('firebase/firestore').connectFirestoreEmulator.mockImplementation(()=>{throw new Error('failed');});expect(load).toThrow('failed');jest.resetModules();expect(load).toThrow(/inconsistent/);});
 test('switching emulator app to normal mode is refused',()=>{load();process.env.EXPO_PUBLIC_USE_FIREBASE_EMULATORS='false';jest.resetModules();expect(load).toThrow(/mismatch/);});
-test('normal production mode preserves configured project and never connects emulators',()=>{global.__DEV__=false;process.env.EXPO_PUBLIC_USE_FIREBASE_EMULATORS='false';const result=load();expect(result.app.options.projectId).toBe('live-test-project');expect(mockEvents).toEqual(['app','persistentAuth']);});
+test('academic hosted mode preserves configured project and never connects emulators',()=>{global.__DEV__=false;process.env.EXPO_PUBLIC_USE_FIREBASE_EMULATORS='false';process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID='calladoc-qa-academic-demo';const result=load();expect(result.app.options.projectId).toBe('calladoc-qa-academic-demo');expect(mockEvents).toEqual(['app','persistentAuth']);});
+test('unapproved hosted project is rejected before SDK initialization',()=>{process.env.EXPO_PUBLIC_USE_FIREBASE_EMULATORS='false';expect(load).toThrow(/academic-demo project/);expect(mockEvents).toEqual([]);});
 
 test('native Auth receives AsyncStorage persistence before emulator connection',()=>{
  const result=load(),sdk=require('firebase/auth'),storage=require('@react-native-async-storage/async-storage');
@@ -52,7 +53,7 @@ test('persistence initialization errors never fall back to memory Auth',()=>{
  expect(mockEvents).toEqual(['app']);
 });
 test('web retains browser Auth initialization',()=>{
- mockPlatform='web';process.env.EXPO_PUBLIC_USE_FIREBASE_EMULATORS='false';load();
+ mockPlatform='web';process.env.EXPO_PUBLIC_USE_FIREBASE_EMULATORS='false';process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID='calladoc-qa-academic-demo';load();
  expect(require('firebase/auth').initializeAuth).not.toHaveBeenCalled();
  expect(require('firebase/auth').getAuth).toHaveBeenCalled();
 });

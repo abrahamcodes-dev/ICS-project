@@ -1,4 +1,4 @@
-import { HttpsError, onCall } from 'firebase-functions/v2/https';
+import { HttpsError, onCall } from '../shared/academicHttps';
 import { Timestamp } from 'firebase-admin/firestore';
 import { randomUUID } from 'crypto';
 import { db, storage } from '../shared/firestoreRefs';

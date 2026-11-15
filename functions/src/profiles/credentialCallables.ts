@@ -1,4 +1,4 @@
-import { onCall } from "firebase-functions/v2/https";
+import { onCall } from '../shared/academicHttps';
 import { db, doctorCredentialsCol, storage } from "../shared/firestoreRefs";
 import { createCredentialHandlers } from "./credentialHandlers";
 import { createCredentialStore } from "./credentialStore";

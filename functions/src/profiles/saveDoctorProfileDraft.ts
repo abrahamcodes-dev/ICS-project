@@ -1,4 +1,4 @@
-import { onCall } from "firebase-functions/v2/https";
+import { onCall } from '../shared/academicHttps';
 import { db, doctorProfilesCol } from "../shared/firestoreRefs";
 import { createDoctorDraftHandler } from "./doctorDraftHandler";
 import { createDoctorDraftStore } from "./doctorDraftStore";

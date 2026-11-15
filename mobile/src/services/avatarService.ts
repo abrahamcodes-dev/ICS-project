@@ -1,5 +1,6 @@
 import { httpsCallable } from 'firebase/functions';
 import { ref, uploadBytesResumable } from 'firebase/storage';
+import {isHostedAcademicDemo,academicUpload} from './academicDemo';
 import { auth, functions, storage } from './firebaseConfig';
 import { onIdentityRefresh } from './authService';
 import type {AppointmentPatientDisplay} from '@shared/types/schedulingReads';
@@ -81,6 +82,7 @@ export function createAvatarSession(uid: string, onInvalidated?: () => void) {
                 };
                 if (!slot || !/^[a-f0-9-]{36}$/.test(slot.pending) || slot.storagePath !== `avatars/${uid}/${slot.pending}/image.jpg`)
                     throw new Error('Invalid upload path');
+                if(isHostedAcademicDemo()){await academicUpload('avatar',slot.pending,image.uri);}else{
                 const task = uploadBytesResumable(ref(storage, slot.storagePath), blob, { contentType: 'image/jpeg' });
                 tasks.add(task);
                 try {
@@ -88,6 +90,7 @@ export function createAvatarSession(uid: string, onInvalidated?: () => void) {
                 }
                 finally {
                     tasks.delete(task);
+                }
                 }
                 check();
                 await call('changeProfileAvatar', { action: 'finalize', expectedRevision: revision, uploadId: slot.pending });

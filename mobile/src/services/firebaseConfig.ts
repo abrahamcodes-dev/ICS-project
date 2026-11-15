@@ -39,6 +39,9 @@ const existing = getApps().find(candidate => candidate.name === '[DEFAULT]');
 if (existing && Object.entries(firebaseConfig).some(([key,value]) => existing.options[key as keyof typeof firebaseConfig] !== value)) {
   throw new Error('Firebase app configuration mismatch. Fully reload the app; refusing to reuse another project or mode.');
 }
+if(!emulatorMode && (flag!=='false'||!firebaseConfig.projectId
+  ||!/^[a-z][a-z0-9-]*-academic-demo$/.test(firebaseConfig.projectId)||firebaseConfig.projectId.startsWith('demo-')))
+  throw new Error('Hosted testing requires explicit emulator=false and a separate academic-demo project.');
 const marker = Symbol.for('calladoc.firebase.initialization.v2');
 type InitState = {mode: 'emulator' | 'live'; ready: boolean};
 type MarkedApp = ReturnType<typeof getApp> & {[marker]?: InitState};

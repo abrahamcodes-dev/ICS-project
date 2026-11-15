@@ -1,6 +1,7 @@
 import {doc,getDoc} from 'firebase/firestore';
 import {httpsCallable} from 'firebase/functions';
 import {ref,uploadBytesResumable} from 'firebase/storage';
+import {isHostedAcademicDemo,academicUpload} from './academicDemo';
 import {auth,db,functions,storage} from './firebaseConfig';
 import {loadOwnIdentity} from './identityService';
 import type {DoctorDraftInput,DoctorProfile} from '@shared/types/profiles';
@@ -59,8 +60,10 @@ export function createVerificationSession(uid:string){
     const expiry=slot.expiresAt.seconds*1000+slot.expiresAt.nanoseconds/1e6;
     if(!Number.isFinite(expiry)||Date.now()>=expiry)throw new VerificationInputError('Upload slot expired. Select the file again to prepare a new upload.');
     check();
+    if(isHostedAcademicDemo()){await academicUpload('credential',slot.credentialId,file.uri);onProgress(100);}else{
     const task=uploadBytesResumable(ref(storage,slot.storagePath),blob,{contentType:file.mimeType});tasks.add(task);
     try {await new Promise<void>((resolve,reject)=>{task.on('state_changed',snapshot=>{if(!disposed)onProgress(Math.round(snapshot.bytesTransferred/snapshot.totalBytes*100));},reject,resolve);});}finally{tasks.delete(task);}
+    }
     check();await call('finalizeDoctorCredential',{credentialId:slot.credentialId});return credential(slot.credentialId);
    } finally {(blob as Blob & {close?:()=>void}).close?.();}
   },

@@ -1,4 +1,4 @@
-import { onCall } from 'firebase-functions/v2/https';
+import { onCall } from '../shared/academicHttps';
 import { db } from '../shared/firestoreRefs';
 import { createAvailabilityHandlers } from './availabilityHandlers';
 import { createAvailabilityStore } from './availabilityStore';

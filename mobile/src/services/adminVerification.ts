@@ -2,6 +2,7 @@ import {onAuthStateChanged} from 'firebase/auth';
 import {doc, getDoc} from 'firebase/firestore';
 import {httpsCallable} from 'firebase/functions';
 import {getBytes, ref} from 'firebase/storage';
+import {isHostedAcademicDemo,academicCredentialBytes} from './academicDemo';
 import BlobUtil from 'react-native-blob-util';
 import {auth, db, functions, storage} from './firebaseConfig';
 import {loadOwnIdentity} from './identityService';
@@ -108,7 +109,7 @@ export function createAdminVerificationSession(uid: string) {
           || record.schemaVersion !== 1 || record.state !== 'attached' || record.storagePath !== path
           || record.generation !== bound.generation || record.checksum !== bound.checksum || record.category !== bound.category) throw new Error('Invalid credential binding.');
         // Firebase adds authentication and honors the existing emulator configuration and Storage Rules.
-        const bytes = await getBytes(ref(storage, path), MAX_BYTES); current();
+        const bytes = isHostedAcademicDemo()?await academicCredentialBytes(credentialId):await getBytes(ref(storage, path), MAX_BYTES); current();
         if (bytes.byteLength !== record.sizeBytes) throw new Error('Credential size changed.');
         const extension = record.contentType === 'application/pdf' ? 'pdf' : record.contentType === 'image/png' ? 'png' : 'jpg';
         ownedPath = `${BlobUtil.fs.dirs.CacheDir}/calladoc-review-${Date.now()}-${++fileSequence}.${extension}`;

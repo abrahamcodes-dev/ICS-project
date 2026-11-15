@@ -1,4 +1,4 @@
-import { onCall } from 'firebase-functions/v2/https';
+import { onCall } from '../shared/academicHttps';
 import { db } from '../shared/firestoreRefs';
 import { createMessageStore } from './messageStore';
 import { createSendConsultationMessageHandler } from './messageHandler';

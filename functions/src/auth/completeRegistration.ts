@@ -1,19 +1,24 @@
 import {getAuth} from 'firebase-admin/auth';
 import {Timestamp} from 'firebase-admin/firestore';
-import {onCall,HttpsError} from 'firebase-functions/v2/https';
+import {onRegistrationCall as onCall,HttpsError} from '../shared/academicHttps';
 import {db,usersCol} from '../shared/firestoreRefs';
 import {createRegistrationHandler} from './registrationHandler';
 import {consentInput,planConsent} from '../privacy/consentPolicy';
 import {requireAuthenticated} from '../shared/authorization';
+import {academicEnvironment} from '../shared/academicAdmission';
+import {ACADEMIC_NOTICE_VERSION} from '../shared/academicNotice';
 
 export const completeRegistration = onCall(async request => {
   requireAuthenticated(request.auth);
-  const payload=request.data;
+  const hosted=academicEnvironment()==='hosted';
+  if(hosted && (request.data?.academicNoticeVersion!==ACADEMIC_NOTICE_VERSION||request.data?.academicNoticeAcknowledged!==true))
+    throw new HttpsError('failed-precondition','Review and acknowledge the hosted academic notice.');
+  const payload=hosted?Object.fromEntries(Object.entries(request.data).filter(([k])=>!['academicNoticeVersion','academicNoticeAcknowledged'].includes(k))):request.data;
   const consent=payload?.role==='patient' ? consentInput(payload.consent) : null;
   if(consent && (consent.source!=='registration'||consent.expectedRevision!==0||consent.sharingDecision==='withdrawn'))
     throw new HttpsError('invalid-argument','An initial registration decision is required.');
   const data=consent ? Object.fromEntries(Object.entries(payload).filter(([k])=>k!=='consent')) : payload;
-  return createRegistrationHandler({
+  const identity=await createRegistrationHandler({
     getUser:uid=>getAuth().getUser(uid),now:()=>new Date().toISOString(),
     transact:(uid,decide)=>db.runTransaction(async tx=>{
       const ref=usersCol.doc(uid),snapshot=await tx.get(ref);
@@ -30,4 +35,6 @@ export const completeRegistration = onCall(async request => {
       return decision.identity;
     }),
   })({...request,data});
+  if(hosted)await db.doc('academicDemoTesters/'+request.auth!.uid).update({noticeVersion:ACADEMIC_NOTICE_VERSION,noticeAcknowledgedAt:Timestamp.now()});
+  return identity;
 });

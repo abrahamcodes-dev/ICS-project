@@ -3,5 +3,5 @@ module.exports = {
   testEnvironment: "node",
   rootDir: ".",
   testMatch: ["<rootDir>/__tests__/**/*.test.ts"],
-  testPathIgnorePatterns: ["/__tests__/rules/", "/__tests__/storage/", "/__tests__/integration/"],
+  testPathIgnorePatterns: ["/__tests__/rules/", "/__tests__/storage/", "/__tests__/integration/", "/__tests__/academic-emulator/"],
 };
