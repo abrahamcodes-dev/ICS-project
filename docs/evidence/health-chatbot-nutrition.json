@@ -1,0 +1,1015 @@
+{
+  "checkpoint": "Health Assistant Nutrition Intelligence Expansion",
+  "date": "2026-11-07",
+  "version": "2026-11-07.1",
+  "baselineGitHead": "21259c7cc5c567329aa83205ecc5e24abdae9d55",
+  "rootCause": "No nutrition entry pattern or scored phrase covered the ordinary question what foods are good for me; selection returned none, so the service correctly used its unknown-topic fallback.",
+  "catalog": {
+    "entries": 49,
+    "nutritionEntries": 21,
+    "predefinedFollowUpAnswers": 82,
+    "nutritionFollowUpAnswers": 69,
+    "foods": [
+      "broccoli",
+      "spinach",
+      "sukuma wiki",
+      "eggs",
+      "bananas",
+      "avocados",
+      "beans",
+      "lentils",
+      "fish",
+      "milk",
+      "rice",
+      "oats",
+      "ugali",
+      "ndengu (green grams/mung beans)"
+    ],
+    "grouping": "Leafy greens share an entry; cereal staples share an entry; existing whole-grain/pulse entry handles beans, lentils and ndengu. No duplicate per-food databases."
+  },
+  "before": [
+    {
+      "query": "What foods are good for me?",
+      "reply": {
+        "intent": "unknown",
+        "response": "I do not recognize that question. I only offer limited general information in English, and cannot rule out a serious problem. For non-emergency advice, consult a verified CallADoc doctor. Seek immediate professional help if you feel seriously unwell; do not wait for a CallADoc appointment.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false
+      }
+    },
+    {
+      "query": "What should I eat to stay healthy?",
+      "reply": {
+        "intent": "unknown",
+        "response": "I do not recognize that question. I only offer limited general information in English, and cannot rule out a serious problem. For non-emergency advice, consult a verified CallADoc doctor. Seek immediate professional help if you feel seriously unwell; do not wait for a CallADoc appointment.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false
+      }
+    },
+    {
+      "query": "Is broccoli healthy?",
+      "reply": {
+        "intent": "unknown",
+        "response": "I do not recognize that question. I only offer limited general information in English, and cannot rule out a serious problem. For non-emergency advice, consult a verified CallADoc doctor. Seek immediate professional help if you feel seriously unwell; do not wait for a CallADoc appointment.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false
+      }
+    },
+    {
+      "query": "Is ugali healthy?",
+      "reply": {
+        "intent": "unknown",
+        "response": "I do not recognize that question. I only offer limited general information in English, and cannot rule out a serious problem. For non-emergency advice, consult a verified CallADoc doctor. Seek immediate professional help if you feel seriously unwell; do not wait for a CallADoc appointment.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false
+      }
+    },
+    {
+      "query": "What should I eat for better digestion?",
+      "reply": {
+        "intent": "unknown",
+        "response": "I do not recognize that question. I only offer limited general information in English, and cannot rule out a serious problem. For non-emergency advice, consult a verified CallADoc doctor. Seek immediate professional help if you feel seriously unwell; do not wait for a CallADoc appointment.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false
+      }
+    }
+  ],
+  "after": [
+    {
+      "query": "What foods are good for me?",
+      "reply": {
+        "intent": "nutrition",
+        "response": "A varied diet includes vegetables, fruit, whole grains, pulses and appropriate protein sources. Limit foods high in free sugars, salt and unhealthy fats. Personal needs differ; seek professional dietary advice for medical conditions.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false,
+        "knowledgeId": "nutrition-variety",
+        "contentVersion": "2026-11-07.1"
+      }
+    },
+    {
+      "query": "What should I eat to stay healthy?",
+      "reply": {
+        "intent": "nutrition",
+        "response": "A varied diet includes vegetables, fruit, whole grains, pulses and appropriate protein sources. Limit foods high in free sugars, salt and unhealthy fats. Personal needs differ; seek professional dietary advice for medical conditions.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false,
+        "knowledgeId": "nutrition-variety",
+        "contentVersion": "2026-11-07.1"
+      }
+    },
+    {
+      "query": "What are the health benefits of broccoli?",
+      "reply": {
+        "intent": "nutrition_education",
+        "response": "Broccoli contributes fibre, vitamin C and folate. It can be one of several vegetables in a varied diet. This is general food education, not an individual meal plan or advice for a medical condition. No single food replaces a varied diet.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false,
+        "knowledgeId": "nutrition-broccoli",
+        "contentVersion": "2026-11-07.1",
+        "followUp": "benefits"
+      }
+    },
+    {
+      "query": "Is broccoli healthy?",
+      "reply": {
+        "intent": "nutrition_education",
+        "response": "Broccoli contributes fibre, vitamin C and folate. It can be one of several vegetables in a varied diet. This is general food education, not an individual meal plan or advice for a medical condition. No single food replaces a varied diet.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false,
+        "knowledgeId": "nutrition-broccoli",
+        "contentVersion": "2026-11-07.1"
+      }
+    },
+    {
+      "query": "What nutrients are in broccoli?",
+      "reply": {
+        "intent": "nutrition_education",
+        "response": "Broccoli contributes fibre, vitamin C and folate. It can be one of several vegetables in a varied diet.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false,
+        "knowledgeId": "nutrition-broccoli",
+        "contentVersion": "2026-11-07.1",
+        "followUp": "nutrients"
+      }
+    },
+    {
+      "query": "Which foods contain iron?",
+      "reply": {
+        "intent": "nutrition_education",
+        "response": "Beans and lean meats can contribute iron. Foods alone cannot establish or manage a diagnosis of anaemia; concerns about deficiency need professional assessment. This is general food education, not an individual meal plan or advice for a medical condition. No single food replaces a varied diet.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false,
+        "knowledgeId": "nutrition-iron",
+        "contentVersion": "2026-11-07.1"
+      }
+    },
+    {
+      "query": "What foods are high in protein?",
+      "reply": {
+        "intent": "nutrition_education",
+        "response": "Protein supplies building blocks for the body. Food sources include beans, lentils, eggs, fish and milk; plant and animal sources can contribute. This is general food education, not an individual meal plan or advice for a medical condition. No single food replaces a varied diet.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false,
+        "knowledgeId": "nutrition-protein",
+        "contentVersion": "2026-11-07.1"
+      }
+    },
+    {
+      "query": "Are eggs good for you?",
+      "reply": {
+        "intent": "nutrition_education",
+        "response": "Eggs contribute protein and several vitamins and minerals. They can be part of a varied diet; this is not a personal recommendation to eat them. This is general food education, not an individual meal plan or advice for a medical condition. No single food replaces a varied diet.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false,
+        "knowledgeId": "nutrition-eggs",
+        "contentVersion": "2026-11-07.1"
+      }
+    },
+    {
+      "query": "Is ugali healthy?",
+      "reply": {
+        "intent": "nutrition_education",
+        "response": "Rice, oats and cereal-based ugali provide carbohydrate. Wholegrain forms retain more of the grain. Preparation and accompaniments matter; a staple alone is not a complete diet. This is general food education, not an individual meal plan or advice for a medical condition. No single food replaces a varied diet.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false,
+        "knowledgeId": "nutrition-staples",
+        "contentVersion": "2026-11-07.1"
+      }
+    },
+    {
+      "query": "What should I eat for better digestion?",
+      "reply": {
+        "intent": "nutrition_education",
+        "response": "Dietary fibre supports digestive health. Sources include whole grains, pulses, fruit and vegetables. Persistent digestive symptoms need professional assessment, not a food-based diagnosis. This is general food education, not an individual meal plan or advice for a medical condition. No single food replaces a varied diet.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false,
+        "knowledgeId": "nutrition-fibre",
+        "contentVersion": "2026-11-07.1"
+      }
+    }
+  ],
+  "evaluation": {
+    "initial": {
+      "correct": 28,
+      "total": 32,
+      "results": [
+        {
+          "query": "Could you suggest everyday food choices for staying well?",
+          "expected": "nutrition-variety",
+          "actual": "unknown",
+          "correct": false
+        },
+        {
+          "query": "I want to understand a balanced plate",
+          "expected": "nutrition-variety",
+          "actual": "unknown",
+          "correct": false
+        },
+        {
+          "query": "Does broccoli contribute anything useful to meals?",
+          "expected": "nutrition-broccoli",
+          "actual": "nutrition-broccoli",
+          "correct": true
+        },
+        {
+          "query": "Tell me the nutritional value of sukumawiki",
+          "expected": "nutrition-leafy-greens",
+          "actual": "nutrition-leafy-greens",
+          "correct": true
+        },
+        {
+          "query": "Is spinach worth including in meals?",
+          "expected": "nutrition-leafy-greens",
+          "actual": "nutrition-leafy-greens",
+          "correct": true
+        },
+        {
+          "query": "I usually have a banana as a snack. What does it offer?",
+          "expected": "nutrition-bananas",
+          "actual": "nutrition-bananas",
+          "correct": true
+        },
+        {
+          "query": "Can you explain avocado as a food?",
+          "expected": "nutrition-avocados",
+          "actual": "nutrition-avocados",
+          "correct": true
+        },
+        {
+          "query": "Does an egg add useful nutrients to breakfast?",
+          "expected": "nutrition-eggs",
+          "actual": "nutrition-eggs",
+          "correct": true
+        },
+        {
+          "query": "What does fish contribute to meals?",
+          "expected": "nutrition-fish",
+          "actual": "nutrition-fish",
+          "correct": true
+        },
+        {
+          "query": "Tell me about the nutritional value of milk",
+          "expected": "nutrition-milk",
+          "actual": "nutrition-milk",
+          "correct": true
+        },
+        {
+          "query": "I eat ugali often; what kind of food is it?",
+          "expected": "nutrition-staples",
+          "actual": "nutrition-staples",
+          "correct": true
+        },
+        {
+          "query": "What do rolled oats contribute to breakfast?",
+          "expected": "nutrition-staples",
+          "actual": "nutrition-staples",
+          "correct": true
+        },
+        {
+          "query": "Could you explain rice as part of meals?",
+          "expected": "nutrition-staples",
+          "actual": "nutrition-staples",
+          "correct": true
+        },
+        {
+          "query": "What do mung beans add to a meal?",
+          "expected": "nutrition-grains",
+          "actual": "nutrition-grains",
+          "correct": true
+        },
+        {
+          "query": "Tell me why lentils are used in varied meals",
+          "expected": "nutrition-grains",
+          "actual": "nutrition-grains",
+          "correct": true
+        },
+        {
+          "query": "I want food sources of protein, not powders",
+          "expected": "nutrition-protein",
+          "actual": "nutrition-protein",
+          "correct": true
+        },
+        {
+          "query": "Can food fibre support digestion?",
+          "expected": "nutrition-fibre",
+          "actual": "nutrition-fibre",
+          "correct": true
+        },
+        {
+          "query": "Where does dietary carbohydrate fit?",
+          "expected": "nutrition-carbohydrates",
+          "actual": "nutrition-carbohydrates",
+          "correct": true
+        },
+        {
+          "query": "Explain unsaturated fat in everyday food",
+          "expected": "nutrition-fats",
+          "actual": "nutrition-fats",
+          "correct": true
+        },
+        {
+          "query": "Which meals can supply iron?",
+          "expected": "nutrition-iron",
+          "actual": "unknown",
+          "correct": false
+        },
+        {
+          "query": "What do micronutrients mean?",
+          "expected": "nutrition-micronutrients",
+          "actual": "nutrition-micronutrients",
+          "correct": true
+        },
+        {
+          "query": "Why does staying hydrated matter?",
+          "expected": "nutrition-hydration",
+          "actual": "nutrition-hydration",
+          "correct": true
+        },
+        {
+          "query": "What food hygiene basics should I know?",
+          "expected": "nutrition-preparation",
+          "actual": "clarification",
+          "correct": false
+        },
+        {
+          "turns": [
+            "Tell me about broccoli",
+            "What nutrients does it have?"
+          ],
+          "expected": "nutrition-broccoli",
+          "actual": "nutrition-broccoli",
+          "correct": true
+        },
+        {
+          "turns": [
+            "Explain ndengu",
+            "How should I cook them?"
+          ],
+          "expected": "nutrition-grains",
+          "actual": "nutrition-grains",
+          "correct": true
+        },
+        {
+          "turns": [
+            "Tell me about avocados",
+            "Are there any downsides?"
+          ],
+          "expected": "nutrition-avocados",
+          "actual": "nutrition-avocados",
+          "correct": true
+        },
+        {
+          "query": "Is dragonfruit nutritious?",
+          "expected": "unknown",
+          "actual": "unknown",
+          "correct": true
+        },
+        {
+          "query": "Compare broccoli with diabetes",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        },
+        {
+          "query": "Which food will cure malaria?",
+          "expected": "diagnosis",
+          "actual": "diagnosis",
+          "correct": true
+        },
+        {
+          "query": "I ate eggs and my throat is swelling",
+          "expected": "emergency",
+          "actual": "emergency",
+          "correct": true
+        },
+        {
+          "query": "Plan a weight loss diet for me",
+          "expected": "nutrition_boundary",
+          "actual": "nutrition_boundary",
+          "correct": true
+        },
+        {
+          "query": "Are Java beans a food?",
+          "expected": "unknown",
+          "actual": "unknown",
+          "correct": true
+        }
+      ]
+    },
+    "final": {
+      "correct": 32,
+      "total": 32,
+      "results": [
+        {
+          "query": "Could you suggest everyday food choices for staying well?",
+          "expected": "nutrition-variety",
+          "actual": "nutrition-variety",
+          "correct": true
+        },
+        {
+          "query": "I want to understand a balanced plate",
+          "expected": "nutrition-variety",
+          "actual": "nutrition-variety",
+          "correct": true
+        },
+        {
+          "query": "Does broccoli contribute anything useful to meals?",
+          "expected": "nutrition-broccoli",
+          "actual": "nutrition-broccoli",
+          "correct": true
+        },
+        {
+          "query": "Tell me the nutritional value of sukumawiki",
+          "expected": "nutrition-leafy-greens",
+          "actual": "nutrition-leafy-greens",
+          "correct": true
+        },
+        {
+          "query": "Is spinach worth including in meals?",
+          "expected": "nutrition-leafy-greens",
+          "actual": "nutrition-leafy-greens",
+          "correct": true
+        },
+        {
+          "query": "I usually have a banana as a snack. What does it offer?",
+          "expected": "nutrition-bananas",
+          "actual": "nutrition-bananas",
+          "correct": true
+        },
+        {
+          "query": "Can you explain avocado as a food?",
+          "expected": "nutrition-avocados",
+          "actual": "nutrition-avocados",
+          "correct": true
+        },
+        {
+          "query": "Does an egg add useful nutrients to breakfast?",
+          "expected": "nutrition-eggs",
+          "actual": "nutrition-eggs",
+          "correct": true
+        },
+        {
+          "query": "What does fish contribute to meals?",
+          "expected": "nutrition-fish",
+          "actual": "nutrition-fish",
+          "correct": true
+        },
+        {
+          "query": "Tell me about the nutritional value of milk",
+          "expected": "nutrition-milk",
+          "actual": "nutrition-milk",
+          "correct": true
+        },
+        {
+          "query": "I eat ugali often; what kind of food is it?",
+          "expected": "nutrition-staples",
+          "actual": "nutrition-staples",
+          "correct": true
+        },
+        {
+          "query": "What do rolled oats contribute to breakfast?",
+          "expected": "nutrition-staples",
+          "actual": "nutrition-staples",
+          "correct": true
+        },
+        {
+          "query": "Could you explain rice as part of meals?",
+          "expected": "nutrition-staples",
+          "actual": "nutrition-staples",
+          "correct": true
+        },
+        {
+          "query": "What do mung beans add to a meal?",
+          "expected": "nutrition-grains",
+          "actual": "nutrition-grains",
+          "correct": true
+        },
+        {
+          "query": "Tell me why lentils are used in varied meals",
+          "expected": "nutrition-grains",
+          "actual": "nutrition-grains",
+          "correct": true
+        },
+        {
+          "query": "I want food sources of protein, not powders",
+          "expected": "nutrition-protein",
+          "actual": "nutrition-protein",
+          "correct": true
+        },
+        {
+          "query": "Can food fibre support digestion?",
+          "expected": "nutrition-fibre",
+          "actual": "nutrition-fibre",
+          "correct": true
+        },
+        {
+          "query": "Where does dietary carbohydrate fit?",
+          "expected": "nutrition-carbohydrates",
+          "actual": "nutrition-carbohydrates",
+          "correct": true
+        },
+        {
+          "query": "Explain unsaturated fat in everyday food",
+          "expected": "nutrition-fats",
+          "actual": "nutrition-fats",
+          "correct": true
+        },
+        {
+          "query": "Which meals can supply iron?",
+          "expected": "nutrition-iron",
+          "actual": "nutrition-iron",
+          "correct": true
+        },
+        {
+          "query": "What do micronutrients mean?",
+          "expected": "nutrition-micronutrients",
+          "actual": "nutrition-micronutrients",
+          "correct": true
+        },
+        {
+          "query": "Why does staying hydrated matter?",
+          "expected": "nutrition-hydration",
+          "actual": "nutrition-hydration",
+          "correct": true
+        },
+        {
+          "query": "What food hygiene basics should I know?",
+          "expected": "nutrition-preparation",
+          "actual": "nutrition-preparation",
+          "correct": true
+        },
+        {
+          "turns": [
+            "Tell me about broccoli",
+            "What nutrients does it have?"
+          ],
+          "expected": "nutrition-broccoli",
+          "actual": "nutrition-broccoli",
+          "correct": true
+        },
+        {
+          "turns": [
+            "Explain ndengu",
+            "How should I cook them?"
+          ],
+          "expected": "nutrition-grains",
+          "actual": "nutrition-grains",
+          "correct": true
+        },
+        {
+          "turns": [
+            "Tell me about avocados",
+            "Are there any downsides?"
+          ],
+          "expected": "nutrition-avocados",
+          "actual": "nutrition-avocados",
+          "correct": true
+        },
+        {
+          "query": "Is dragonfruit nutritious?",
+          "expected": "unknown",
+          "actual": "unknown",
+          "correct": true
+        },
+        {
+          "query": "Compare broccoli with diabetes",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        },
+        {
+          "query": "Which food will cure malaria?",
+          "expected": "diagnosis",
+          "actual": "diagnosis",
+          "correct": true
+        },
+        {
+          "query": "I ate eggs and my throat is swelling",
+          "expected": "emergency",
+          "actual": "emergency",
+          "correct": true
+        },
+        {
+          "query": "Plan a weight loss diet for me",
+          "expected": "nutrition_boundary",
+          "actual": "nutrition_boundary",
+          "correct": true
+        },
+        {
+          "query": "Are Java beans a food?",
+          "expected": "unknown",
+          "actual": "unknown",
+          "correct": true
+        }
+      ]
+    },
+    "classification": "Synthetic development evaluation. Fixture authored before its first run and unchanged. Four misses informed refinements; final score is not held-out accuracy, clinical validation or user-study evidence.",
+    "comparison": {
+      "correct": 23,
+      "total": 24,
+      "accuracy": 0.9583333333333334,
+      "results": [
+        {
+          "label": "lay terminology",
+          "query": "Explain high BP in simple words",
+          "expected": "disease-hypertension",
+          "actual": "disease-hypertension",
+          "correct": true
+        },
+        {
+          "label": "lay terminology",
+          "query": "Tell me about the sugar disease",
+          "expected": "disease-diabetes",
+          "actual": "disease-diabetes",
+          "correct": true
+        },
+        {
+          "label": "lay terminology",
+          "query": "Why clean my hands before meals",
+          "expected": "general-handwashing",
+          "actual": "general-handwashing",
+          "correct": true
+        },
+        {
+          "label": "lay terminology",
+          "query": "Information on nursing a baby",
+          "expected": "child-breastfeeding",
+          "actual": "clarification",
+          "correct": false
+        },
+        {
+          "label": "spelling",
+          "query": "Information about maleria",
+          "expected": "disease-malaria",
+          "actual": "disease-malaria",
+          "correct": true
+        },
+        {
+          "label": "spelling",
+          "query": "Explain hypertention",
+          "expected": "disease-hypertension",
+          "actual": "disease-hypertension",
+          "correct": true
+        },
+        {
+          "label": "spelling",
+          "query": "Tell me about diabetis",
+          "expected": "disease-diabetes",
+          "actual": "disease-diabetes",
+          "correct": true
+        },
+        {
+          "label": "spelling",
+          "query": "What is anxety",
+          "expected": "mental-anxiety",
+          "actual": "mental-anxiety",
+          "correct": true
+        },
+        {
+          "label": "ordinary",
+          "query": "Why are pulses part of a varied diet",
+          "expected": "nutrition-grains",
+          "actual": "nutrition-grains",
+          "correct": true
+        },
+        {
+          "label": "ordinary",
+          "query": "Explain postpartum checkups",
+          "expected": "maternal-postnatal",
+          "actual": "maternal-postnatal",
+          "correct": true
+        },
+        {
+          "label": "ordinary",
+          "query": "Help me understand tuberculosis",
+          "expected": "disease-tb",
+          "actual": "disease-tb",
+          "correct": true
+        },
+        {
+          "label": "ordinary",
+          "query": "What is medication safety",
+          "expected": "med-safety",
+          "actual": "med-safety",
+          "correct": true
+        },
+        {
+          "label": "mixed",
+          "query": "Tell me about malaria and diabetes",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        },
+        {
+          "label": "mixed",
+          "query": "Explain anxiety and hypertension",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        },
+        {
+          "label": "ambiguous",
+          "query": "Tell me about pressure",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        },
+        {
+          "label": "ambiguous",
+          "query": "What causes it",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        },
+        {
+          "label": "safety",
+          "query": "High BP and pain in my chest",
+          "expected": "emergency",
+          "actual": "emergency",
+          "correct": true
+        },
+        {
+          "label": "safety",
+          "query": "Nursing a baby who is not breathing",
+          "expected": "emergency",
+          "actual": "emergency",
+          "correct": true
+        },
+        {
+          "label": "safety",
+          "query": "Do I have diabetis",
+          "expected": "diagnosis",
+          "actual": "diagnosis",
+          "correct": true
+        },
+        {
+          "label": "safety",
+          "query": "What dose should I use for maleria",
+          "expected": "medication",
+          "actual": "medication",
+          "correct": true
+        },
+        {
+          "label": "unsupported",
+          "query": "Explain planetary geology",
+          "expected": "unknown",
+          "actual": "unknown",
+          "correct": true
+        },
+        {
+          "label": "unsupported",
+          "query": "Interpret my blood test numbers",
+          "expected": "unknown",
+          "actual": "unknown",
+          "correct": true
+        },
+        {
+          "label": "follow-up",
+          "query": "Explain malaria → What causes it",
+          "expected": "disease-malaria",
+          "actual": "disease-malaria",
+          "correct": true
+        },
+        {
+          "label": "follow-up",
+          "query": "Explain diabetes → What about children",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        }
+      ]
+    },
+    "existingHeldOut": {
+      "correct": 20,
+      "total": 20,
+      "accuracy": 1,
+      "results": [
+        {
+          "label": "ordinary",
+          "query": "Could you give general facts about tuberculosis transmission",
+          "expected": "disease-tb",
+          "actual": "disease-tb",
+          "correct": true
+        },
+        {
+          "label": "ordinary",
+          "query": "I would like information about postpartum care",
+          "expected": "maternal-postnatal",
+          "actual": "maternal-postnatal",
+          "correct": true
+        },
+        {
+          "label": "ordinary",
+          "query": "What do lentils contribute to a balanced diet",
+          "expected": "nutrition-grains",
+          "actual": "nutrition-grains",
+          "correct": true
+        },
+        {
+          "label": "ordinary",
+          "query": "Please explain persistent sadness and mental health",
+          "expected": "mental-depression",
+          "actual": "mental-depression",
+          "correct": true
+        },
+        {
+          "label": "ordinary",
+          "query": "What is a medication list",
+          "expected": "med-list",
+          "actual": "med-list",
+          "correct": true
+        },
+        {
+          "label": "ordinary",
+          "query": "Please share general facts about coughs",
+          "expected": "general-cough",
+          "actual": "general-cough",
+          "correct": true
+        },
+        {
+          "label": "lay terminology",
+          "query": "Please explain raised blood pressure",
+          "expected": "disease-hypertension",
+          "actual": "disease-hypertension",
+          "correct": true
+        },
+        {
+          "label": "lay terminology",
+          "query": "Tell me about hand washing for hygiene",
+          "expected": "general-handwashing",
+          "actual": "general-handwashing",
+          "correct": true
+        },
+        {
+          "label": "spelling",
+          "query": "General education on diahorrea",
+          "expected": "general-diarrhoea",
+          "actual": "general-diarrhoea",
+          "correct": true
+        },
+        {
+          "label": "spelling",
+          "query": "Can you explain vaccinaton",
+          "expected": "child-vaccination",
+          "actual": "child-vaccination",
+          "correct": true
+        },
+        {
+          "label": "ambiguous",
+          "query": "What about my health",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        },
+        {
+          "label": "mixed",
+          "query": "Compare malaria versus tuberculosis",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        },
+        {
+          "label": "mixed",
+          "query": "Explain sleep and the movement of planets",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        },
+        {
+          "label": "safety",
+          "query": "Trouble sleeping and I cannot catch her breath",
+          "expected": "emergency",
+          "actual": "emergency",
+          "correct": true
+        },
+        {
+          "label": "safety",
+          "query": "Information about nutrition but I took too many tablets",
+          "expected": "emergency",
+          "actual": "emergency",
+          "correct": true
+        },
+        {
+          "label": "safety",
+          "query": "Could I have malairia",
+          "expected": "diagnosis",
+          "actual": "diagnosis",
+          "correct": true
+        },
+        {
+          "label": "safety",
+          "query": "Recommend a dosage for this cough",
+          "expected": "medication",
+          "actual": "medication",
+          "correct": true
+        },
+        {
+          "label": "follow-up",
+          "query": "Information on loose stools → How can I prevent it",
+          "expected": "general-diarrhoea",
+          "actual": "general-diarrhoea",
+          "correct": true
+        },
+        {
+          "label": "follow-up",
+          "query": "Information on hypertension → What about children",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        },
+        {
+          "label": "unsupported",
+          "query": "Calculate orbital velocity",
+          "expected": "unknown",
+          "actual": "unknown",
+          "correct": true
+        }
+      ]
+    },
+    "fixtures": [
+      {
+        "file": "mobile/__tests__/fixtures/chatbotEvaluation.json",
+        "sha256": "a9cd0292bd9898cebd980e0c1a021f52c757751726c2941cdec3a6e3ef522f55"
+      },
+      {
+        "file": "mobile/__tests__/fixtures/chatbotHeldOut.json",
+        "sha256": "da9448f194b30f004d97289c886077c099f4e48007aa6a64be6c26d57f3814e6"
+      },
+      {
+        "file": "mobile/__tests__/fixtures/nutritionEvaluation.json",
+        "sha256": "337cc17bb46c61b1cf80be58582e8c77f9b0c2f52abe53dc2153fe464913a218"
+      }
+    ]
+  },
+  "tests": {
+    "total": 520,
+    "suites": 13,
+    "failed": [],
+    "fullRun": {
+      "passed": 510,
+      "total": 510
+    },
+    "affectedFinalRerun": {
+      "passed": 348,
+      "total": 348,
+      "suites": 6
+    },
+    "method": "Union of the 13-suite main run and latest six affected suites; no remaining failures. Initial main run 510/510; final affected run 348/348 replaces those suites, yielding 520 unique cases.",
+    "intermediateFailure": "After adding evaluation-derived development regressions, one phrase matched but fell below specificity threshold (347/348). Added the explicit healthy food choices phrase; final affected suites 348/348.",
+    "typescript": "PASS: node node_modules/typescript/bin/tsc --noEmit",
+    "whitespace": "PASS: git diff --check; new files additionally checked for trailing whitespace and single final newline"
+  },
+  "sources": [
+    {
+      "title": "WHO Healthy diet (2026)",
+      "url": "https://www.who.int/news-room/fact-sheets/detail/healthy-diet",
+      "verifiedOn": "2026-11-07",
+      "scope": "Food groups, carbohydrate, protein, fat quality, micronutrients and iron food examples."
+    },
+    {
+      "title": "FAO/Government of Kenya Food Composition Tables (2018)",
+      "url": "https://www.fao.org/4/i8897en/I8897EN.pdf",
+      "verifiedOn": "2026-11-07",
+      "scope": "Qualitative composition only, no copied nutrient quantities. Checked table rows 04004 broccoli, 04020 kale, 04030 spinach, 05003 avocado, 05004 banana; green-gram stew 15044. Readable mirror used because main PDF was too large for browser parsing.",
+      "verificationMirror": "https://s3-eu-west-1.amazonaws.com/s3.sourceafrica.net/documents/118973/FAO-Kenya-Food-Composition-Tables-2018.pdf",
+      "publisherCatalog": "https://www.fao.org/food-composition/tables-and-databases/detail/kenya-food-composition-tables/en"
+    },
+    {
+      "title": "FAO Human nutrition in the developing world, Part IV",
+      "url": "https://www.fao.org/4/W0073e/w0073e06.htm",
+      "verifiedOn": "2026-11-07",
+      "scope": "Chapters 26?29: basic cereal/pulse/animal-food composition, local food names. Historical medical and infant-feeding recommendations not adopted."
+    },
+    {
+      "title": "WHO Five keys to safer food manual",
+      "url": "https://www.who.int/publications/i/item/9789241594639",
+      "verifiedOn": "2026-11-07",
+      "scope": "General food handling only; not cooking-temperature or recipe instructions."
+    },
+    {
+      "title": "WHO Drinking-water",
+      "url": "https://www.who.int/news-room/fact-sheets/detail/drinking-water",
+      "verifiedOn": "2026-11-07",
+      "scope": "Water safety, not personal fluid targets."
+    },
+    {
+      "title": "CDC Healthy Eating Tips",
+      "url": "https://www.cdc.gov/nutrition/features/healthy-eating-tips.html",
+      "verifiedOn": "2026-11-07",
+      "scope": "Fibre and digestive health; protein food sources."
+    }
+  ],
+  "clinicalReview": "All entries pending_clinical_review. No clinical approval, diagnosis, personalized nutrition, dosing, treatment or restrictive meal plans.",
+  "privacy": "Audited pure local import graph; bundled content and session-local memory only. No new Firebase requests, analytics, storage, external inference or persistence.",
+  "nativeVerification": "NOT VERIFIED for this checkpoint. Pixel 7 manual preview pending; no native dependency change or rebuild required.",
+  "workingTree": {
+    "baselineEntries": 234,
+    "unrelatedEntriesWithChangedContent": 0,
+    "modifiedFiles": [
+      "mobile/src/knowledge/nutritionKnowledge.ts",
+      "mobile/src/knowledge/healthKnowledgeBase.ts",
+      "mobile/src/services/healthMatcher.ts",
+      "mobile/src/services/chatbotService.ts",
+      "mobile/__tests__/healthKnowledgeBase.test.js",
+      "mobile/__tests__/healthConversation.test.js",
+      "mobile/__tests__/healthChatbotFinal.test.js",
+      "mobile/__tests__/nutrition.test.js",
+      "mobile/__tests__/nutritionEvaluation.test.js",
+      "mobile/__tests__/fixtures/nutritionEvaluation.json",
+      "docs/HEALTH_CHATBOT_MOBILE.md",
+      "docs/evidence/health-chatbot-nutrition.json"
+    ]
+  },
+  "limitations": [
+    "Finite English vocabulary; unknown foods may receive fallback and mixed topics clarification.",
+    "Food groups do not imply identical composition; amounts vary by preparation, cultivar and product.",
+    "No meal or portion calculator, nutrient quantities, supplements, disease-specific diets or individualized allergy advice.",
+    "Existing comparison mismatch nursing a baby remains conservative clarification (23/24).",
+    "Nutrition evaluation is developer-authored and informed refinements; independent evaluation, clinical review and native usability checks remain pending."
+  ]
+}

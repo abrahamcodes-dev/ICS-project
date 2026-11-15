@@ -1,7 +1,9 @@
 /** Local English-only rules. No Firebase, records, analytics or network calls. */
 import { MEDICAL_DISCLAIMER } from '../constants/disclaimers';
 import { HEALTH_KNOWLEDGE_BASE, type HealthKnowledgeEntry, type FollowUpKind } from '../knowledge/healthKnowledgeBase';
-import { canonicalHealthText, normalizeHealthText, selectHealthKnowledge, followUpKind, isReferentialFollowUp } from './healthMatcher';
+import { canonicalHealthText, normalizeHealthText, selectHealthKnowledge, followUpKind, isReferentialFollowUp, hasUnresolvedTopicReference } from './healthMatcher';
+import { NUTRITION_PERSONAL_REQUEST } from '../knowledge/nutritionKnowledge';
+import { hasCompetingQuestionIntents } from './healthQuestionIntent';
 
 export const CHATBOT_LIMIT = 500;
 export const CHATBOT_DISCLAIMER = 'I am a rule-based information assistant, not a doctor. I cannot examine you, diagnose illness or recommend treatment. Do not share names, medical records or other identifying details.';
@@ -47,6 +49,9 @@ function clarify(labels: readonly string[] = []): HealthReply {
     ? `I found more than one possible topic: ${labels.join(', ')}. Please ask about one topic at a time. I can only use predefined general information. For personal advice, consult a verified CallADoc doctor.`
     : 'Please name the health topic and ask one general question. I do not have a supported answer for that follow-up or enough information to choose a topic. For personal advice, consult a verified CallADoc doctor.');
 }
+function unsupported(): HealthReply {
+  return reply('unknown', 'I do not recognize that question. I only offer limited general information in English, and cannot rule out a serious problem. For non-emergency advice, consult a verified CallADoc doctor. Seek immediate professional help if you feel seriously unwell; do not wait for a CallADoc appointment.');
+}
 export function askChatbot(query: string, context?: HealthContext): HealthReply {
   if (typeof query !== 'string' || !query.trim() || query.length > CHATBOT_LIMIT) {
     throw new Error(`Enter a question of 1-${CHATBOT_LIMIT} characters.`);
@@ -62,25 +67,38 @@ export function askChatbot(query: string, context?: HealthContext): HealthReply 
   const boundary = rules.find(r => (r.intent === 'diagnosis' ||
     (r.intent === 'medication' && !medication)) && [original,normalized].some(text => r.pattern.test(text)));
   if (boundary) return reply(boundary.intent, boundary.response);
+  if (NUTRITION_PERSONAL_REQUEST.test(normalized)) return reply('nutrition_boundary', 'I cannot provide restrictive diets, personal meal plans or food-based treatment. For individual nutrition concerns, including eating difficulties, consult a qualified health professional or a verified CallADoc doctor.');
+  if (hasCompetingQuestionIntents(normalized)) return clarify();
   const selection = selectHealthKnowledge(normalized, medication?.id);
   if (selection.kind === 'clarify') return clarify(selection.labels);
+  if (selection.kind === 'match' && selection.entry.category === 'nutrition' &&
+      /\b(cancer|allerg\w*|intoleran\w*)\b|^how (much|many)\b/.test(normalized)) {
+    return reply('nutrition_boundary', 'I cannot assess food safety for an individual, calculate personal quantities or recommend food for a medical condition. Consult a qualified health professional or a verified CallADoc doctor.');
+  }
   const facet = followUpKind(normalized);
   if (selection.kind === 'match') {
+    const statedAge = normalized.match(/\b(?:i am|i m|aged?) (\d{1,2})\b|\b(\d{1,2}) years? old\b/);
+    if (selection.entry.id === 'general-sleep' && facet === 'duration' &&
+        (/\b(children|child|baby|babies|infant|toddler|newborn|teen|teens|teenager|teenagers|teenage)\b/.test(normalized) ||
+         (statedAge && Number(statedAge[1] ?? statedAge[2]) < 18))) {
+      return reply('clarification', 'I have only an adult sleep-duration answer here. Children and teenagers have different sleep recommendations. Ask a qualified health professional for age-appropriate guidance; consult a verified CallADoc doctor for individual concerns.');
+    }
+    if (facet === 'definition') return knowledgeReply(selection.entry,selection.entry.followUps.definition ?? selection.entry.response);
     if (facet) {
       const response = selection.entry.followUps[facet];
-      return response ? knowledgeReply(selection.entry,response,facet) : clarify();
+      return response ? knowledgeReply(selection.entry,response,facet) : unsupported();
     }
     return knowledgeReply(selection.entry);
   }
   if (isReferentialFollowUp(normalized)) {
     const previous = HEALTH_KNOWLEDGE_BASE.find(entry => entry.id === context?.knowledgeId);
-    const response = facet && previous?.followUps[facet];
+    const response = facet === 'definition' ? previous?.followUps.definition ?? previous?.response : facet && previous?.followUps[facet];
     return previous && response ? knowledgeReply(previous,response,facet) : clarify();
   }
-  if (facet || /^(and |what about |is it |can it |does it )/.test(normalized)) return clarify();
+  if (hasUnresolvedTopicReference(normalized)) return clarify();
+  if (facet) return unsupported();
   const rule = rules.find(r => r.pattern.test(normalized));
-  return rule ? reply(rule.intent, rule.response) : reply('unknown',
-    'I do not recognize that question. I only offer limited general information in English, and cannot rule out a serious problem. For non-emergency advice, consult a verified CallADoc doctor. Seek immediate professional help if you feel seriously unwell; do not wait for a CallADoc appointment.');
+  return rule ? reply(rule.intent, rule.response) : unsupported();
 }
 
 /** Per-conversation, memory-only topic. Never use a shared/global session. */

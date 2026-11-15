@@ -1,3 +1,4 @@
+import { classifyHealthQuestion, isIntentOnlyFollowUp } from './healthQuestionIntent';
 import { HEALTH_KNOWLEDGE_BASE, type HealthKnowledgeEntry, type FollowUpKind } from '../knowledge/healthKnowledgeBase';
 
 export function normalizeHealthText(query: string): string {
@@ -12,8 +13,14 @@ const SPELLINGS: Readonly<Record<string, string>> = {
   headace:'headache', headach:'headache', vaccintion:'vaccination',
   brething:'breathing', breathng:'breathing', dosge:'dosage',
   paracetemol:'paracetamol', antibiotcs:'antibiotics', medicaton:'medication',
+  brocolli:'broccoli', brocoli:'broccoli', spinich:'spinach', avacado:'avocado',
+  protien:'protein', lentiles:'lentils', sukumawiki:'sukuma wiki',
 };
 const PHRASES: readonly [RegExp, string][] = [
+  [/\b(green grams?|mung beans?)\b/g,'ndengu'],
+  [/\bbalanced diet\b/g,'balanced meals'],
+  [/\bbalanced plate\b/g,'balanced meals'],
+  [/\beveryday food choices\b/g,'healthy food choices'],
   [/\bhigh bp\b/g,'high blood pressure'], [/\bsugar disease\b/g,'diabetes'],
   [/\braised blood pressure\b/g,'high blood pressure'],
   [/\bclean(ing)? (my|your) hands\b/g,'wash my hands'],
@@ -56,6 +63,11 @@ export function rankHealthKnowledge(query: string, medicationId?: string,
 }
 
 export function selectHealthKnowledge(query: string, medicationId?: string): KnowledgeSelection {
+  // Nutrient words and food homonyms do not establish a food-education topic.
+  if (/\b(protein in (my |the )?(urine|blood)|blood iron|iron (gate|metal)|java beans|rice (exports|prices)|milk (prices|exports))\b/.test(query)) return {kind:'none'};
+  // Bare cold can refer to temperature, an illness or another concern. Do not
+  // turn cold water/feet/weather into an infection through a broad keyword.
+  if (/^(cold|what is cold|tell me about cold)$/.test(query)) return {kind:'clarify',labels:[]};
   // "Nursing" can mean feeding or care. A generic baby match must not resolve
   // that ambiguity. Explicit breastfeeding terminology may identify the topic.
   if (/\bnursing\b/.test(query) && !/\b(breastfeed\w*|breast milk)\b/.test(query)) {
@@ -83,12 +95,18 @@ export function selectHealthKnowledge(query: string, medicationId?: string): Kno
 
 /** Recognize only bounded, supported question forms, not arbitrary pronouns. */
 export function followUpKind(query: string): FollowUpKind | undefined {
-  if (/^(what causes?|what is the cause of)\b/.test(query)) return 'causes';
-  if (/^(how (can|do) (i|we|you) prevent|how to prevent|how can it be prevented|prevention of)\b/.test(query)) return 'prevention';
-  if (/^what about (children|kids|babies)( (and|or) infants)?$/.test(query)) return 'children';
-  if (/^(when should (i|we|someone) (see|consult) a doctor|when (to|should i) seek (medical )?(help|care))$/.test(query)) return 'care';
-  return undefined;
+  return classifyHealthQuestion(query);
 }
 export function isReferentialFollowUp(query: string): boolean {
+  if (isIntentOnlyFollowUp(query)) return true;
+  if (/^(what (are|is) (the )?(health )?benefits?( of (it|them|that))?|why (is|are) (it|they) good|what nutrients?( (are|is) in (it|them|that)| (does|do) (it|they) (have|contain|provide))?|what does (it|that) contain|how (can|should|do) (i|we|you) (prepare|cook|wash|store) (it|them|that)|how to (prepare|cook|wash|store) (it|them|that)|any limitations|what (are|about) (the )?(limitations|downsides)|are there any (limitations|downsides))$/.test(query)) return true;
   return /^(what causes? (it|that)|what is the cause of (it|that)|how (can|do) (i|we|you) prevent (it|that)|how to prevent (it|that)|how can it be prevented|what about (children|kids|babies))$/.test(query) || followUpKind(query) === 'care';
+}
+
+/** An incomplete pronoun question may need clarification, but a question facet
+ * alone (e.g. "what causes eczema") does not imply conversation context. */
+export function hasUnresolvedTopicReference(query: string): boolean {
+  return /^(what causes?|what is the cause of|how to prevent|how can i prevent)$/.test(query) ||
+    /^(what causes? (it|that)|what is the cause of (it|that)|how (can|do) (i|we|you) prevent (it|that)|how to prevent (it|that))\b/.test(query) ||
+    /^(and )?what about (it|that|this)( one)?$|^(and )?(is|can|does) it\b/.test(query);
 }

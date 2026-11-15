@@ -5,12 +5,26 @@ import { useIsFocused, useNavigation, type NavigationProp } from '@react-navigat
 import { useAuth } from '../../hooks/useAuth';
 import { Action, Copy, Notice, Screen, usePalette } from '../../ui/design';
 import { createHealthChatSession, CHATBOT_DISCLAIMER, CHATBOT_LIMIT, CHATBOT_WELCOME, EMERGENCY_GUIDANCE, type HealthReply } from '../../services/chatbotService';
+import { MEDICAL_DISCLAIMER } from '../../constants/disclaimers';
 
 const MAX_TURNS = 20;
 // Floating hardware-keyboard toolbars do not reliably report resize insets.
 // Keep the composer clear while focused; safety text belongs in scrollable content.
 const ANDROID_TOOLBAR_CLEARANCE = 72;
 export const suggestedQuestions=['What could be causing a headache?','Tips for better sleep','When should I see a doctor?','How to manage stress','Tips for healthy eating'];
+/** Keep one complete accessibility utterance while visually separating the
+ * unchanged disclaimer. Body and guidance use the same readable text size. */
+export function AssistantMessage({message,prefix='',announcement='none',urgent=false}:{message:string;prefix?:string;announcement?:'none'|'polite'|'assertive';urgent?:boolean}) {
+  const colors=usePalette(),hasDisclaimer=message.endsWith(MEDICAL_DISCLAIMER);
+  const body=hasDisclaimer?message.slice(0,-MEDICAL_DISCLAIMER.length).trimEnd():message;
+  return <View accessible accessibilityLabel={`${prefix}${message}`} accessibilityLiveRegion={announcement} accessibilityRole={urgent?'alert':undefined}>
+    <Copy accessible={false} selectable style={{fontSize:16,lineHeight:22}}>{prefix}{body}</Copy>
+    {hasDisclaimer&&<View testID="assistant-medical-guidance" style={{marginTop:14,paddingTop:12,borderTopWidth:1,borderColor:colors.border,gap:6}}>
+      <Copy accessible={false} style={{fontSize:14,lineHeight:20,fontWeight:'600',color:colors.muted}}>Medical guidance</Copy>
+      <Copy accessible={false} selectable style={{fontSize:16,lineHeight:22,color:colors.muted}}>{MEDICAL_DISCLAIMER}</Copy>
+    </View>}
+  </View>;
+}
 export function HealthConversation({ onCare, onBack, patient }: { onCare(): void; onBack(): void; patient: boolean }) {
   const colors=usePalette(),scroll=useRef<ScrollView>(null),composer=useRef<TextInput>(null);
   const [inputFocused,setInputFocused]=useState(false);
@@ -47,9 +61,9 @@ export function HealthConversation({ onCare, onBack, patient }: { onCare(): void
     <ScrollView ref={scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" onContentSizeChange={()=>{if(turns.length)scroll.current?.scrollToEnd({animated:true});}} contentContainerStyle={{padding:20,gap:14,flexGrow:1}}>
      <Copy accessible selectable tone="muted" style={{fontSize:13,lineHeight:18}}>{CHATBOT_DISCLAIMER}</Copy>
      <Copy accessible selectable tone="muted" style={{fontSize:13,lineHeight:18}}>English only. Keywords can miss emergencies. This is not a triage service. For urgent concerns, seek immediate professional help.</Copy>
-     <View style={{flexDirection:'row',gap:10,alignItems:'flex-start',marginTop:16}}><Image source={require('../../../assets/health-assistant-robot.png')} accessible={false} importantForAccessibility="no" resizeMode="contain" style={{width:58,height:76}}/><View style={{flex:1,backgroundColor:colors.mint,padding:16,borderRadius:20,borderTopLeftRadius:4}}><Copy accessible selectable>{CHATBOT_WELCOME}</Copy></View></View>
+     <View style={{flexDirection:'row',gap:10,alignItems:'flex-start',marginTop:16}}><Image source={require('../../../assets/health-assistant-robot.png')} accessible={false} importantForAccessibility="no" resizeMode="contain" style={{width:58,height:76}}/><View style={{flex:1,backgroundColor:colors.mint,padding:16,borderRadius:20,borderTopLeftRadius:4}}><AssistantMessage message={CHATBOT_WELCOME}/></View></View>
      {!turns.length&&suggestedQuestions.map(question=><Pressable key={question} accessibilityRole="button" accessibilityLabel={question} disabled={!foreground} onPress={()=>send(question)} style={({pressed})=>({alignSelf:'flex-end',maxWidth:'94%',minHeight:44,justifyContent:'center',paddingHorizontal:16,paddingVertical:10,borderRadius:24,borderWidth:1,borderColor:colors.border,backgroundColor:colors.surface,opacity:pressed?.7:1})}><Copy>{question}</Copy></Pressable>)}
-     {foreground&&turns.map((turn,index)=><React.Fragment key={index}><View accessible accessibilityLabel={`You: ${turn.question}`} style={{alignSelf:'flex-end',maxWidth:'90%',backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border,borderRadius:20,borderBottomRightRadius:4,padding:14}}><Copy accessible={false} variant="caption" tone="muted">You</Copy><Copy accessible={false} selectable>{turn.question}</Copy></View><View style={{alignSelf:'flex-start',maxWidth:'94%',backgroundColor:colors.mint,borderRadius:20,borderTopLeftRadius:4,padding:16,borderWidth:turn.reply.emergency?2:0,borderColor:colors.error}}><Copy accessible accessibilityRole={turn.reply.emergency&&index===turns.length-1?'alert':undefined} accessibilityLiveRegion={index===turns.length-1?(turn.reply.emergency?'assertive':'polite'):'none'} selectable>{turn.reply.emergency?'Urgent guidance: ':'Assistant: '}{turn.reply.response}</Copy></View></React.Fragment>)}
+     {foreground&&turns.map((turn,index)=><React.Fragment key={index}><View accessible accessibilityLabel={`You: ${turn.question}`} style={{alignSelf:'flex-end',maxWidth:'90%',backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border,borderRadius:20,borderBottomRightRadius:4,padding:14}}><Copy accessible={false} variant="caption" tone="muted">You</Copy><Copy accessible={false} selectable>{turn.question}</Copy></View><View style={{alignSelf:'flex-start',maxWidth:'94%',backgroundColor:colors.mint,borderRadius:20,borderTopLeftRadius:4,padding:16,borderWidth:turn.reply.emergency?2:0,borderColor:colors.error}}><AssistantMessage message={turn.reply.response} prefix={turn.reply.emergency?'Urgent guidance: ':'Assistant: '} announcement={index===turns.length-1?(turn.reply.emergency?'assertive':'polite'):'none'} urgent={turn.reply.emergency&&index===turns.length-1}/></View></React.Fragment>)}
      {turns.length>=MAX_TURNS&&<Copy>Conversation limit reached. Reset to start again.</Copy>}
      <View style={{flexDirection:'row',flexWrap:'wrap',gap:8}}>{[{title:'Reset conversation',action:reset},{title:patient?'Find a doctor':'Sign in for consultations',action:onCare},{title:showInfo?'Hide assistant information':'About this assistant',action:()=>setShowInfo(v=>!v)}].map(item=><Pressable key={item.title} accessibilityRole="button" accessibilityLabel={item.title} onPress={item.action} style={{minHeight:44,justifyContent:'center',paddingHorizontal:8}}><Copy style={{color:colors.accent,fontSize:13,textDecorationLine:'underline'}}>{item.title}</Copy></Pressable>)}</View>
      {showInfo&&<View style={{gap:8}}><Copy>English only. Conversation clears when you leave or background the app.</Copy><Copy>{EMERGENCY_GUIDANCE}</Copy><Copy>Consultations are for non-emergency care. This assistant does not contact a doctor or book a visit.</Copy></View>}

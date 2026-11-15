@@ -1,0 +1,1090 @@
+{
+  "checkpoint": "Health Assistant Question-Intent Accuracy Enhancement",
+  "date": "2026-11-08",
+  "catalogVersion": "2026-11-08.1",
+  "catalog": {
+    "entries": 50,
+    "nutrition": 22,
+    "predefinedFacets": 93
+  },
+  "rootCauses": {
+    "sleep": "Topic general-sleep matched, but followUpKind had no duration classifier or duration answer. The service returned the default hygiene response.",
+    "pizza": "No pizza entity/entry existed, and the good-for-me question had no recognized facet, so the service correctly returned unknown.",
+    "similarDemonstratedDefect": "How often should I eat broccoli previously returned default broccoli facts. Frequency is now classified and withheld because no authored frequency answer exists."
+  },
+  "before": [
+    {
+      "query": "How many hours of sleep are good for me?",
+      "facet": null,
+      "reply": {
+        "intent": "sleep",
+        "response": "Regular sleeping and waking times and a quiet sleeping environment can support wellbeing. Sleep matters for both body and mind. Persistent sleep difficulties or difficulties affecting daily life deserve professional advice.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false,
+        "knowledgeId": "general-sleep",
+        "contentVersion": "2026-11-07.1"
+      }
+    },
+    {
+      "query": "Is pizza good for me?",
+      "facet": null,
+      "reply": {
+        "intent": "unknown",
+        "response": "I do not recognize that question. I only offer limited general information in English, and cannot rule out a serious problem. For non-emergency advice, consult a verified CallADoc doctor. Seek immediate professional help if you feel seriously unwell; do not wait for a CallADoc appointment.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false
+      }
+    },
+    {
+      "query": "How often should I eat broccoli?",
+      "facet": null,
+      "reply": {
+        "intent": "nutrition_education",
+        "response": "Broccoli contributes fibre, vitamin C and folate. It can be one of several vegetables in a varied diet. This is general food education, not an individual meal plan or advice for a medical condition. No single food replaces a varied diet.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false,
+        "knowledgeId": "nutrition-broccoli",
+        "contentVersion": "2026-11-07.1"
+      }
+    },
+    {
+      "query": "What are the signs of sleep deprivation?",
+      "facet": null,
+      "reply": {
+        "intent": "sleep",
+        "response": "Regular sleeping and waking times and a quiet sleeping environment can support wellbeing. Sleep matters for both body and mind. Persistent sleep difficulties or difficulties affecting daily life deserve professional advice.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false,
+        "knowledgeId": "general-sleep",
+        "contentVersion": "2026-11-07.1"
+      }
+    },
+    {
+      "query": "What nutrients are in sleep?",
+      "facet": "nutrients",
+      "reply": {
+        "intent": "unknown",
+        "response": "I do not recognize that question. I only offer limited general information in English, and cannot rule out a serious problem. For non-emergency advice, consult a verified CallADoc doctor. Seek immediate professional help if you feel seriously unwell; do not wait for a CallADoc appointment.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false
+      }
+    },
+    {
+      "query": "Are there healthier alternatives to pizza?",
+      "facet": null,
+      "reply": {
+        "intent": "unknown",
+        "response": "I do not recognize that question. I only offer limited general information in English, and cannot rule out a serious problem. For non-emergency advice, consult a verified CallADoc doctor. Seek immediate professional help if you feel seriously unwell; do not wait for a CallADoc appointment.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false
+      }
+    }
+  ],
+  "after": [
+    {
+      "query": "How many hours of sleep are good for me?",
+      "facet": "duration",
+      "reply": {
+        "intent": "sleep",
+        "response": "Sleep needs vary with age. CDC adult guidance per day is: ages 18–60, 7 or more hours; ages 61–64, 7–9 hours; ages 65 and older, 7–8 hours. Without assuming your age, these are adult age-group guidelines, not a personal target. Children and teenagers have different recommendations. Seek professional advice for persistent sleep problems.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false,
+        "knowledgeId": "general-sleep",
+        "contentVersion": "2026-11-08.1",
+        "followUp": "duration"
+      }
+    },
+    {
+      "query": "Is pizza good for me?",
+      "facet": "benefits",
+      "reply": {
+        "intent": "nutrition_education",
+        "response": "Pizza is not uniformly good or bad for everyone. Its ingredients, portion size and the overall dietary pattern matter. Crust, cheese, sauces and toppings change its composition; some pizzas contain substantial sodium and saturated fat. Labels and serving sizes help compare products. This is general food education, not an individual meal plan or advice for a medical condition. No single food replaces a varied diet.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false,
+        "knowledgeId": "nutrition-pizza",
+        "contentVersion": "2026-11-08.1",
+        "followUp": "benefits"
+      }
+    },
+    {
+      "query": "How often should I eat broccoli?",
+      "facet": "frequency",
+      "reply": {
+        "intent": "unknown",
+        "response": "I do not recognize that question. I only offer limited general information in English, and cannot rule out a serious problem. For non-emergency advice, consult a verified CallADoc doctor. Seek immediate professional help if you feel seriously unwell; do not wait for a CallADoc appointment.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false
+      }
+    },
+    {
+      "query": "What are the signs of sleep deprivation?",
+      "facet": "signs",
+      "reply": {
+        "intent": "sleep",
+        "response": "Possible signs of poor sleep quality include trouble falling asleep, repeatedly waking at night, or feeling sleepy or tired despite enough sleep. These do not diagnose sleep deprivation or a sleep disorder; persistent concerns need professional assessment.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false,
+        "knowledgeId": "general-sleep",
+        "contentVersion": "2026-11-08.1",
+        "followUp": "signs"
+      }
+    },
+    {
+      "query": "What nutrients are in sleep?",
+      "facet": "nutrients",
+      "reply": {
+        "intent": "unknown",
+        "response": "I do not recognize that question. I only offer limited general information in English, and cannot rule out a serious problem. For non-emergency advice, consult a verified CallADoc doctor. Seek immediate professional help if you feel seriously unwell; do not wait for a CallADoc appointment.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false
+      }
+    },
+    {
+      "query": "Are there healthier alternatives to pizza?",
+      "facet": "alternatives",
+      "reply": {
+        "intent": "nutrition_education",
+        "response": "Options include wholegrain crust, vegetable toppings and less processed meat or cheese. Compare sodium on labels. These are general food choices, not a required diet or personal portion prescription.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false,
+        "knowledgeId": "nutrition-pizza",
+        "contentVersion": "2026-11-08.1",
+        "followUp": "alternatives"
+      }
+    }
+  ],
+  "architecture": "Ordered finite regex question-intent classifier; emergency and clinical guards first; scored topic selection; explicit topic plus requested facet; exact reference forms alone may use prior topic. Missing facets never fall through to generic topic text. Definition/explanation uses the entry response, with a specific sleep explanation override. Competing topics or requested facets clarify.",
+  "supportedClassifications": [
+    "definition",
+    "causes",
+    "signs",
+    "benefits",
+    "nutrients",
+    "duration",
+    "frequency",
+    "prevention",
+    "safety",
+    "limitations",
+    "preparation",
+    "alternatives",
+    "children",
+    "care"
+  ],
+  "coverageLimit": "Classification does not imply an authored answer for every topic/facet. No general food-frequency targets or cooking durations were added.",
+  "sources": [
+    {
+      "title": "CDC About Sleep",
+      "url": "https://www.cdc.gov/sleep/about/index.html",
+      "verifiedOn": "2026-11-08",
+      "scope": "Adult daily duration: 18-60 years 7+ hours; 61-64 years 7-9 hours; 65+ years 7-8 hours. Sleep quality signs and benefits. No personalized target or diagnosis."
+    },
+    {
+      "title": "Health Canada Sodium detector: processed foods",
+      "url": "https://www.canada.ca/en/health-canada/services/nutrients/sodium/detector/processed-foods.html",
+      "verifiedOn": "2026-11-08",
+      "scope": "Pepperoni and cheese pizza: serving sizes, recipe variation, sodium labels, vegetable alternatives and less processed meat/cheese. No numeric nutrient profile copied."
+    },
+    {
+      "title": "WHO Healthy diet",
+      "url": "https://www.who.int/news-room/fact-sheets/detail/healthy-diet",
+      "verifiedOn": "2026-11-08",
+      "scope": "Wholegrain options, food variety, fat quality and overall dietary patterns; applied as general alternatives, not personal prescriptions."
+    }
+  ],
+  "tests": {
+    "uniqueTests": 583,
+    "suites": 15,
+    "failures": [],
+    "runs": [
+      {
+        "passed": 571,
+        "failed": 1,
+        "total": 572,
+        "suites": 15
+      },
+      {
+        "passed": 524,
+        "failed": 4,
+        "total": 528,
+        "suites": 11
+      },
+      {
+        "passed": 410,
+        "failed": 0,
+        "total": 410,
+        "suites": 8
+      }
+    ],
+    "method": "Union of the 15-suite run and subsequent affected-suite replacements; current 583 unique tests all pass. No claim that the first run passed unchanged.",
+    "resolvedFailures": [
+      "Five initial assertions exposed console encoding of new age-range punctuation; replaced with Unicode escapes.",
+      "One prior regression expected no signs facet; updated to expect the newly explicit signs classification, preserving the same source-supported response.",
+      "Four catalog/context assertions caught an overbroad safety classifier misreading adjectival safe drinking water wording; narrowed the predicate and added a regression."
+    ],
+    "typescript": "PASS: node node_modules/typescript/bin/tsc --noEmit",
+    "whitespace": "PASS: git diff --check; all checkpoint files checked for trailing whitespace and a single final newline"
+  },
+  "evaluations": {
+    "QUESTION INTENT EVALUATION": {
+      "correct": 26,
+      "total": 26,
+      "results": [
+        {
+          "label": "duration",
+          "query": "How much sleep is recommended for adults?",
+          "topic": "general-sleep",
+          "facet": "duration",
+          "actual": {
+            "intent": "sleep",
+            "topic": "general-sleep",
+            "facet": "duration"
+          },
+          "correct": true
+        },
+        {
+          "label": "duration",
+          "query": "Can you tell me how many hours I should sleep?",
+          "topic": "general-sleep",
+          "facet": "duration",
+          "actual": {
+            "intent": "sleep",
+            "topic": "general-sleep",
+            "facet": "duration"
+          },
+          "correct": true
+        },
+        {
+          "label": "duration",
+          "query": "How long should a person sleep each night?",
+          "topic": "general-sleep",
+          "facet": "duration",
+          "actual": {
+            "intent": "sleep",
+            "topic": "general-sleep",
+            "facet": "duration"
+          },
+          "correct": true
+        },
+        {
+          "label": "definition",
+          "query": "Explain healthy sleep in simple words",
+          "topic": "general-sleep",
+          "actual": {
+            "intent": "sleep",
+            "topic": "general-sleep"
+          },
+          "correct": true
+        },
+        {
+          "label": "signs",
+          "query": "What are the signs of poor sleep quality?",
+          "topic": "general-sleep",
+          "facet": "signs",
+          "actual": {
+            "intent": "sleep",
+            "topic": "general-sleep",
+            "facet": "signs"
+          },
+          "correct": true
+        },
+        {
+          "label": "benefits",
+          "query": "What are the benefits of enough sleep?",
+          "topic": "general-sleep",
+          "facet": "benefits",
+          "actual": {
+            "intent": "sleep",
+            "topic": "general-sleep",
+            "facet": "benefits"
+          },
+          "correct": true
+        },
+        {
+          "label": "nutrition judgment",
+          "query": "Is having pizza good for you?",
+          "topic": "nutrition-pizza",
+          "facet": "benefits",
+          "actual": {
+            "intent": "nutrition_education",
+            "topic": "nutrition-pizza",
+            "facet": "benefits"
+          },
+          "correct": true
+        },
+        {
+          "label": "nutrients",
+          "query": "Which nutrients does pizza provide?",
+          "topic": "nutrition-pizza",
+          "facet": "nutrients",
+          "actual": {
+            "intent": "nutrition_education",
+            "topic": "nutrition-pizza",
+            "facet": "nutrients"
+          },
+          "correct": true
+        },
+        {
+          "label": "alternatives",
+          "query": "Are there healthier options than pizza?",
+          "topic": "nutrition-pizza",
+          "facet": "alternatives",
+          "actual": {
+            "intent": "nutrition_education",
+            "topic": "nutrition-pizza",
+            "facet": "alternatives"
+          },
+          "correct": true
+        },
+        {
+          "label": "preparation",
+          "query": "How can I prepare pizza?",
+          "topic": "nutrition-pizza",
+          "facet": "preparation",
+          "actual": {
+            "intent": "nutrition_education",
+            "topic": "nutrition-pizza",
+            "facet": "preparation"
+          },
+          "correct": true
+        },
+        {
+          "label": "safety",
+          "query": "Is pizza safe to eat?",
+          "topic": "nutrition-pizza",
+          "facet": "safety",
+          "actual": {
+            "intent": "nutrition_education",
+            "topic": "nutrition-pizza",
+            "facet": "safety"
+          },
+          "correct": true
+        },
+        {
+          "label": "causes",
+          "query": "What causes a common cold?",
+          "topic": "disease-common-cold",
+          "facet": "causes",
+          "actual": {
+            "intent": "common_cold",
+            "topic": "disease-common-cold",
+            "facet": "causes"
+          },
+          "correct": true
+        },
+        {
+          "label": "prevention",
+          "query": "How can we prevent malaria?",
+          "topic": "disease-malaria",
+          "facet": "prevention",
+          "actual": {
+            "intent": "malaria",
+            "topic": "disease-malaria",
+            "facet": "prevention"
+          },
+          "correct": true
+        },
+        {
+          "label": "frequency unsupported",
+          "query": "How often should a person have pizza?",
+          "intent": "unknown",
+          "actual": {
+            "intent": "unknown"
+          },
+          "correct": true
+        },
+        {
+          "label": "duration unsupported",
+          "query": "How long should rice be cooked?",
+          "intent": "unknown",
+          "actual": {
+            "intent": "unknown"
+          },
+          "correct": true
+        },
+        {
+          "label": "topic unsupported",
+          "query": "What nutrients are in dragonfruit?",
+          "intent": "unknown",
+          "actual": {
+            "intent": "unknown"
+          },
+          "correct": true
+        },
+        {
+          "label": "missing context",
+          "query": "How many hours?",
+          "intent": "clarification",
+          "actual": {
+            "intent": "clarification"
+          },
+          "correct": true
+        },
+        {
+          "label": "context duration",
+          "turns": [
+            "Tell me about sleep",
+            "How many hours?"
+          ],
+          "topic": "general-sleep",
+          "facet": "duration",
+          "actual": {
+            "intent": "sleep",
+            "topic": "general-sleep",
+            "facet": "duration"
+          },
+          "correct": true
+        },
+        {
+          "label": "context unsupported",
+          "turns": [
+            "Tell me about broccoli",
+            "How often?"
+          ],
+          "intent": "clarification",
+          "actual": {
+            "intent": "clarification"
+          },
+          "correct": true
+        },
+        {
+          "label": "explicit replaces context",
+          "turns": [
+            "Tell me about broccoli",
+            "How much sleep should adults get?"
+          ],
+          "topic": "general-sleep",
+          "facet": "duration",
+          "actual": {
+            "intent": "sleep",
+            "topic": "general-sleep",
+            "facet": "duration"
+          },
+          "correct": true
+        },
+        {
+          "label": "mixed topics",
+          "query": "Compare sleep and pizza",
+          "intent": "clarification",
+          "actual": {
+            "intent": "clarification"
+          },
+          "correct": true
+        },
+        {
+          "label": "competing intents",
+          "query": "What are the causes and symptoms of poor sleep?",
+          "intent": "clarification",
+          "actual": {
+            "intent": "clarification"
+          },
+          "correct": true
+        },
+        {
+          "label": "emergency",
+          "query": "Pizza and my throat is swelling",
+          "intent": "emergency",
+          "actual": {
+            "intent": "emergency"
+          },
+          "correct": true
+        },
+        {
+          "label": "medication",
+          "query": "How often should I take sleeping pills?",
+          "intent": "medication",
+          "actual": {
+            "intent": "medication"
+          },
+          "correct": true
+        },
+        {
+          "label": "diagnosis",
+          "query": "Do I have a sleep disorder?",
+          "intent": "diagnosis",
+          "actual": {
+            "intent": "diagnosis"
+          },
+          "correct": true
+        },
+        {
+          "label": "restrictive diet",
+          "query": "Create a pizza weight loss meal plan",
+          "intent": "nutrition_boundary",
+          "actual": {
+            "intent": "nutrition_boundary"
+          },
+          "correct": true
+        }
+      ]
+    },
+    "NUTRITION EVALUATION": {
+      "correct": 32,
+      "total": 32,
+      "results": [
+        {
+          "query": "Could you suggest everyday food choices for staying well?",
+          "expected": "nutrition-variety",
+          "actual": "nutrition-variety",
+          "correct": true
+        },
+        {
+          "query": "I want to understand a balanced plate",
+          "expected": "nutrition-variety",
+          "actual": "nutrition-variety",
+          "correct": true
+        },
+        {
+          "query": "Does broccoli contribute anything useful to meals?",
+          "expected": "nutrition-broccoli",
+          "actual": "nutrition-broccoli",
+          "correct": true
+        },
+        {
+          "query": "Tell me the nutritional value of sukumawiki",
+          "expected": "nutrition-leafy-greens",
+          "actual": "nutrition-leafy-greens",
+          "correct": true
+        },
+        {
+          "query": "Is spinach worth including in meals?",
+          "expected": "nutrition-leafy-greens",
+          "actual": "nutrition-leafy-greens",
+          "correct": true
+        },
+        {
+          "query": "I usually have a banana as a snack. What does it offer?",
+          "expected": "nutrition-bananas",
+          "actual": "nutrition-bananas",
+          "correct": true
+        },
+        {
+          "query": "Can you explain avocado as a food?",
+          "expected": "nutrition-avocados",
+          "actual": "nutrition-avocados",
+          "correct": true
+        },
+        {
+          "query": "Does an egg add useful nutrients to breakfast?",
+          "expected": "nutrition-eggs",
+          "actual": "nutrition-eggs",
+          "correct": true
+        },
+        {
+          "query": "What does fish contribute to meals?",
+          "expected": "nutrition-fish",
+          "actual": "nutrition-fish",
+          "correct": true
+        },
+        {
+          "query": "Tell me about the nutritional value of milk",
+          "expected": "nutrition-milk",
+          "actual": "nutrition-milk",
+          "correct": true
+        },
+        {
+          "query": "I eat ugali often; what kind of food is it?",
+          "expected": "nutrition-staples",
+          "actual": "nutrition-staples",
+          "correct": true
+        },
+        {
+          "query": "What do rolled oats contribute to breakfast?",
+          "expected": "nutrition-staples",
+          "actual": "nutrition-staples",
+          "correct": true
+        },
+        {
+          "query": "Could you explain rice as part of meals?",
+          "expected": "nutrition-staples",
+          "actual": "nutrition-staples",
+          "correct": true
+        },
+        {
+          "query": "What do mung beans add to a meal?",
+          "expected": "nutrition-grains",
+          "actual": "nutrition-grains",
+          "correct": true
+        },
+        {
+          "query": "Tell me why lentils are used in varied meals",
+          "expected": "nutrition-grains",
+          "actual": "nutrition-grains",
+          "correct": true
+        },
+        {
+          "query": "I want food sources of protein, not powders",
+          "expected": "nutrition-protein",
+          "actual": "nutrition-protein",
+          "correct": true
+        },
+        {
+          "query": "Can food fibre support digestion?",
+          "expected": "nutrition-fibre",
+          "actual": "nutrition-fibre",
+          "correct": true
+        },
+        {
+          "query": "Where does dietary carbohydrate fit?",
+          "expected": "nutrition-carbohydrates",
+          "actual": "nutrition-carbohydrates",
+          "correct": true
+        },
+        {
+          "query": "Explain unsaturated fat in everyday food",
+          "expected": "nutrition-fats",
+          "actual": "nutrition-fats",
+          "correct": true
+        },
+        {
+          "query": "Which meals can supply iron?",
+          "expected": "nutrition-iron",
+          "actual": "nutrition-iron",
+          "correct": true
+        },
+        {
+          "query": "What do micronutrients mean?",
+          "expected": "nutrition-micronutrients",
+          "actual": "nutrition-micronutrients",
+          "correct": true
+        },
+        {
+          "query": "Why does staying hydrated matter?",
+          "expected": "nutrition-hydration",
+          "actual": "nutrition-hydration",
+          "correct": true
+        },
+        {
+          "query": "What food hygiene basics should I know?",
+          "expected": "nutrition-preparation",
+          "actual": "nutrition-preparation",
+          "correct": true
+        },
+        {
+          "turns": [
+            "Tell me about broccoli",
+            "What nutrients does it have?"
+          ],
+          "expected": "nutrition-broccoli",
+          "actual": "nutrition-broccoli",
+          "correct": true
+        },
+        {
+          "turns": [
+            "Explain ndengu",
+            "How should I cook them?"
+          ],
+          "expected": "nutrition-grains",
+          "actual": "nutrition-grains",
+          "correct": true
+        },
+        {
+          "turns": [
+            "Tell me about avocados",
+            "Are there any downsides?"
+          ],
+          "expected": "nutrition-avocados",
+          "actual": "nutrition-avocados",
+          "correct": true
+        },
+        {
+          "query": "Is dragonfruit nutritious?",
+          "expected": "unknown",
+          "actual": "unknown",
+          "correct": true
+        },
+        {
+          "query": "Compare broccoli with diabetes",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        },
+        {
+          "query": "Which food will cure malaria?",
+          "expected": "diagnosis",
+          "actual": "diagnosis",
+          "correct": true
+        },
+        {
+          "query": "I ate eggs and my throat is swelling",
+          "expected": "emergency",
+          "actual": "emergency",
+          "correct": true
+        },
+        {
+          "query": "Plan a weight loss diet for me",
+          "expected": "nutrition_boundary",
+          "actual": "nutrition_boundary",
+          "correct": true
+        },
+        {
+          "query": "Are Java beans a food?",
+          "expected": "unknown",
+          "actual": "unknown",
+          "correct": true
+        }
+      ]
+    },
+    "COMPARISON BENCHMARK": {
+      "correct": 23,
+      "total": 24,
+      "accuracy": 0.9583333333333334,
+      "results": [
+        {
+          "label": "lay terminology",
+          "query": "Explain high BP in simple words",
+          "expected": "disease-hypertension",
+          "actual": "disease-hypertension",
+          "correct": true
+        },
+        {
+          "label": "lay terminology",
+          "query": "Tell me about the sugar disease",
+          "expected": "disease-diabetes",
+          "actual": "disease-diabetes",
+          "correct": true
+        },
+        {
+          "label": "lay terminology",
+          "query": "Why clean my hands before meals",
+          "expected": "general-handwashing",
+          "actual": "general-handwashing",
+          "correct": true
+        },
+        {
+          "label": "lay terminology",
+          "query": "Information on nursing a baby",
+          "expected": "child-breastfeeding",
+          "actual": "clarification",
+          "correct": false
+        },
+        {
+          "label": "spelling",
+          "query": "Information about maleria",
+          "expected": "disease-malaria",
+          "actual": "disease-malaria",
+          "correct": true
+        },
+        {
+          "label": "spelling",
+          "query": "Explain hypertention",
+          "expected": "disease-hypertension",
+          "actual": "disease-hypertension",
+          "correct": true
+        },
+        {
+          "label": "spelling",
+          "query": "Tell me about diabetis",
+          "expected": "disease-diabetes",
+          "actual": "disease-diabetes",
+          "correct": true
+        },
+        {
+          "label": "spelling",
+          "query": "What is anxety",
+          "expected": "mental-anxiety",
+          "actual": "mental-anxiety",
+          "correct": true
+        },
+        {
+          "label": "ordinary",
+          "query": "Why are pulses part of a varied diet",
+          "expected": "nutrition-grains",
+          "actual": "nutrition-grains",
+          "correct": true
+        },
+        {
+          "label": "ordinary",
+          "query": "Explain postpartum checkups",
+          "expected": "maternal-postnatal",
+          "actual": "maternal-postnatal",
+          "correct": true
+        },
+        {
+          "label": "ordinary",
+          "query": "Help me understand tuberculosis",
+          "expected": "disease-tb",
+          "actual": "disease-tb",
+          "correct": true
+        },
+        {
+          "label": "ordinary",
+          "query": "What is medication safety",
+          "expected": "med-safety",
+          "actual": "med-safety",
+          "correct": true
+        },
+        {
+          "label": "mixed",
+          "query": "Tell me about malaria and diabetes",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        },
+        {
+          "label": "mixed",
+          "query": "Explain anxiety and hypertension",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        },
+        {
+          "label": "ambiguous",
+          "query": "Tell me about pressure",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        },
+        {
+          "label": "ambiguous",
+          "query": "What causes it",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        },
+        {
+          "label": "safety",
+          "query": "High BP and pain in my chest",
+          "expected": "emergency",
+          "actual": "emergency",
+          "correct": true
+        },
+        {
+          "label": "safety",
+          "query": "Nursing a baby who is not breathing",
+          "expected": "emergency",
+          "actual": "emergency",
+          "correct": true
+        },
+        {
+          "label": "safety",
+          "query": "Do I have diabetis",
+          "expected": "diagnosis",
+          "actual": "diagnosis",
+          "correct": true
+        },
+        {
+          "label": "safety",
+          "query": "What dose should I use for maleria",
+          "expected": "medication",
+          "actual": "medication",
+          "correct": true
+        },
+        {
+          "label": "unsupported",
+          "query": "Explain planetary geology",
+          "expected": "unknown",
+          "actual": "unknown",
+          "correct": true
+        },
+        {
+          "label": "unsupported",
+          "query": "Interpret my blood test numbers",
+          "expected": "unknown",
+          "actual": "unknown",
+          "correct": true
+        },
+        {
+          "label": "follow-up",
+          "query": "Explain malaria → What causes it",
+          "expected": "disease-malaria",
+          "actual": "disease-malaria",
+          "correct": true
+        },
+        {
+          "label": "follow-up",
+          "query": "Explain diabetes → What about children",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        }
+      ]
+    },
+    "HELD-OUT EVALUATION": {
+      "correct": 20,
+      "total": 20,
+      "accuracy": 1,
+      "results": [
+        {
+          "label": "ordinary",
+          "query": "Could you give general facts about tuberculosis transmission",
+          "expected": "disease-tb",
+          "actual": "disease-tb",
+          "correct": true
+        },
+        {
+          "label": "ordinary",
+          "query": "I would like information about postpartum care",
+          "expected": "maternal-postnatal",
+          "actual": "maternal-postnatal",
+          "correct": true
+        },
+        {
+          "label": "ordinary",
+          "query": "What do lentils contribute to a balanced diet",
+          "expected": "nutrition-grains",
+          "actual": "nutrition-grains",
+          "correct": true
+        },
+        {
+          "label": "ordinary",
+          "query": "Please explain persistent sadness and mental health",
+          "expected": "mental-depression",
+          "actual": "mental-depression",
+          "correct": true
+        },
+        {
+          "label": "ordinary",
+          "query": "What is a medication list",
+          "expected": "med-list",
+          "actual": "med-list",
+          "correct": true
+        },
+        {
+          "label": "ordinary",
+          "query": "Please share general facts about coughs",
+          "expected": "general-cough",
+          "actual": "general-cough",
+          "correct": true
+        },
+        {
+          "label": "lay terminology",
+          "query": "Please explain raised blood pressure",
+          "expected": "disease-hypertension",
+          "actual": "disease-hypertension",
+          "correct": true
+        },
+        {
+          "label": "lay terminology",
+          "query": "Tell me about hand washing for hygiene",
+          "expected": "general-handwashing",
+          "actual": "general-handwashing",
+          "correct": true
+        },
+        {
+          "label": "spelling",
+          "query": "General education on diahorrea",
+          "expected": "general-diarrhoea",
+          "actual": "general-diarrhoea",
+          "correct": true
+        },
+        {
+          "label": "spelling",
+          "query": "Can you explain vaccinaton",
+          "expected": "child-vaccination",
+          "actual": "child-vaccination",
+          "correct": true
+        },
+        {
+          "label": "ambiguous",
+          "query": "What about my health",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        },
+        {
+          "label": "mixed",
+          "query": "Compare malaria versus tuberculosis",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        },
+        {
+          "label": "mixed",
+          "query": "Explain sleep and the movement of planets",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        },
+        {
+          "label": "safety",
+          "query": "Trouble sleeping and I cannot catch her breath",
+          "expected": "emergency",
+          "actual": "emergency",
+          "correct": true
+        },
+        {
+          "label": "safety",
+          "query": "Information about nutrition but I took too many tablets",
+          "expected": "emergency",
+          "actual": "emergency",
+          "correct": true
+        },
+        {
+          "label": "safety",
+          "query": "Could I have malairia",
+          "expected": "diagnosis",
+          "actual": "diagnosis",
+          "correct": true
+        },
+        {
+          "label": "safety",
+          "query": "Recommend a dosage for this cough",
+          "expected": "medication",
+          "actual": "medication",
+          "correct": true
+        },
+        {
+          "label": "follow-up",
+          "query": "Information on loose stools → How can I prevent it",
+          "expected": "general-diarrhoea",
+          "actual": "general-diarrhoea",
+          "correct": true
+        },
+        {
+          "label": "follow-up",
+          "query": "Information on hypertension → What about children",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        },
+        {
+          "label": "unsupported",
+          "query": "Calculate orbital velocity",
+          "expected": "unknown",
+          "actual": "unknown",
+          "correct": true
+        }
+      ]
+    }
+  },
+  "evaluationNotes": "New 26-case labelled synthetic intent fixture scored 26/26 on first and final measured runs. Cases check topic plus requested facet, or expected safe fallback/refusal. Developer-authored, not independent held-out evidence or clinical validation. Historical fixtures and labels unchanged.",
+  "fixtures": [
+    {
+      "file": "mobile/__tests__/fixtures/chatbotEvaluation.json",
+      "sha256": "a9cd0292bd9898cebd980e0c1a021f52c757751726c2941cdec3a6e3ef522f55"
+    },
+    {
+      "file": "mobile/__tests__/fixtures/chatbotHeldOut.json",
+      "sha256": "da9448f194b30f004d97289c886077c099f4e48007aa6a64be6c26d57f3814e6"
+    },
+    {
+      "file": "mobile/__tests__/fixtures/nutritionEvaluation.json",
+      "sha256": "337cc17bb46c61b1cf80be58582e8c77f9b0c2f52abe53dc2153fe464913a218"
+    },
+    {
+      "file": "mobile/__tests__/fixtures/questionIntentEvaluation.json",
+      "sha256": "0dacf0bc4dcf026d0e8123c9741e1b2934db5b4f68383e4f306d2d5ec64bfd68"
+    }
+  ],
+  "privacy": "No Firebase requests, persisted transcripts, external inference, dependencies or data modifications introduced. Existing session reset, logout, background and navigation isolation checks remain passing.",
+  "clinicalReview": "pending_clinical_review; no clinical approval or comprehensive triage claim",
+  "deviceVerification": "NOT VERIFIED for this checkpoint. Automated rendered UI/accessibility semantics only. No native dependency or rebuild required.",
+  "workingTree": {
+    "baselineEntries": 240,
+    "unrelatedChangedContents": 0,
+    "files": [
+      "mobile/src/services/healthQuestionIntent.ts",
+      "mobile/src/services/healthMatcher.ts",
+      "mobile/src/services/chatbotService.ts",
+      "mobile/src/knowledge/healthKnowledgeBase.ts",
+      "mobile/src/knowledge/nutritionKnowledge.ts",
+      "mobile/__tests__/questionIntent.test.js",
+      "mobile/__tests__/questionIntentEvaluation.test.js",
+      "mobile/__tests__/fixtures/questionIntentEvaluation.json",
+      "mobile/__tests__/healthChatbotFinal.test.js",
+      "mobile/__tests__/healthKnowledgeBase.test.js",
+      "mobile/__tests__/nutrition.test.js",
+      "mobile/__tests__/healthTopicFixes.test.js",
+      "mobile/__tests__/healthChatbotUI.test.js",
+      "docs/HEALTH_CHATBOT_MOBILE.md",
+      "docs/evidence/health-chatbot-question-intents.json"
+    ]
+  },
+  "limitations": [
+    "Finite English patterns can miss unseen paraphrases.",
+    "Adult sleep ranges are general guidance; explicit child/teen/numeric-minor requests clarify. No age is read from profiles or persisted.",
+    "Sleep-quality signs do not diagnose sleep deprivation or sleep disorders.",
+    "Pizza composition and suitability vary; no blanket judgment, personal frequency/portion or allergy decision.",
+    "Original comparison mismatch nursing a baby remains intentional clarification.",
+    "Clinical review, independent intent evaluation and fresh Pixel 7 usability/TalkBack testing remain pending."
+  ]
+}

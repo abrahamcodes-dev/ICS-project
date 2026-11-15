@@ -1,0 +1,32 @@
+{
+  "version": "2026-11-08.1",
+  "purpose": "Developer-authored synthetic intent evaluation; written before the first run. Not clinical validation or independent held-out evidence. Labels remain fixed.",
+  "cases": [
+    {"label":"duration","query":"How much sleep is recommended for adults?","topic":"general-sleep","facet":"duration"},
+    {"label":"duration","query":"Can you tell me how many hours I should sleep?","topic":"general-sleep","facet":"duration"},
+    {"label":"duration","query":"How long should a person sleep each night?","topic":"general-sleep","facet":"duration"},
+    {"label":"definition","query":"Explain healthy sleep in simple words","topic":"general-sleep"},
+    {"label":"signs","query":"What are the signs of poor sleep quality?","topic":"general-sleep","facet":"signs"},
+    {"label":"benefits","query":"What are the benefits of enough sleep?","topic":"general-sleep","facet":"benefits"},
+    {"label":"nutrition judgment","query":"Is having pizza good for you?","topic":"nutrition-pizza","facet":"benefits"},
+    {"label":"nutrients","query":"Which nutrients does pizza provide?","topic":"nutrition-pizza","facet":"nutrients"},
+    {"label":"alternatives","query":"Are there healthier options than pizza?","topic":"nutrition-pizza","facet":"alternatives"},
+    {"label":"preparation","query":"How can I prepare pizza?","topic":"nutrition-pizza","facet":"preparation"},
+    {"label":"safety","query":"Is pizza safe to eat?","topic":"nutrition-pizza","facet":"safety"},
+    {"label":"causes","query":"What causes a common cold?","topic":"disease-common-cold","facet":"causes"},
+    {"label":"prevention","query":"How can we prevent malaria?","topic":"disease-malaria","facet":"prevention"},
+    {"label":"frequency unsupported","query":"How often should a person have pizza?","intent":"unknown"},
+    {"label":"duration unsupported","query":"How long should rice be cooked?","intent":"unknown"},
+    {"label":"topic unsupported","query":"What nutrients are in dragonfruit?","intent":"unknown"},
+    {"label":"missing context","query":"How many hours?","intent":"clarification"},
+    {"label":"context duration","turns":["Tell me about sleep","How many hours?"],"topic":"general-sleep","facet":"duration"},
+    {"label":"context unsupported","turns":["Tell me about broccoli","How often?"],"intent":"clarification"},
+    {"label":"explicit replaces context","turns":["Tell me about broccoli","How much sleep should adults get?"],"topic":"general-sleep","facet":"duration"},
+    {"label":"mixed topics","query":"Compare sleep and pizza","intent":"clarification"},
+    {"label":"competing intents","query":"What are the causes and symptoms of poor sleep?","intent":"clarification"},
+    {"label":"emergency","query":"Pizza and my throat is swelling","intent":"emergency"},
+    {"label":"medication","query":"How often should I take sleeping pills?","intent":"medication"},
+    {"label":"diagnosis","query":"Do I have a sleep disorder?","intent":"diagnosis"},
+    {"label":"restrictive diet","query":"Create a pizza weight loss meal plan","intent":"nutrition_boundary"}
+  ]
+}

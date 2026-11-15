@@ -19,10 +19,11 @@ test('stable IDs are unique and metadata is complete, with no clinical approval 
   expect(entry.sources.length).toBeGreaterThan(0);
   for(const source of entry.sources){
    expect(Object.values(HEALTH_SOURCES)).toContain(source);
-   expect(source.organization).toBe('WHO');
+   expect(['WHO','FAO','FAO/Government of Kenya','CDC','Health Canada']).toContain(source.organization);
    expect(source.title.length).toBeGreaterThan(5);
-   expect(new URL(source.url).hostname).toMatch(/(^|\.)who\.int$/);
-   expect(source.verifiedOn).toBe('2026-11-06');
+   const host={WHO:/(^|\.)who\.int$/,FAO:/(^|\.)fao\.org$/,'FAO/Government of Kenya':/(^|\.)fao\.org$/,CDC:/(^|\.)cdc\.gov$/,'Health Canada':/(^|\.)canada\.ca$/}[source.organization];
+   expect(new URL(source.url).hostname).toMatch(host);
+   expect(['2026-11-06','2026-11-07','2026-11-08']).toContain(source.verifiedOn);
   }
  }
 });

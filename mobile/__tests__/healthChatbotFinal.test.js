@@ -44,10 +44,10 @@ test('ambiguous nursing clears a previously identified topic',()=>{
  expect(session.ask('Information on nursing a baby').intent).toBe('clarification');
  expect(session.ask('What causes it').intent).toBe('clarification');
 });
-const questions={causes:'What causes it',prevention:'How can I prevent it',children:'What about children',care:'When should I see a doctor'};
+const questions={causes:'What causes it',prevention:'How can I prevent it',children:'What about children',care:'When should I see a doctor',definition:'What is it?',signs:'What are signs of it?',duration:'How many hours?',frequency:'How often?',safety:'Is it safe?',alternatives:'Are there healthier alternatives?',benefits:'What are the benefits?',nutrients:'What nutrients are in it?',preparation:'How can I prepare it?',limitations:'Any limitations?'};
 const followUps=entries.flatMap(entry=>Object.entries(entry.followUps).map(([kind,response])=>[entry.id,kind,response,entry.exampleQuestion]));
-test('the final catalog has exactly 31 entries and ten supported follow-up answers',()=>{
- expect(entries).toHaveLength(31);expect(followUps).toHaveLength(10);
+test('the final catalog has exactly 50 entries and 93 supported follow-up answers',()=>{
+ expect(entries).toHaveLength(50);expect(followUps).toHaveLength(93);
 });
 test.each(followUps)('all supported follow-ups are reachable with one disclaimer: %s/%s',(id,kind,response,topic)=>{
  const session=createHealthChatSession();session.ask(topic);

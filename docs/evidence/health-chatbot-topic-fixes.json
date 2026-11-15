@@ -1,0 +1,481 @@
+{
+  "date": "2026-11-06",
+  "baselineHead": "21259c7cc5c567329aa83205ecc5e24abdae9d55",
+  "knowledgeVersion": "2026-11-06.3",
+  "entries": 33,
+  "followUpAnswers": 13,
+  "categoryCounts": {
+    "symptoms": 6,
+    "disease_info": 6,
+    "maternal_child_health": 5,
+    "nutrition": 5,
+    "mental_health": 6,
+    "medication_guidance": 5
+  },
+  "before": [
+    {
+      "query": "What are signs of an eating disorder?",
+      "selection": "none",
+      "facet": null,
+      "referential": false,
+      "reply": {
+        "intent": "unknown",
+        "response": "I do not recognize that question. I only offer limited general information in English, and cannot rule out a serious problem. For non-emergency advice, consult a verified CallADoc doctor. Seek immediate professional help if you feel seriously unwell; do not wait for a CallADoc appointment.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false
+      }
+    },
+    {
+      "query": "What causes a cold?",
+      "selection": "none",
+      "facet": "causes",
+      "referential": false,
+      "reply": {
+        "intent": "clarification",
+        "response": "Please name the health topic and ask one general question. I do not have a supported answer for that follow-up or enough information to choose a topic. For personal advice, consult a verified CallADoc doctor.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false
+      }
+    },
+    {
+      "query": "What causes eczema?",
+      "selection": "none",
+      "facet": "causes",
+      "referential": false,
+      "reply": {
+        "intent": "clarification",
+        "response": "Please name the health topic and ask one general question. I do not have a supported answer for that follow-up or enough information to choose a topic. For personal advice, consult a verified CallADoc doctor.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false
+      }
+    },
+    {
+      "query": "What causes it?",
+      "selection": "none",
+      "facet": "causes",
+      "referential": true,
+      "reply": {
+        "intent": "clarification",
+        "response": "Please name the health topic and ask one general question. I do not have a supported answer for that follow-up or enough information to choose a topic. For personal advice, consult a verified CallADoc doctor.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false
+      }
+    }
+  ],
+  "after": [
+    {
+      "query": "What are signs of an eating disorder?",
+      "selection": "match",
+      "facet": null,
+      "referential": false,
+      "reply": {
+        "intent": "eating_disorders",
+        "response": "Eating disorders can involve disturbed eating patterns and strong concerns about food, body weight or shape that cause distress or harm health. These signs do not establish a diagnosis. A qualified health professional can assess concerns and help someone access care.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false,
+        "knowledgeId": "mental-eating-disorders",
+        "contentVersion": "2026-11-06.3"
+      }
+    },
+    {
+      "query": "What causes a cold?",
+      "selection": "match",
+      "facet": "causes",
+      "referential": false,
+      "reply": {
+        "intent": "common_cold",
+        "response": "A cold is caused by a virus. Human metapneumovirus (hMPV) is one example of a cold virus, not the only possible cause. Similar symptoms can occur with other infections, so symptoms alone do not identify a particular virus.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false,
+        "knowledgeId": "disease-common-cold",
+        "contentVersion": "2026-11-06.3",
+        "followUp": "causes"
+      }
+    },
+    {
+      "query": "What causes eczema?",
+      "selection": "none",
+      "facet": "causes",
+      "referential": false,
+      "reply": {
+        "intent": "unknown",
+        "response": "I do not recognize that question. I only offer limited general information in English, and cannot rule out a serious problem. For non-emergency advice, consult a verified CallADoc doctor. Seek immediate professional help if you feel seriously unwell; do not wait for a CallADoc appointment.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false
+      }
+    },
+    {
+      "query": "What causes it?",
+      "selection": "none",
+      "facet": "causes",
+      "referential": true,
+      "reply": {
+        "intent": "clarification",
+        "response": "Please name the health topic and ask one general question. I do not have a supported answer for that follow-up or enough information to choose a topic. For personal advice, consult a verified CallADoc doctor.\n\nThis information is general guidance only and is not a medical diagnosis. Please book a consultation with a verified doctor for personal medical advice.",
+        "emergency": false
+      }
+    }
+  ],
+  "validation": {
+    "initial": {
+      "passed": 350,
+      "failed": 1,
+      "total": 351,
+      "suites": 11
+    },
+    "initialFailure": "New UI test counted both React Native component wrappers and native hosts. Fixed test selector to count only native accessibility hosts; no application change required.",
+    "affectedSuiteRerun": {
+      "passed": 35,
+      "failed": 0,
+      "total": 35
+    },
+    "finalUniqueTests": 351,
+    "finalSuites": 11,
+    "typeScript": "PASS",
+    "whitespace": "PASS: git diff --check; new files separately checked for trailing whitespace and final newline"
+  },
+  "evaluations": {
+    "COMPARISON BENCHMARK": {
+      "correct": 23,
+      "total": 24,
+      "accuracy": 0.9583333333333334,
+      "results": [
+        {
+          "label": "lay terminology",
+          "query": "Explain high BP in simple words",
+          "expected": "disease-hypertension",
+          "actual": "disease-hypertension",
+          "correct": true
+        },
+        {
+          "label": "lay terminology",
+          "query": "Tell me about the sugar disease",
+          "expected": "disease-diabetes",
+          "actual": "disease-diabetes",
+          "correct": true
+        },
+        {
+          "label": "lay terminology",
+          "query": "Why clean my hands before meals",
+          "expected": "general-handwashing",
+          "actual": "general-handwashing",
+          "correct": true
+        },
+        {
+          "label": "lay terminology",
+          "query": "Information on nursing a baby",
+          "expected": "child-breastfeeding",
+          "actual": "clarification",
+          "correct": false
+        },
+        {
+          "label": "spelling",
+          "query": "Information about maleria",
+          "expected": "disease-malaria",
+          "actual": "disease-malaria",
+          "correct": true
+        },
+        {
+          "label": "spelling",
+          "query": "Explain hypertention",
+          "expected": "disease-hypertension",
+          "actual": "disease-hypertension",
+          "correct": true
+        },
+        {
+          "label": "spelling",
+          "query": "Tell me about diabetis",
+          "expected": "disease-diabetes",
+          "actual": "disease-diabetes",
+          "correct": true
+        },
+        {
+          "label": "spelling",
+          "query": "What is anxety",
+          "expected": "mental-anxiety",
+          "actual": "mental-anxiety",
+          "correct": true
+        },
+        {
+          "label": "ordinary",
+          "query": "Why are pulses part of a varied diet",
+          "expected": "nutrition-grains",
+          "actual": "nutrition-grains",
+          "correct": true
+        },
+        {
+          "label": "ordinary",
+          "query": "Explain postpartum checkups",
+          "expected": "maternal-postnatal",
+          "actual": "maternal-postnatal",
+          "correct": true
+        },
+        {
+          "label": "ordinary",
+          "query": "Help me understand tuberculosis",
+          "expected": "disease-tb",
+          "actual": "disease-tb",
+          "correct": true
+        },
+        {
+          "label": "ordinary",
+          "query": "What is medication safety",
+          "expected": "med-safety",
+          "actual": "med-safety",
+          "correct": true
+        },
+        {
+          "label": "mixed",
+          "query": "Tell me about malaria and diabetes",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        },
+        {
+          "label": "mixed",
+          "query": "Explain anxiety and hypertension",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        },
+        {
+          "label": "ambiguous",
+          "query": "Tell me about pressure",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        },
+        {
+          "label": "ambiguous",
+          "query": "What causes it",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        },
+        {
+          "label": "safety",
+          "query": "High BP and pain in my chest",
+          "expected": "emergency",
+          "actual": "emergency",
+          "correct": true
+        },
+        {
+          "label": "safety",
+          "query": "Nursing a baby who is not breathing",
+          "expected": "emergency",
+          "actual": "emergency",
+          "correct": true
+        },
+        {
+          "label": "safety",
+          "query": "Do I have diabetis",
+          "expected": "diagnosis",
+          "actual": "diagnosis",
+          "correct": true
+        },
+        {
+          "label": "safety",
+          "query": "What dose should I use for maleria",
+          "expected": "medication",
+          "actual": "medication",
+          "correct": true
+        },
+        {
+          "label": "unsupported",
+          "query": "Explain planetary geology",
+          "expected": "unknown",
+          "actual": "unknown",
+          "correct": true
+        },
+        {
+          "label": "unsupported",
+          "query": "Interpret my blood test numbers",
+          "expected": "unknown",
+          "actual": "unknown",
+          "correct": true
+        },
+        {
+          "label": "follow-up",
+          "query": "Explain malaria → What causes it",
+          "expected": "disease-malaria",
+          "actual": "disease-malaria",
+          "correct": true
+        },
+        {
+          "label": "follow-up",
+          "query": "Explain diabetes → What about children",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        }
+      ]
+    },
+    "HELD-OUT EVALUATION": {
+      "correct": 20,
+      "total": 20,
+      "accuracy": 1,
+      "results": [
+        {
+          "label": "ordinary",
+          "query": "Could you give general facts about tuberculosis transmission",
+          "expected": "disease-tb",
+          "actual": "disease-tb",
+          "correct": true
+        },
+        {
+          "label": "ordinary",
+          "query": "I would like information about postpartum care",
+          "expected": "maternal-postnatal",
+          "actual": "maternal-postnatal",
+          "correct": true
+        },
+        {
+          "label": "ordinary",
+          "query": "What do lentils contribute to a balanced diet",
+          "expected": "nutrition-grains",
+          "actual": "nutrition-grains",
+          "correct": true
+        },
+        {
+          "label": "ordinary",
+          "query": "Please explain persistent sadness and mental health",
+          "expected": "mental-depression",
+          "actual": "mental-depression",
+          "correct": true
+        },
+        {
+          "label": "ordinary",
+          "query": "What is a medication list",
+          "expected": "med-list",
+          "actual": "med-list",
+          "correct": true
+        },
+        {
+          "label": "ordinary",
+          "query": "Please share general facts about coughs",
+          "expected": "general-cough",
+          "actual": "general-cough",
+          "correct": true
+        },
+        {
+          "label": "lay terminology",
+          "query": "Please explain raised blood pressure",
+          "expected": "disease-hypertension",
+          "actual": "disease-hypertension",
+          "correct": true
+        },
+        {
+          "label": "lay terminology",
+          "query": "Tell me about hand washing for hygiene",
+          "expected": "general-handwashing",
+          "actual": "general-handwashing",
+          "correct": true
+        },
+        {
+          "label": "spelling",
+          "query": "General education on diahorrea",
+          "expected": "general-diarrhoea",
+          "actual": "general-diarrhoea",
+          "correct": true
+        },
+        {
+          "label": "spelling",
+          "query": "Can you explain vaccinaton",
+          "expected": "child-vaccination",
+          "actual": "child-vaccination",
+          "correct": true
+        },
+        {
+          "label": "ambiguous",
+          "query": "What about my health",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        },
+        {
+          "label": "mixed",
+          "query": "Compare malaria versus tuberculosis",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        },
+        {
+          "label": "mixed",
+          "query": "Explain sleep and the movement of planets",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        },
+        {
+          "label": "safety",
+          "query": "Trouble sleeping and I cannot catch her breath",
+          "expected": "emergency",
+          "actual": "emergency",
+          "correct": true
+        },
+        {
+          "label": "safety",
+          "query": "Information about nutrition but I took too many tablets",
+          "expected": "emergency",
+          "actual": "emergency",
+          "correct": true
+        },
+        {
+          "label": "safety",
+          "query": "Could I have malairia",
+          "expected": "diagnosis",
+          "actual": "diagnosis",
+          "correct": true
+        },
+        {
+          "label": "safety",
+          "query": "Recommend a dosage for this cough",
+          "expected": "medication",
+          "actual": "medication",
+          "correct": true
+        },
+        {
+          "label": "follow-up",
+          "query": "Information on loose stools → How can I prevent it",
+          "expected": "general-diarrhoea",
+          "actual": "general-diarrhoea",
+          "correct": true
+        },
+        {
+          "label": "follow-up",
+          "query": "Information on hypertension → What about children",
+          "expected": "clarification",
+          "actual": "clarification",
+          "correct": true
+        },
+        {
+          "label": "unsupported",
+          "query": "Calculate orbital velocity",
+          "expected": "unknown",
+          "actual": "unknown",
+          "correct": true
+        }
+      ]
+    }
+  },
+  "fixtures": [
+    {
+      "file": "mobile/__tests__/fixtures/chatbotEvaluation.json",
+      "sha256": "a9cd0292bd9898cebd980e0c1a021f52c757751726c2941cdec3a6e3ef522f55"
+    },
+    {
+      "file": "mobile/__tests__/fixtures/chatbotHeldOut.json",
+      "sha256": "da9448f194b30f004d97289c886077c099f4e48007aa6a64be6c26d57f3814e6"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://www.who.int/news-room/questions-and-answers/item/human-metapneumovirus-(hmpv)-infection",
+      "verifiedOn": "2026-11-06",
+      "scope": "Common cold respiratory virus example, overlapping symptoms and professional assessment; hMPV is not presented as the only cold virus."
+    },
+    {
+      "url": "https://www.who.int/news-room/fact-sheets/detail/mental-disorders",
+      "verifiedOn": "2026-11-06",
+      "scope": "Eating-disorder awareness and professional assessment; no diagnostic checklist or treatment plan."
+    }
+  ],
+  "clinicalReview": "pending_clinical_review",
+  "deviceVerification": "NOT VERIFIED for these changes; Pixel 7 visual hierarchy and TalkBack need manual checking.",
+  "privacy": "Pure bundled rules and session-local memory preserved; no Firebase, network inference or transcript persistence added.",
+  "unrelatedWorkingTree": "224 pre-existing entries content hashes unchanged",
+  "fixtureComparison": "Both evaluation fixtures match HEAD byte-for-byte"
+}

@@ -11,6 +11,8 @@ const {TextInput}=require('react-native');
 const {Action,Copy}=require('../src/ui/design');
 const {MEDICAL_DISCLAIMER}=require('../src/constants/disclaimers');
 let tree;
+const hosts=()=>tree.root.findAll(n=>typeof n.type==='string'&&n.props.accessible&&typeof n.props.accessibilityLabel==='string');
+const replyHosts=()=>hosts().filter(n=>/^(Assistant:|Urgent guidance:)/.test(n.props.accessibilityLabel));
 const text=()=>JSON.stringify(tree.toJSON());
 async function render(){await act(async()=>{tree=create(<Chatbot/>);});}
 async function press(title){await act(async()=>tree.root.findAll(n=>n.props.accessibilityRole==='button'&&n.props.accessibilityLabel===title)[0].props.onPress());}
@@ -81,7 +83,7 @@ test('emergency reply, input errors and bounded conversation',async()=>{
 test.each(require('../src/screens/shared/ChatbotScreen').suggestedQuestions)('suggestion uses supported rules: %s',async question=>{
  await render();const reply=require('../src/services/chatbotService').askChatbot(question);expect(reply.intent).not.toBe('unknown');await press(question);
  const displayed=tree.root.findAllByType(Copy).map(n=>React.Children.toArray(n.props.children).filter(c=>typeof c==='string').join(''));
- expect(displayed).toContain(`Assistant: ${reply.response}`);
+ expect(replyHosts().map(n=>n.props.accessibilityLabel)).toContain(`Assistant: ${reply.response}`);
  expect(tree.root.findAll(n=>n.props.accessibilityRole==='button'&&n.props.accessibilityLabel===question)).toHaveLength(0);
 });
 test('composer, mascot and rule-based limitations are visible without opening About',async()=>{
@@ -116,7 +118,7 @@ test.each(['reset','logout','account switch','blur','background','unmount'])('to
  if(boundary==='unmount'){await act(async()=>tree.unmount());tree=null;await render();}
  expect(text()).not.toContain('parasites passed');await ask('What causes it');
  expect(text()).toContain('Please name the health topic');expect(text()).not.toContain('parasites passed');
- const responses=tree.root.findAllByType(Copy).map(n=>React.Children.toArray(n.props.children).filter(c=>typeof c==='string').join('')).filter(s=>s.startsWith('Assistant:'));
+ const responses=replyHosts().map(n=>n.props.accessibilityLabel);
  expect(responses).toHaveLength(1);expect(responses[0].split(MEDICAL_DISCLAIMER)).toHaveLength(2);
 });
 
@@ -125,7 +127,7 @@ test('safety notices and disclaimers stay accessible in scrollable content, outs
  const copy=tree.root.findByType(ScrollView).findAllByType(Copy);
  expect(copy.some(node=>node.props.children===require('../src/services/chatbotService').CHATBOT_DISCLAIMER&&node.props.accessible&&node.props.selectable)).toBe(true);
  expect(copy.some(node=>typeof node.props.children==='string'&&node.props.children.includes('Keywords can miss emergencies')&&node.props.accessible)).toBe(true);
- expect(copy.some(node=>node.props.children===require('../src/services/chatbotService').CHATBOT_WELCOME&&node.props.accessible)).toBe(true);
+ expect(hosts().some(node=>node.props.accessibilityLabel===require('../src/services/chatbotService').CHATBOT_WELCOME)).toBe(true);
  const footer=tree.root.findByProps({testID:'health-chat-composer'});
  expect(footer.findAllByType(Copy).some(node=>typeof node.props.children==='string'&&node.props.children.includes('not a triage service'))).toBe(false);
 });
@@ -147,17 +149,17 @@ test('keyboard Send submits once, clears input and cannot submit empty text',asy
  expect(input.props.accessibilityHint).toContain('without identifying details');
  await act(async()=>input.props.onSubmitEditing());expect(tree.root.findByType(TextInput).props.value).toBe('');
  await act(async()=>tree.root.findByType(TextInput).props.onSubmitEditing());
- const replies=tree.root.findAllByType(Copy).filter(node=>node.props.accessibilityLiveRegion==='polite');expect(replies).toHaveLength(1);
+ const replies=replyHosts().filter(node=>node.props.accessibilityLiveRegion==='polite');expect(replies).toHaveLength(1);
  expect(text()).toContain('whole grains');
 });
 test('only the newest reply announces; emergency announcements include the disclaimer',async()=>{
  await render();await ask('healthy eating');await ask('My baby is not breathing');
- const responses=tree.root.findAllByType(Copy).filter(node=>['polite','assertive','none'].includes(node.props.accessibilityLiveRegion));
+ const responses=replyHosts();
  expect(responses.map(node=>node.props.accessibilityLiveRegion)).toEqual(['none','assertive']);
  expect(responses[0].props.accessibilityRole).toBeUndefined();expect(responses[1].props.accessibilityRole).toBe('alert');
  expect(responses.every(node=>node.props.accessible)).toBe(true);
- expect(React.Children.toArray(responses[1].props.children).join('')).toContain(MEDICAL_DISCLAIMER);
- await ask('hello');const historical=tree.root.findAllByType(Copy).filter(node=>node.props.accessibilityLiveRegion==='none');
+ expect(responses[1].props.accessibilityLabel).toContain(MEDICAL_DISCLAIMER);
+ await ask('hello');const historical=replyHosts().filter(node=>node.props.accessibilityLiveRegion==='none');
  expect(historical).toHaveLength(2);expect(historical.every(node=>node.props.accessibilityRole!=='alert')).toBe(true);
 });
 test('input blur releases clearance; resetting does not retain draft or focused controls',async()=>{
@@ -169,9 +171,28 @@ test('input blur releases clearance; resetting does not retain draft or focused 
  expect(tree.root.findAll(node=>node.props.accessibilityLabel==='Dismiss keyboard')).toHaveLength(0);
 });
 function luminance(hex){const values=hex.slice(1).match(/../g).map(value=>parseInt(value,16)/255).map(value=>value<=0.04045?value/12.92:((value+0.055)/1.055)**2.4);return values[0]*0.2126+values[1]*0.7152+values[2]*0.0722;}
+test('medical guidance is separated without shrinking or losing its accessible response',async()=>{
+ await render();await ask('What causes a cold?');
+ const guidance=tree.root.findAll(node=>typeof node.type==='string'&&node.props.testID==='assistant-medical-guidance');expect(guidance).toHaveLength(2);
+ for(const section of guidance){
+  expect(section.props.style.borderTopWidth).toBe(1);
+  const copy=section.findAllByType(Copy);expect(copy[0].props.children).toBe('Medical guidance');
+  expect(copy[1].props.children).toBe(MEDICAL_DISCLAIMER);expect(copy[1].props.style.fontSize).toBe(16);
+  expect(copy[1].props.selectable).toBe(true);expect(copy.every(n=>n.props.accessible===false)).toBe(true);
+ }
+ expect(replyHosts()).toHaveLength(1);expect(replyHosts()[0].props.accessibilityLabel.split(MEDICAL_DISCLAIMER)).toHaveLength(2);
+});
+test('sleep duration and pizza answers render with accessible disclaimers; reset clears intent context',async()=>{
+ await render();await ask('How many hours of sleep are good for me?');
+ expect(text()).toContain('CDC adult guidance');expect(replyHosts()[0].props.accessibilityLabel).toContain(MEDICAL_DISCLAIMER);
+ await ask('Is pizza good for me?');expect(text()).toContain('portion size');
+ expect(replyHosts()).toHaveLength(2);expect(replyHosts().every(n=>n.props.accessibilityLabel.split(MEDICAL_DISCLAIMER).length===2)).toBe(true);
+ await press('Reset conversation');await ask('How many hours?');
+ expect(text()).not.toContain('CDC adult guidance');expect(text()).toContain('Please name the health topic');
+});
 test.each(['light','dark'])('%s chatbot text and action colors meet 4.5:1 contrast',scheme=>{
  const p=require('../src/ui/theme').palettes[scheme];
- for(const [foreground,background]of [[p.text,p.background],[p.text,p.mint],[p.text,p.surface],[p.muted,p.background],[p.muted,p.surface],[p.accent,p.background],[p.accent,p.surface],[p.onPrimary,p.primary]]){
+ for(const [foreground,background]of [[p.text,p.background],[p.text,p.mint],[p.text,p.surface],[p.muted,p.background],[p.muted,p.surface],[p.muted,p.mint],[p.accent,p.background],[p.accent,p.surface],[p.onPrimary,p.primary]]){
   const values=[luminance(foreground),luminance(background)].sort((a,b)=>b-a);
   expect((values[0]+0.05)/(values[1]+0.05)).toBeGreaterThanOrEqual(4.5);
  }

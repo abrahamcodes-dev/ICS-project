@@ -17,7 +17,7 @@ const developmentCases=[
  ['spelling','What is a headace','general-headache'],
  ['specificity','What is vaccination for a baby','child-vaccination'],
  ['specificity','Explain complementary feeding for babies','child-complementary-feeding'],
- ['specificity','What are the benefits of fibre in a diet','nutrition-grains'],
+ ['specificity','What are the benefits of fibre in a diet','nutrition-fibre'],
  ['specificity','Explain depression and mental health','mental-depression'],
  ['mixed','Explain flu and fever','clarification'],
  ['mixed','Tell me about salt and anxiety','clarification'],
@@ -96,7 +96,7 @@ test.each(['What causes it','What about children','How can I prevent it'])('[fol
 test('explicit topic/facet uses its own fixed answer and never old context',()=>{
  const session=createHealthChatSession();session.ask('Explain diabetes');
  expect(session.ask('What causes malaria').followUp).toBe('causes');
- expect(session.ask('What causes diabetes').intent).toBe('clarification');
+ expect(session.ask('What causes diabetes').intent).toBe('unknown');
 });
 test.each(['Reset','unknown','ambiguous','medication','diagnosis'])('[isolation] %s invalidates the old topic',kind=>{
  const session=createHealthChatSession();session.ask('Explain malaria');
