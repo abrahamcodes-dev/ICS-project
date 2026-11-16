@@ -146,3 +146,22 @@ test('hosted admission preserves nested consultation signalling access within Ru
 });
 
 test('an enrolled patient cannot change the invitation to a doctor role',async()=>{await db.doc('academicDemoInvitations/'+email).update({expectedRole:'doctor'});await expect(requireAcademicAdmission(auth(),true,hosted)).rejects.toThrow();await assertFails(getDoc(doc(client(),'users/'+uid)));});
+
+test.each(['doctorProfiles','doctorCredentials','verificationRequests'])('hosted submitted doctor retains owner reads - %s',async collection=>{
+ const now=Timestamp.now(),created=Timestamp.fromMillis(now.toMillis()-60000),requestId='11111111-1111-4111-8111-111111111111',credentialId='22222222-2222-4222-8222-222222222222';
+ const professional={professionalName:'Dr Demo Doctor',specialty:'General Practitioner',registrationNumber:'TEST-ACADEMIC-0001',issuingAuthority:'Fictional Academic Test Authority'};
+ await db.doc('users/'+uid).set({...identity,role:'doctor',verificationStatus:'pending',updatedAt:now.toDate().toISOString()});
+ for(const path of ['academicDemoTesters/'+uid,'academicDemoInvitations/'+email])await db.doc(path).update({expectedRole:'doctor'});
+ const profile={uid,...professional,revision:1,activeRequestId:null,approvedRequestId:null,schemaVersion:1,createdAt:created,updatedAt:created};
+ await db.doc('doctorProfiles/'+uid).set(profile);
+ await assertSucceeds(getDoc(doc(client(),'doctorProfiles/'+uid)));
+ await db.doc('doctorProfiles/'+uid).update({activeRequestId:requestId,updatedAt:now});
+ const reference={credentialId,category:'medical_license',generation:'123',checksum:'a'.repeat(64)};
+ await db.doc('doctorCredentials/'+credentialId).set({...reference,doctorUid:uid,storagePath:`doctorCredentials/${uid}/${credentialId}/document`,contentType:'image/png',sizeBytes:34142,state:'attached',requestId,schemaVersion:1,createdAt:created,updatedAt:now,expiresAt:Timestamp.fromMillis(created.toMillis()+900000)});
+ await db.doc('verificationRequests/'+requestId).set({requestId,doctorUid:uid,profileRevision:1,professional,credentials:[reference],previousRequestId:null,state:'submitted',reviewedAt:null,reviewerUid:null,schemaVersion:1,createdAt:now,updatedAt:now,submittedAt:now});
+ await assertSucceeds(getDoc(doc(client(),'users/'+uid)));
+ const id=collection==='doctorProfiles'?uid:collection==='doctorCredentials'?credentialId:requestId;
+ await assertSucceeds(getDoc(doc(client(),collection+'/'+id)));
+ const other=rules.authenticatedContext('unrelated-doctor',{email:'other@example.test',email_verified:true}).firestore();
+ await assertFails(getDoc(doc(other,collection+'/'+id)));
+});

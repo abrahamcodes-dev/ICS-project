@@ -134,8 +134,11 @@ service cloud.firestore {
 
   // 3D mutations use the secured callable; only private owner gets are allowed.
   function doctorOwner(uid) {
-    return isOwner(uid) && isDoctor() && patientIdentityStrings(currentIdentity())
-      && identityCalendar(currentIdentity().createdAt) && identityCalendar(currentIdentity().updatedAt);
+    let actor = currentIdentity();
+    // The existing workflow validator preserves canonical identity, active status,
+    // doctor verification state, strings and calendar checks without repeated gets.
+    return isOwner(uid) && exists(identityPath()) && workflowIdentity(actor, uid)
+      && actor.role == 'doctor';
   }
   function doctorReference(value) {
     return value == null || (value is string && patientText(value, 128)

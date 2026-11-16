@@ -1,7 +1,7 @@
 # Hosted functional verification and privacy — Checkpoint 2
 
 Date: 16 November 2026. Status: in progress; patient onboarding verified,
-doctor onboarding required.
+doctor request submitted, deployed Rules fix awaiting live doctor confirmation.
 
 ## Confirmed starting point
 
@@ -89,8 +89,12 @@ no account-creation action and no token-sharing option. Passwords/refresh tokens
 and ID tokens are used only in browser memory for direct Firebase requests; helper
 receipts whitelist role/email/notice acknowledgement and time, with no tokens.
 Normal server email verification, invitation role/binding/expiry, notice and
-canonical pending-doctor checks remain. At this evidence update owner interaction
-was still pending; no completed doctor recovery or approval is claimed.
+canonical pending-doctor checks remain. The owner subsequently completed recovery.
+An independent read confirmed enabled/verified Auth, active canonical doctor role,
+pending verification, matching UID/doctor-role invitation and membership, active
+expiry and recorded hosted notice acknowledgement. No administrator claim exists.
+No doctor approval was granted. Credential submission and administrator review
+remain the next manual steps; this confirmation is not evidence of clinical access.
 
 Local mobile fix: one shared registration-choice selection in AuthForm forwards
 hosted doctor notice acknowledgement through email registration and recovery.
@@ -114,6 +118,106 @@ After recovery verification, normal profile/draft, medical-license upload,
 submission and administrator evidence review must precede approval. The installed
 APK still contains the registration UI bug; this fix requires the later approved
 replacement build and is not represented as shipped.
+
+## Submitted doctor profile read failure
+
+Owner reported a ready synthetic medical license followed by a permission message
+and a blank/disabled form after attempting submission. Read-only hosted inspection
+confirmed the professional draft's four fields and revision 1 remain intact,
+activeRequestId is bound to one submitted verification request, and its medical
+license is attached to that request. Storage metadata confirms the object still
+exists with matching generation, content type and size. Auth remains verified and
+enabled, canonical doctor remains active/pending, admission is bound/unexpired and
+notice is recorded. No administrator claim or approval was granted.
+
+Cloud Run callable logs show HTTP 200 for draft save, credential finalization and
+verification submission. The submission transaction created the submitted request;
+this is not a failed submission and is not grounds to upload or submit again.
+
+Exact reproduced denied operation: direct Firestore get of the submitted owner's
+doctorProfiles document under generated hosted Rules. The same read passes for
+the editable draft, then fails after activeRequestId becomes a valid UUID with
+"maximum of 1000 expressions to evaluate has been reached". Own identity,
+attached-credential and submitted-request reads pass in that reproduction. Mobile
+load/reload uses this profile get; a failed initial load leaves loaded=false and
+the form blank/disabled. Its generic permission mapping makes the successful
+submission appear failed. Callable logs do not log individual subsequent client
+SDK reads; the isolated Rules reproduction establishes the specific failure rather
+than attributing an unobserved client request to a separate callable.
+
+Local fix: doctorOwner caches currentIdentity and delegates the same canonical,
+active-status, verification-state, string and calendar validation to the existing
+workflowIdentity predicate, retaining explicit ownership/existence and doctor-role
+checks. Admission checks and all document validators remain unchanged. No approval
+requirement was added to pending-doctor onboarding, and no security checks were
+removed to avoid the expression limit.
+
+Focused final results: 3 hosted post-submission owner-read regressions passed
+(22 unrelated academic tests deliberately filtered/skipped), plus 41 doctor-profile
+authorization Rules tests passed; two suites, 44 selected tests, zero final failures.
+Before the fix, the profile regression failed with the expression-limit error while
+the credential/request cases passed. Tests used isolated demo projects/ports and
+synthetic fixtures; hosted records and the interactive emulator data were not used
+as writable test fixtures. The academic emulator runner now accepts an optional
+validated test-name filter while retaining all project/port/source safety checks.
+Runner syntax and Git whitespace checks passed. No backend deployment, Rules
+deployment, APK rebuild, data repair or new commit was performed during diagnosis.
+
+Minimum recovery pending owner approval: deploy only the reviewed Firestore Rules
+artifact to calladoc-academic-demo through the existing clean-release safeguards,
+then use Refresh status and draft or reopen the hosted application. The original
+request must remain submitted and its credential attached; no duplicate submission
+or reupload is needed. Normal administrator review/approval remains a separate
+explicit workflow. A Rules-only deployment does not require rebuilding the APK.
+
+## Deferred final UI polish
+
+Owner reported Android navigation header/status-bar overlap. Record for the final
+UI polish checkpoint: inspect safe-area/header insets and verify on the existing
+Pixel 7. No navigation layout change, visual verification claim or APK rebuild was
+made during this submission diagnosis.
+
+## Approved Firestore Rules-only deployment
+
+Owner approved deployment after complete affected suites, rollback preservation,
+live authorization verification and a separate commit. Complete final isolated
+results: doctor-profile and verification domain Rules 2 suites / 79 tests passed;
+full hosted academic admission/Rules suite 1 suite / 25 tests passed. Total:
+**3 suites / 104 tests passed, zero failed/skipped**, including every previously
+filtered academic test. No mobile or unrelated backend suites were rerun.
+
+The existing hosted source matched the reviewed baseline. Comparing generated
+artifacts proved the only source difference was doctorOwner. A disposable verified
+release reused unchanged runtime inventory; only firestore.rules changed hash.
+A missing local indexes artifact was recovered from the tracked file only after
+its hash matched the previous inventory; indexes were not deployed. Existing
+inventory, exact-project and deployment-directory/environment guards all passed.
+
+Command: Firebase CLI `deploy --only firestore:rules --project
+calladoc-academic-demo --config firebase.json --non-interactive` from the verified
+disposable release. Compilation and deployment succeeded. No Functions, Storage
+Rules, indexes, application records or approval decisions were deployed/changed.
+
+Published Ruleset: `805b25d1-ff8a-442d-8c1f-3ca15b7d0c4c`.
+Previous Ruleset: `eab70454-03a6-432b-9891-6c0e3aa71619`.
+The published source was re-read from the Firebase Rules API and matched the
+reviewed artifact exactly (normalizing line endings); artifact SHA-256:
+`33b59fd8f33db16b05571d21bac9ff9dbeca666e20d66d215ad56e900dadcb1e`.
+
+Previous release metadata, full previous Ruleset/source, deployed source,
+verification receipt and authenticated release-switch rollback instructions are
+preserved outside Git under `%USERPROFILE%/CallADoc-checkpoints/checkpoint-2/`
+in the folder named for the new Ruleset. Rollback repoints only this project's
+cloud.firestore release to the saved previous Ruleset; it requires owner approval.
+
+Live doctor-session verification and native refresh are pending owner interaction.
+An independent anonymous direct read of the hosted submitted request was rejected
+with HTTP 403 after deployment; no record mutation was attempted.
+A verified loopback page performs six read-only checks: pending canonical identity,
+own professional profile, own submitted request, anonymous denial, cross-owner
+profile denial and pending-doctor clinical-availability denial. Passwords/tokens
+are not persisted or sent to the helper; only non-secret result metadata is saved.
+No IAM-bypassing read is counted as successful client Rules authorization.
 
 No new application/dependency/native changes, deployment, APK rebuild, database
 reset, account deletion or push occurred during this checkpoint preparation.

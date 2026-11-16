@@ -4,6 +4,8 @@ const crypto=require('node:crypto');
 const root=path.resolve(__dirname,'../..'),fn=path.join(root,'functions');
 async function main(){
  if(process.version!=='v22.23.3')throw Error('Node 22.23.3 required');
+ const focus=process.argv[2];
+ if(process.argv.length>3||(focus&&!/^[A-Za-z0-9 _.-]+$/.test(focus)))throw Error('Optional literal test-name filter only');
  const marker=JSON.parse(fs.readFileSync(path.join(root,'.calladoc-academic-checks.json'),'utf8'));
  if(marker.purpose!=='academic-admission-isolation-v1'||path.resolve(marker.source)===root)throw Error('Disposable source copy required');
  for(const item of marker.files)for(const base of [root,marker.source])if(crypto.createHash('sha256').update(fs.readFileSync(path.join(base,item.path))).digest('hex')!==item.sha256)throw Error('Source/workspace changed; resynchronize before execution');
@@ -22,7 +24,7 @@ async function main(){
  const env={...process.env,PATH:path.dirname(process.execPath)+path.delimiter+process.env.PATH};
  for(const k of Object.keys(env))if(/^(GOOGLE_|GCLOUD_|FIREBASE_|EXPO_PUBLIC_|PAYMENT_SIMULATION_)/.test(k)||k.endsWith('_EMULATOR_HOST')||['FUNCTIONS_EMULATOR','NODE_OPTIONS'].includes(k))delete env[k];
  env.DEBUG='';env.CI='true';env.XDG_CONFIG_HOME=fs.mkdtempSync(path.join(os.tmpdir(),'calladoc-academic-cli-'));env.GCLOUD_PROJECT='demo-calladoc-academic-tests';env.GOOGLE_CLOUD_PROJECT=env.GCLOUD_PROJECT;env.FUNCTIONS_EMULATOR='true';env.FIREBASE_CONFIG=JSON.stringify({projectId:env.GCLOUD_PROJECT,storageBucket:env.GCLOUD_PROJECT+'.appspot.com'});
- const result=spawnSync(process.execPath,['node_modules/firebase-tools/lib/bin/firebase.js','emulators:exec','--only','auth,firestore,storage','--project',env.GCLOUD_PROJECT,'--config','firebase.academic-test.json','node node_modules/jest/bin/jest.js --config jest.academic-emulator.config.js --runInBand'],{cwd:fn,env,stdio:'inherit'});
+ const result=spawnSync(process.execPath,['node_modules/firebase-tools/lib/bin/firebase.js','emulators:exec','--only','auth,firestore,storage','--project',env.GCLOUD_PROJECT,'--config','firebase.academic-test.json','node node_modules/jest/bin/jest.js --config jest.academic-emulator.config.js --runInBand'+(focus?' --testNamePattern="'+focus+'"':'')],{cwd:fn,env,stdio:'inherit'});
  if(result.error)throw result.error;process.exitCode=result.status??1;
 }
 main().catch(e=>{console.error(e.message);process.exitCode=1;});
