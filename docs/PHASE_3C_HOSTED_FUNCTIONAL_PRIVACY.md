@@ -1,7 +1,7 @@
 # Hosted functional verification and privacy — Checkpoint 2
 
 Date: 16 November 2026. Status: in progress; patient onboarding verified,
-doctor request submitted, deployed Rules fix awaiting live doctor confirmation.
+doctor request submitted, deployed Rules fix verified live; administrator review pending.
 
 ## Confirmed starting point
 
@@ -210,7 +210,15 @@ preserved outside Git under `%USERPROFILE%/CallADoc-checkpoints/checkpoint-2/`
 in the folder named for the new Ruleset. Rollback repoints only this project's
 cloud.firestore release to the saved previous Ruleset; it requires owner approval.
 
-Live doctor-session verification and native refresh are pending owner interaction.
+Live doctor-session verification passed all six checks: own canonical identity,
+professional profile and submitted request each returned HTTP 200; anonymous and
+cross-owner profile reads and pending-doctor clinical availability each returned
+HTTP 403. The private receipt contains result metadata only, not session tokens.
+The owner separately confirmed the native doctor screen refreshed successfully
+and restored the saved professional details and submitted verification request.
+The existing Rules fix is committed as 3ea4b7d; no duplicate source commit or
+successful-suite rerun is needed. Normal administrator evidence review and
+approval remain pending; no reupload, resubmission or programmatic approval occurred.
 An independent anonymous direct read of the hosted submitted request was rejected
 with HTTP 403 after deployment; no record mutation was attempted.
 A verified loopback page performs six read-only checks: pending canonical identity,
