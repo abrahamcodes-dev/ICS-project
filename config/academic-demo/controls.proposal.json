@@ -1,7 +1,8 @@
 {
   "status": "IMPLEMENTED_LOCALLY_NOT_DEPLOYED",
   "region": "us-central1",
-  "androidApplicationId": "com.calladoc.academicdemo",
+  "androidApplicationId": "com.calladoc.app.demo",
+  "androidDisplayName": "CallADoc Demo",
   "admission": {
     "collection": "academicDemoTesters",
     "serverManaged": true,
