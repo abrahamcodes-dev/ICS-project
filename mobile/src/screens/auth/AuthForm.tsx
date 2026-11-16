@@ -31,6 +31,7 @@ export default function AuthForm({mode,onAlternate,footer,initialRole='patient',
  const [role,setRole]=useState<'patient'|'doctor'>(initialRole),[visible,setVisible]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null);
  const [confirmVisible,setConfirmVisible]=useState(false);
  const [consent,setConsent]=useState<ConsentChoice>({privacyAcknowledged:false,sharingDecision:null});
+ const registrationChoice=role==='patient'||isHostedAcademicDemo()?consent:undefined;
  const [photo,setPhoto]=useState<AvatarImage|null>(null),[picking,setPicking]=useState(false);const photoRef=useRef<AvatarImage|null>(null),pickLock=useRef(false);
  const lock=useRef(false),alive=useRef(true);useEffect(()=>{alive.current=true;return()=>{alive.current=false;if(!lock.current)void photoRef.current?.dispose();};},[]);
  const [googleBusy,setGoogleBusy]=useState(false);
@@ -44,7 +45,7 @@ export default function AuthForm({mode,onAlternate,footer,initialRole='patient',
   try{
    if(mode==='login')await loginGoogleUser();
    else {
-    const identity=await registerGoogleUser(name.trim(),role,role==='patient'||isHostedAcademicDemo()?consent:undefined);
+    const identity=await registerGoogleUser(name.trim(),role,registrationChoice);
     if(identity){
      if(photoRef.current){const chosen=photoRef.current;photoRef.current=null;void Promise.resolve().then(()=>(require('../../services/avatarService') as typeof import('../../services/avatarService')).uploadRegistrationAvatar(identity.uid,chosen)).catch(()=>chosen.dispose());}
      onComplete?.(identity.uid);
@@ -62,7 +63,7 @@ export default function AuthForm({mode,onAlternate,footer,initialRole='patient',
   lock.current=true;setBusy(true);try{
    if(mode==='login')await loginUser(email.trim(),password);
    else {
-    const identity=mode==='recover'?(role==='patient'?await completeUserRegistration(name.trim(),role,consent):await completeUserRegistration(name.trim(),role)):(role==='patient'?await registerUser(email.trim(),password,name.trim(),role,consent):await registerUser(email.trim(),password,name.trim(),role));
+    const identity=mode==='recover'?await completeUserRegistration(name.trim(),role,registrationChoice):await registerUser(email.trim(),password,name.trim(),role,registrationChoice);
     if(identity){if(photoRef.current){const chosen=photoRef.current;photoRef.current=null;void Promise.resolve().then(()=>(require('../../services/avatarService') as typeof import('../../services/avatarService')).uploadRegistrationAvatar(identity.uid,chosen)).catch(()=>chosen.dispose());}onComplete?.(identity.uid);}
    }
   }catch(e){if(alive.current)setError(authError(e));else void photoRef.current?.dispose();}finally{lock.current=false;if(alive.current)setBusy(false);}

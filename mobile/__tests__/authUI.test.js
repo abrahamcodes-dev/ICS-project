@@ -20,7 +20,7 @@ test('login trims email but preserves password and toggles visibility',async()=>
 });
 test.each(['patient','doctor'])('%s registration uses existing service with explicit public role',async role=>{
  await render('register',role);await fill('Full name',' Test Person ');await fill('Email','test@example.test');await fill('Password','secret123');await fill('Confirm password','secret123');await press('Create account');
- expect(registerUser).toHaveBeenCalledWith('test@example.test','secret123','Test Person',role,...(role==='patient'?[{privacyAcknowledged:true,sharingDecision:'declined'}]:[]));
+ expect(registerUser).toHaveBeenCalledWith('test@example.test','secret123','Test Person',role,role==='patient'?{privacyAcknowledged:true,sharingDecision:'declined'}:undefined);
 });
 test('invalid form never calls authentication',async()=>{await render('login');await press('Sign in');expect(loginUser).not.toHaveBeenCalled();expect(tree.root.findByType(Notice).props.message).toMatch(/email/);});
 test('partial registration retries completion without creating Auth account',async()=>{await render('recover');await fill('Full name','Test');await press('Retry account setup');expect(completeUserRegistration).toHaveBeenCalledWith('Test','patient',{privacyAcknowledged:true,sharingDecision:'declined'});expect(registerUser).not.toHaveBeenCalled();});
@@ -40,7 +40,7 @@ test('confirmation waits for the existing service to confirm canonical identity'
  await act(async()=>{tree=create(<AuthForm mode="recover" initialRole="doctor" onComplete={onComplete}/>);});
  await fill('Full name','Doctor Test');await press('Retry account setup');expect(onComplete).not.toHaveBeenCalled();
  await act(async()=>resolve({uid:'doctor-confirmed',role:'doctor'}));
- expect(onComplete).toHaveBeenCalledWith('doctor-confirmed');expect(completeUserRegistration).toHaveBeenCalledWith('Doctor Test','doctor');
+ expect(onComplete).toHaveBeenCalledWith('doctor-confirmed');expect(completeUserRegistration).toHaveBeenCalledWith('Doctor Test','doctor',undefined);
 });
 test('failed completion never shows success',async()=>{
  const onComplete=jest.fn();completeUserRegistration.mockRejectedValue({code:'registration-incomplete'});

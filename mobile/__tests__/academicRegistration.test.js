@@ -5,7 +5,7 @@ jest.mock('firebase/functions',()=>({getFunctions:()=>({}),httpsCallable:jest.fn
 jest.mock('firebase/firestore',()=>({getDoc:jest.fn(),doc:jest.fn(()=>({id:'a'.repeat(20)})),collection:jest.fn(()=>({}))}));
 jest.mock('../src/services/notificationDevice',()=>({prepareNotificationLogout:jest.fn()}));
 import {auth} from '../src/services/firebaseConfig';
-import {reload,getIdToken,sendEmailVerification} from 'firebase/auth';
+import {reload,getIdToken,sendEmailVerification,createUserWithEmailAndPassword} from 'firebase/auth';
 import {httpsCallable} from 'firebase/functions';
 import {getDoc} from 'firebase/firestore';
 import {completeUserRegistration} from '../src/services/authService';
@@ -25,9 +25,24 @@ test('verified hosted registration refreshes claims and submits explicit version
  expect(getIdToken).toHaveBeenCalledWith(auth.currentUser,true);
  expect(call).toHaveBeenCalledWith(expect.objectContaining({role:'patient',academicNoticeVersion:ACADEMIC_NOTICE_VERSION,academicNoticeAcknowledged:true,consent:expect.objectContaining({documentVersion:ACADEMIC_NOTICE_VERSION,sharingDecision:'declined'})}));
 });
-test('missing hosted doctor acknowledgement cannot submit registration',async()=>{
+test.each([undefined,{privacyAcknowledged:false,sharingDecision:null}])('missing hosted doctor acknowledgement cannot submit registration %#',async choice=>{
  const call=jest.fn();httpsCallable.mockReturnValue(call);
- await expect(completeUserRegistration('Synthetic','doctor')).rejects.toMatchObject({code:'registration-incomplete'});expect(call).not.toHaveBeenCalled();
+ await expect(completeUserRegistration('Synthetic','doctor',choice)).rejects.toMatchObject({code:'registration-incomplete'});expect(call).not.toHaveBeenCalled();
+});
+
+test('verified existing doctor recovers through protected finalisation without a new Auth account or patient consent',async()=>{
+ const doctor={...identity,role:'doctor',verificationStatus:'pending'},ack={privacyAcknowledged:true,sharingDecision:null};
+ const call=jest.fn().mockRejectedValueOnce({code:'unavailable'}).mockResolvedValueOnce({data:doctor});httpsCallable.mockReturnValue(call);getDoc.mockResolvedValue({exists:()=>true,data:()=>doctor});
+ await expect(completeUserRegistration('Synthetic','doctor',ack)).rejects.toMatchObject({code:'registration-incomplete'});
+ expect(await completeUserRegistration('Synthetic','doctor',ack)).toEqual(doctor);
+ expect(call).toHaveBeenCalledTimes(2);expect(call).toHaveBeenLastCalledWith({fullName:'Synthetic',role:'doctor',academicNoticeVersion:ACADEMIC_NOTICE_VERSION,academicNoticeAcknowledged:true});
+ expect(getIdToken).toHaveBeenCalledWith(auth.currentUser,true);expect(createUserWithEmailAndPassword).not.toHaveBeenCalled();
+});
+
+test('doctor acknowledgement cannot bypass email verification or server admission rejection',async()=>{
+ const ack={privacyAcknowledged:true,sharingDecision:null},call=jest.fn().mockRejectedValue({code:'permission-denied'});httpsCallable.mockReturnValue(call);
+ auth.currentUser.emailVerified=false;await expect(completeUserRegistration('Synthetic','doctor',ack)).rejects.toMatchObject({code:'academic-email-verification'});expect(call).not.toHaveBeenCalled();
+ auth.currentUser.emailVerified=true;await expect(completeUserRegistration('Synthetic','doctor',ack)).rejects.toMatchObject({code:'registration-incomplete'});expect(getDoc).not.toHaveBeenCalled();
 });
 test('permission denial after restart routes to recovery without inventing an identity',async()=>{
  getDoc.mockRejectedValue({code:'permission-denied'});expect(await loadOwnIdentity('u1')).toBeNull();
