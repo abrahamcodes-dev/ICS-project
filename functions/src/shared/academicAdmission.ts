@@ -22,6 +22,7 @@ export function invitationEmail(value:unknown):string {
 export function admitted(member:any,invite:any,uid:string,email:string,now:number):boolean {
   return !!member && !!invite && member.enabled===true && invite.enabled===true
     && member.uid===uid && invite.uid===uid && member.email===email && invite.email===email
+    && ['patient','doctor','administrator'].includes(invite.expectedRole) && member.expectedRole===invite.expectedRole
     && member.expiresAt instanceof Timestamp && invite.expiresAt instanceof Timestamp
     && member.expiresAt.toMillis()>now && invite.expiresAt.toMillis()>now;
 }
@@ -43,6 +44,8 @@ export async function requireAcademicAdmission(auth:{uid:string;token?:Record<st
     throw new HttpsError('permission-denied','Verify your invited email and sign in again.');
   const member=await admitVerifiedUser(user.uid,user.email,enroll,env);
   if(!enroll && member?.noticeVersion!==ACADEMIC_NOTICE_VERSION)throw new HttpsError('permission-denied','Acknowledge the hosted academic notice through registration.');
+  if(!enroll){const identity=(await db.doc('users/'+user.uid).get()).data();
+    if(identity?.role!==member?.expectedRole)throw new HttpsError('permission-denied','Invited role does not match the canonical identity.');}
 }
 export async function admitVerifiedUser(uid:string,email:string,enroll:boolean,env:NodeJS.ProcessEnv=process.env) {
   if(academicEnvironment(env)==='local')return;
@@ -51,13 +54,18 @@ export async function admitVerifiedUser(uid:string,email:string,enroll:boolean,e
     const [m,i]=await tx.getAll(memberRef,inviteRef);let member=m.data(),invite=i.data();
     const now=Date.now();
     if(enroll && !m.exists && invite?.enabled===true && invite.email===normalized
+      && ['patient','doctor'].includes(invite.expectedRole)
       && invite.expiresAt instanceof Timestamp && invite.expiresAt.toMillis()>now
       && (invite.uid===null||invite.uid===uid)) {
-      member={uid,email:normalized,enabled:true,expiresAt:invite.expiresAt};
+      member={uid,email:normalized,enabled:true,expiresAt:invite.expiresAt,expectedRole:invite.expectedRole};
       invite={...invite,uid};tx.create(memberRef,member);tx.update(inviteRef,{uid});
     }
     if(!admitted(member,invite,uid,normalized,now))throw new HttpsError('permission-denied','Academic membership is missing, expired or revoked.');
     return member;
   });
+}
+export function requireInvitedRole(expected:unknown,requested:unknown){
+  if(!['patient','doctor'].includes(expected as string)||expected!==requested)
+    throw new HttpsError('permission-denied','Choose the role approved in your academic invitation.');
 }
 export const admissionAuditId=(email:string)=>createHash('sha256').update(invitationEmail(email)).digest('hex');

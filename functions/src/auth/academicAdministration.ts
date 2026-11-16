@@ -14,7 +14,7 @@ export const manageAcademicDemoTester=onCall(async request=>{
   requireAdmissionAdministrator(actor.role,request.auth?.token.academicDemoAdmin);
   requireAdmissionAdministrator(actor.role,(await getAuth().getUser(actor.uid)).customClaims?.academicDemoAdmin);
   const v=request.data;
-  if(!v||typeof v!=='object'||Array.isArray(v)||Object.keys(v).some(k=>!['email','enabled','expiresAt'].includes(k))
+  if(!v||typeof v!=='object'||Array.isArray(v)||Object.keys(v).some(k=>!['email','enabled','expiresAt','expectedRole'].includes(k))
     ||typeof v.enabled!=='boolean'||typeof v.expiresAt!=='string')throw new HttpsError('invalid-argument','Email, enabled and expiry are required.');
   const email=invitationEmail(v.email),ms=Date.parse(v.expiresAt);
   if(!Number.isFinite(ms)||(v.enabled&&ms<=Date.now()))throw new HttpsError('invalid-argument','Supply a future expiry.');
@@ -22,7 +22,10 @@ export const manageAcademicDemoTester=onCall(async request=>{
     const ref=db.doc('academicDemoInvitations/'+email),old=(await tx.get(ref)).data();
     const memberRef=old?.uid?db.doc('academicDemoTesters/'+old.uid):null;
     const member=memberRef?(await tx.get(memberRef)).data():null;
-    tx.set(ref,{email,uid:old?.uid??null,enabled:v.enabled,expiresAt:Timestamp.fromMillis(ms)});
+    const expectedRole=v.expectedRole??old?.expectedRole;
+    if(!['patient','doctor','administrator'].includes(expectedRole)||(!old&&expectedRole==='administrator')
+      ||(old&&expectedRole!==old.expectedRole))throw new HttpsError('invalid-argument','A new patient/doctor role is required; bound roles cannot be changed.');
+    tx.set(ref,{email,uid:old?.uid??null,enabled:v.enabled,expiresAt:Timestamp.fromMillis(ms),expectedRole});
     if(member&&memberRef)tx.update(memberRef,{enabled:v.enabled,expiresAt:Timestamp.fromMillis(ms)});
     tx.create(db.collection('academicDemoAdmissionAudit').doc(),{actorUid:actor.uid,emailDigest:admissionAuditId(email),enabled:v.enabled,expiresAt:Timestamp.fromMillis(ms),at:Timestamp.now()});
   });

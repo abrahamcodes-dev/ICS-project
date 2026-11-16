@@ -1,7 +1,7 @@
 import {Timestamp} from 'firebase-admin/firestore';
 import {readFileSync} from 'fs';
 import {resolve} from 'path';
-import {academicEnvironment,admitted,invitationEmail} from '../src/shared/academicAdmission';
+import {academicEnvironment,admitted,invitationEmail,requireInvitedRole} from '../src/shared/academicAdmission';
 import {guardedCall} from '../src/shared/academicHttps';
 import {requireAdmissionAdministrator} from '../src/auth/academicAdministration';
 import {uploadBytes} from '../src/profiles/academicUploads';
@@ -17,7 +17,7 @@ test('normalizes invited emails and rejects path injection',()=>{
  expect(invitationEmail('Tester@Example.test')).toBe('tester@example.test');
  for(const v of ['x/y@example.test','a@b',' a@b.test',null])expect(()=>invitationEmail(v)).toThrow();
 });
-const member={uid:'u1',email:'test@example.test',enabled:true,expiresAt:Timestamp.fromMillis(2000)};
+const member={uid:'u1',email:'test@example.test',expectedRole:'patient',enabled:true,expiresAt:Timestamp.fromMillis(2000)};
 test.each([{enabled:false},{uid:'other'},{email:'other@example.test'},{expiresAt:Timestamp.fromMillis(1000)},{expiresAt:2000}])('rejects revoked, expired, malformed and mismatched records %#',patch=>{
  expect(admitted({...member,...patch},member,'u1',member.email,1000)).toBe(false);
  expect(admitted(member,{...member,...patch},'u1',member.email,1000)).toBe(false);
@@ -62,8 +62,11 @@ test('active HTTP and scheduled endpoints carry conservative instance limits',()
  const exports=require('../src/index');let http=0,schedule=0;
  for(const endpoint of Object.values(exports) as any[]){const e=endpoint.__endpoint;if(!e)continue;
   expect(e.minInstances).toBe(0);
+  expect(e.region).toEqual(['us-central1']);
   if(e.scheduleTrigger){expect(e.maxInstances).toBe(1);expect(e.concurrency).toBe(1);schedule++;}
   else{expect(e.maxInstances).toBe(2);expect(e.concurrency).toBeLessThanOrEqual(10);http++;}
  }
  expect(schedule).toBe(3);expect(http).toBe(57); // 55 original exports minus three jobs plus five new endpoints.
 });
+
+test('invitation pins patient/doctor role and cannot publicly provision administrators',()=>{expect(()=>requireInvitedRole('patient','patient')).not.toThrow();expect(()=>requireInvitedRole('doctor','doctor')).not.toThrow();for(const [approved,requested]of [['patient','doctor'],['doctor','patient'],['administrator','administrator'],[undefined,'patient']])expect(()=>requireInvitedRole(approved,requested)).toThrow();});

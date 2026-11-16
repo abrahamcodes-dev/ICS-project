@@ -14,7 +14,7 @@ export async function checkAcademicAuth(user:{uid:string;email?:string},env:Node
     ||!(member.expiresAt instanceof Timestamp)||member.expiresAt.toMillis()<=Date.now()))
     throw new HttpsError('permission-denied','Academic admission unavailable.');
 }
-const limits={minInstances:0,maxInstances:2,concurrency:10};
+const limits={region:'us-central1',minInstances:0,maxInstances:2,concurrency:10};
 // Identity Platform blocking triggers are required before hosted providers open.
 export const academicBeforeCreate=beforeUserCreated(limits,async event=>{if(!event.data)throw new HttpsError('permission-denied','Identity required.');await checkAcademicAuth(event.data);});
 export const academicBeforeSignIn=beforeUserSignedIn(limits,async event=>{if(!event.data)throw new HttpsError('permission-denied','Identity required.');await checkAcademicAuth(event.data);});

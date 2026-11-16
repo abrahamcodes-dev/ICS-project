@@ -1,5 +1,9 @@
 # Hosted academic demo: safeguards and Phase 3B handoff
 
+Phase 3B update (16 November 2026): backend deployment is recorded in
+PHASE_3B_DEPLOYMENT.md. The preparation evidence below is historical; private
+account configuration and administrator verification remain outside Git.
+
 Implemented locally, not deployed. The separate project must end in
 `-academic-demo`; the default project, aliases, native configuration, emulator
 Rules and interactive services are unchanged. Synthetic data only. Blaze is
@@ -16,7 +20,7 @@ owner-approved; no project, billing account or hosted resources were changed.
   replay cannot renew expired/revoked membership. Doctor approval remains separate.
 - Every active protected callable passes through academicHttps. Hosted requests
   check current Admin Auth disabled/verification/revocation state and both private
-  records on every request; token roles and client-supplied admission are ignored.
+  records and the approved invitation role on every request; token roles and client-supplied admission are ignored.
   No membership cache or permissive hosted environment flag exists.
 - Mobile hosted initialization requires explicit emulator=false and a separate
   academic-demo project; reuse of another initialized project remains blocked.
@@ -65,7 +69,7 @@ with its full compiled adminProvisioning module; it is intentionally absent from
 the deployed runtime graph. The new owner tool defaults to offline argument checking:
 
 ```powershell
-& $node22 functions/scripts/academicInvitations.cjs --project '<id-academic-demo>' --email '<invited email>' --expires-at '<UTC ISO timestamp>' --operator '<owner attribution>'
+& $node22 functions/scripts/academicInvitations.cjs --project '<id-academic-demo>' --email '<invited email>' --expires-at '<UTC ISO timestamp>' --operator '<owner attribution>' --role '<patient|doctor|administrator>'
 # Later, separately authorized: add --apply to create an invitation using IAM.
 # Bootstrap only: also --bootstrap-admin-uid '<existing canonical admin UID>' --notice-acknowledged
 ```
@@ -136,8 +140,10 @@ Application handlers are exercised against these isolated Admin SDK services.
 Hosted Auth trigger registration, managed-runtime cold starts and an actual Android
 hosted build still require post-deployment smoke testing; local tests do not prove them.
 
-Raw working-tree and prepared-release deployment hooks remain closed pending
-Phase 3B approval. No environment flag bypass exists. Runtime packaging excludes
+Raw working-tree deployment remains blocked. The approved deployment transition
+accepts only calladoc-academic-demo, the verified release directory supplied by
+Firebase CLI, and the exact reviewed server OAuth/simulation settings. No generic
+approval flag exists. Runtime packaging excludes
 emulator-only modules, inactive verification exports, tests, tools and private files.
 
 ## Required Console sequence after Phase 3B approval

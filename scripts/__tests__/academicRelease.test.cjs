@@ -87,7 +87,21 @@ test('release rejects missing Rules and a local-only Firestore artifact',()=>{
 });
 test('owner tool validates project, future expiry and explicit bootstrap acknowledgement offline',()=>{
  const {parseArgs}=require('../../functions/scripts/academicInvitations.cjs');
- const args=['--project','calladoc-qa-academic-demo','--email','synthetic@example.test','--expires-at','2099-01-01T00:00:00Z','--operator','synthetic-owner'];
- assert.equal(parseArgs(args).apply,false);assert.throws(()=>parseArgs([...args,'--bootstrap-admin-uid','admin']),/acknowledge/);
+ const args=['--project','calladoc-qa-academic-demo','--email','synthetic@example.test','--expires-at','2099-01-01T00:00:00Z','--operator','synthetic-owner','--role','patient'];
+ assert.equal(parseArgs(args).apply,false);assert.throws(()=>parseArgs([...args.map(x=>x==='patient'?'administrator':x),'--bootstrap-admin-uid','admin']),/acknowledge/);
  assert.throws(()=>parseArgs(args.map(x=>x==='calladoc-qa-academic-demo'?'calladoc-2c05a':x)),/academic project/);
 });
+
+test('approved deployment requires exact project, release path and reviewed server settings',()=>{
+ const root=releaseFixture(),project='calladoc-academic-demo',env={GCLOUD_PROJECT:project,PROJECT_DIR:root};
+ fs.writeFileSync(path.join(root,'functions/.env.'+project),'GOOGLE_SIGN_IN_WEB_CLIENT_ID=307695796194-48q9nusdb0tqp0dj1g7cm3j9365bgg81.apps.googleusercontent.com\nPAYMENT_SIMULATION_MODE=academic-demo\nPAYMENT_SIMULATION_PROJECT_ID=calladoc-academic-demo\n');
+ assert.doesNotThrow(()=>requireDeploymentApproval({project},root,env));
+ assert.throws(()=>requireDeploymentApproval({project},root,{...env,GCLOUD_PROJECT:'calladoc-2c05a'}),/blocked/);
+ assert.throws(()=>requireDeploymentApproval({project},root,{...env,PROJECT_DIR:path.join(root,'other')}),/blocked/);
+ fs.appendFileSync(path.join(root,'functions/.env.'+project),'FUNCTIONS_EMULATOR=true\n');
+ assert.throws(()=>requireDeploymentApproval({project},root,env),/exactly/);
+});
+
+test('privileged administrator invitation is explicit and does not imply bootstrap',()=>{const {parseArgs}=require('../../functions/scripts/academicInvitations.cjs');const args=['--project','calladoc-academic-demo','--email','synthetic@example.test','--expires-at','2099-01-01T00:00:00Z','--operator','synthetic-owner','--role','administrator'];assert.throws(()=>parseArgs(args));const v=parseArgs([...args,'--invite-administrator']);assert.equal(v.inviteAdministrator,true);assert.equal(v['--bootstrap-admin-uid'],undefined);assert.equal(v.apply,false);});
+
+test('hosted Rules add admission without removing any original allow condition',()=>{const {hostedFirestore}=require('../AcademicRules.cjs');const local=fs.readFileSync(path.join(__dirname,'../../functions/firestore.rules'),'utf8');const regex=/allow\s+([a-z,\s]+):\s*if\s+([^;]+);/g;const original=[...local.matchAll(regex)],hosted=[...hostedFirestore(local).matchAll(regex)];assert.equal(hosted.length,original.length);for(let i=0;i<original.length;i++){assert.equal(hosted[i][1],original[i][1]);assert.equal(hosted[i][2],original[i][2].trim()==='false'?original[i][2]:'isSignedIn() && academicAdmission() && ('+original[i][2]+')');}});

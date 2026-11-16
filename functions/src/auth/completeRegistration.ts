@@ -5,7 +5,7 @@ import {db,usersCol} from '../shared/firestoreRefs';
 import {createRegistrationHandler} from './registrationHandler';
 import {consentInput,planConsent} from '../privacy/consentPolicy';
 import {requireAuthenticated} from '../shared/authorization';
-import {academicEnvironment} from '../shared/academicAdmission';
+import {academicEnvironment,requireInvitedRole} from '../shared/academicAdmission';
 import {ACADEMIC_NOTICE_VERSION} from '../shared/academicNotice';
 
 export const completeRegistration = onCall(async request => {
@@ -14,6 +14,7 @@ export const completeRegistration = onCall(async request => {
   if(hosted && (request.data?.academicNoticeVersion!==ACADEMIC_NOTICE_VERSION||request.data?.academicNoticeAcknowledged!==true))
     throw new HttpsError('failed-precondition','Review and acknowledge the hosted academic notice.');
   const payload=hosted?Object.fromEntries(Object.entries(request.data).filter(([k])=>!['academicNoticeVersion','academicNoticeAcknowledged'].includes(k))):request.data;
+  if(hosted)requireInvitedRole((await db.doc('academicDemoTesters/'+request.auth!.uid).get()).data()?.expectedRole,payload?.role);
   const consent=payload?.role==='patient' ? consentInput(payload.consent) : null;
   if(consent && (consent.source!=='registration'||consent.expectedRevision!==0||consent.sharingDecision==='withdrawn'))
     throw new HttpsError('invalid-argument','An initial registration decision is required.');

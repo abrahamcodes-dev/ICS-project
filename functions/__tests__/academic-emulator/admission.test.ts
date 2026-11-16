@@ -20,7 +20,7 @@ import {memory,request as callRequest,id as consultationId,secondRequestId,callP
 const project='demo-calladoc-academic-tests',hosted={GCLOUD_PROJECT:'calladoc-qa-academic-demo'},uid='academic-user',email='academic@example.test';
 let rules:RulesTestEnvironment;
 const identity={uid,email,fullName:'Synthetic Tester',role:'patient',status:'active',schemaVersion:1,createdAt:'2026-11-15T00:00:00.000Z',updatedAt:'2026-11-15T00:00:00.000Z'};
-const member=()=>({uid,email,enabled:true,noticeVersion:ACADEMIC_NOTICE_VERSION,expiresAt:Timestamp.fromMillis(Date.now()+3600000)});
+const member=()=>({uid,email,enabled:true,expectedRole:'patient',noticeVersion:ACADEMIC_NOTICE_VERSION,expiresAt:Timestamp.fromMillis(Date.now()+3600000)});
 const auth=()=>({uid,token:{email,email_verified:true,auth_time:Math.ceil(Date.now()/1000)}});
 const client=(verified=true,customEmail=email)=>rules.authenticatedContext(uid,{email:customEmail,email_verified:verified}).firestore();
 async function seed(){await db.doc('users/'+uid).set(identity);await db.doc('academicDemoTesters/'+uid).set(member());await db.doc('academicDemoInvitations/'+email).set(member());}
@@ -138,9 +138,11 @@ test('hosted admission preserves nested consultation signalling access within Ru
  const m=memory(),callId=(await m.handler(callRequest())).call.callId;
  await m.lifecycle.respond(callRequest('doctor',{consultationId,callId,requestId:secondRequestId,action:'accept',answer:{type:'answer',sdp:'v=0\r\ns=synthetic-answer\r\n'}}));
  const batch=db.batch();for(const [p,value]of Object.entries(m.data))batch.set(db.doc(p),value as any);await batch.commit();
- const patientEmail=m.data['users/patient'].email.toLowerCase(),invitation={uid:'patient',email:patientEmail,enabled:true,noticeVersion:ACADEMIC_NOTICE_VERSION,expiresAt:Timestamp.fromMillis(Date.now()+3600000)};
+ const patientEmail=m.data['users/patient'].email.toLowerCase(),invitation={uid:'patient',email:patientEmail,enabled:true,expectedRole:'patient',noticeVersion:ACADEMIC_NOTICE_VERSION,expiresAt:Timestamp.fromMillis(Date.now()+3600000)};
  await db.doc('academicDemoTesters/patient').set(invitation);await db.doc('academicDemoInvitations/'+patientEmail).set(invitation);
  const c=rules.authenticatedContext('patient',{email:patientEmail,email_verified:true}).firestore();
  for(const p of [callPaths.call(consultationId,callId),callPaths.offer(consultationId,callId),callPaths.answer(consultationId,callId)])await assertSucceeds(getDoc(doc(c,p)));
  await db.doc('academicDemoTesters/patient').update({enabled:false});await assertFails(getDoc(doc(c,callPaths.offer(consultationId,callId))));
 });
+
+test('an enrolled patient cannot change the invitation to a doctor role',async()=>{await db.doc('academicDemoInvitations/'+email).update({expectedRole:'doctor'});await expect(requireAcademicAdmission(auth(),true,hosted)).rejects.toThrow();await assertFails(getDoc(doc(client(),'users/'+uid)));});

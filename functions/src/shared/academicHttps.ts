@@ -9,7 +9,7 @@ export function guardedCall<T,R>(handler:(request:CallableRequest<T>)=>R, enroll
 function makeCall(args:any[],publicGoogle=false,enroll=false) {
   const options:CallableOptions=args.length===1?{}:args[0];
   const handler=args[args.length-1];
-  return firebaseOnCall({...options,minInstances:0,maxInstances:2,
+  return firebaseOnCall({...options,region:'us-central1',minInstances:0,maxInstances:2,
     concurrency:Math.min(typeof options.concurrency==='number'?options.concurrency:10,10)},
     publicGoogle?handler:guardedCall(handler,enroll));
 }
@@ -18,6 +18,6 @@ export const onRegistrationCall:typeof firebaseOnCall=((...args:any[])=>makeCall
 // Google verifies the Google-issued token and invitation before any account mutation.
 export const onGoogleCall:typeof firebaseOnCall=((...args:any[])=>makeCall(args,true)) as typeof firebaseOnCall;
 export const onSchedule:typeof firebaseOnSchedule=((options:any,handler:any)=>firebaseOnSchedule({
-  ...(typeof options==='string'?{schedule:options}:options),minInstances:0,maxInstances:1,concurrency:1,
+  ...(typeof options==='string'?{schedule:options}:options),region:'us-central1',minInstances:0,maxInstances:1,concurrency:1,
 },async event=>{academicEnvironment();return handler(event);})) as typeof firebaseOnSchedule;
 export {HttpsError};
