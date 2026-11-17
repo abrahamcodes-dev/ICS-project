@@ -1,4 +1,5 @@
 const React=require('react'),{create,act}=require('react-test-renderer');
+const {setLanguage}=require('../src/i18n/locale');
 let mockNext,mockError;
 const mockInbox={list:jest.fn(),dispose:jest.fn()};
 jest.mock('../src/services/notificationService',()=>({createNotificationSession:()=>mockInbox}));
@@ -25,6 +26,17 @@ afterEach(async()=>{if(tree)await act(async()=>tree.unmount());tree=null;});
 test('home exposes real quick actions and releases appointment subscription',async()=>{await render(PatientHomeScreen);await act(async()=>mockNext([row()]));await press('Consult a doctor');expect(navigation.navigate).toHaveBeenCalledWith('Doctors');await press('View all appointments');expect(navigation.navigate).toHaveBeenCalledWith('Appointments');await act(async()=>tree.unmount());tree=null;expect(mockStop).toHaveBeenCalled();});
 test('scheduled appointment enters existing consultation; canceled remains unavailable',async()=>{require('../src/services/appointmentReads').readAppointmentPage.mockResolvedValue({rows:[row()],cursor:null});await render(PatientAppointments);await expandAppointment();await press('Open consultation');expect(navigation.navigate).toHaveBeenCalledWith('Consultation',{appointmentId:id});navigation.navigate.mockClear();require('../src/services/appointmentReads').readAppointmentPage.mockResolvedValue({rows:[{...row(),status:'cancelled'}],cursor:null});await press('Appointment History');await expandAppointment();expect(tree.root.findAllByType(Action).find(n=>n.props.title==='Open consultation').props.disabled).toBe(true);await press('Open consultation');expect(navigation.navigate).not.toHaveBeenCalled();});
 test('doctor cards come from approved directory and search only loaded results',async()=>{mockSession.listDoctors.mockResolvedValue({items:[{uid:'d',professionalName:'Dr Example',specialty:'Cardiology'}],nextCursor:null});await render(DoctorsScreen);expect(mockSession.listDoctors).toHaveBeenCalledWith(undefined);await press('View doctor: Dr Example');expect(navigation.navigate).toHaveBeenCalledWith('DoctorProfile',{doctorId:'d'});await act(async()=>tree.root.findByProps({accessibilityLabel:'Search by name or specialty'}).props.onChangeText('unmatched'));expect(tree.root.findAll(n=>n.props.testID==='directory-doctor-card').length>0).toBe(false);});
+test('Kiswahili all-filter label clears the original filter without translating authored specialties',async()=>{
+ await setLanguage('sw');
+ try{
+  mockSession.listDoctors.mockResolvedValue({items:[{uid:'d',professionalName:'Dr Original',specialty:'Cardiology'},{uid:'other',professionalName:'Dr Other',specialty:'Dermatology'}],nextCursor:null});
+  await render(DoctorsScreen);await press('Cardiology');
+  const cards=()=>tree.root.findAll(n=>n.props.testID==='directory-doctor-card'&&typeof n.props.style==='function');
+  expect(cards()).toHaveLength(1);await press('Zote');expect(cards()).toHaveLength(2);
+  await press('Tazama daktari: Dr Original');expect(navigation.navigate).toHaveBeenCalledWith('DoctorProfile',{doctorId:'d'});
+  expect(mockSession.listDoctors).toHaveBeenCalledTimes(1);
+ }finally{await act(async()=>setLanguage('en'));}
+});
 test('profile selects a backend time through typed booking navigation',async()=>{getPatientDoctor.mockResolvedValue({uid:'d',professionalName:'Dr Example',specialty:'Cardiology'});mockSession.times.mockResolvedValue([{doctorId:'d',startAt:2000000,endAt:3800000}]);await render(DoctorProfileScreen,{route:{params:{doctorId:'d'}}});expect(mockSession.times).toHaveBeenCalledWith('d','2026-10-20',30);await act(async()=>tree.root.findAllByType(Action).find(n=>n.props.title.startsWith('Select ')).props.onPress());expect(navigation.navigate).toHaveBeenCalledWith('BookAppointment',{doctorId:'d',startAt:2000000,durationMinutes:30});});
 
 test('directory paginates through empty continuation and deduplicates loaded profiles',async()=>{
