@@ -1,4 +1,6 @@
-/** Local English-only rules. No Firebase, records, analytics or network calls. */
+/** Local bilingual rules. No Firebase, records, analytics or network calls. */
+import {getLanguage, type Language} from '../i18n/locale';
+import {isKiswahiliQuestion, kiswahiliReply} from './kiswahiliHealth';
 import { MEDICAL_DISCLAIMER } from '../constants/disclaimers';
 import { HEALTH_KNOWLEDGE_BASE, type HealthKnowledgeEntry, type FollowUpKind } from '../knowledge/healthKnowledgeBase';
 import { canonicalHealthText, normalizeHealthText, selectHealthKnowledge, followUpKind, isReferentialFollowUp, hasUnresolvedTopicReference } from './healthMatcher';
@@ -8,7 +10,7 @@ import { hasCompetingQuestionIntents } from './healthQuestionIntent';
 export const CHATBOT_LIMIT = 500;
 export const CHATBOT_DISCLAIMER = 'I am a rule-based information assistant, not a doctor. I cannot examine you, diagnose illness or recommend treatment. Do not share names, medical records or other identifying details.';
 export const EMERGENCY_GUIDANCE = 'For a possible emergency, seek immediate professional help: contact your local emergency services or go to the nearest emergency department. For a possible overdose or poisoning, seek help even if there are no symptoms. Ask someone nearby to help. Do not wait for this assistant or a CallADoc appointment. Routine consultation advice is for non-emergency concerns only.';
-export type HealthReply = { intent: string; response: string; emergency: boolean; knowledgeId?: string; contentVersion?: string; followUp?: FollowUpKind };
+export type HealthReply = { intent: string; response: string; emergency: boolean; knowledgeId?: string; contentVersion?: string; followUp?: FollowUpKind; localized?:Record<Language,string> };
 export type HealthContext = Readonly<{knowledgeId?: string}>;
 /** Compose once in the engine; the UI must not append another copy. */
 export function withMedicalDisclaimer(response: string): string {
@@ -28,7 +30,7 @@ const rules: { intent: string; pattern: RegExp; response: string }[] = [
   { intent: 'consultation', pattern: /\b(book|appointment|consultation|doctor|professional advice)\b/,
     response: 'For non-emergency advice, use Find a doctor after signing in as a patient. Choose an approved doctor and an available appointment. Availability depends on the connected backend; this chat does not book appointments.' },
   { intent: 'greeting', pattern: /\b(hi|hello|help|topics)\b/,
-    response: 'I share predefined general information about symptoms, common diseases, maternal and child health, nutrition, mental wellbeing and medication safety. Content is pending clinical review. I cannot diagnose or recommend treatment. Please keep questions general and in English.' },
+    response: 'I share predefined general information about symptoms, common diseases, maternal and child health, nutrition, mental wellbeing and medication safety. Content is pending clinical review. I cannot diagnose or recommend treatment. Please keep questions general. You can use English or Kiswahili.' },
 ];
 // Conservative keyword safety net, not triage. Negations intentionally do not suppress alerts.
 const emergency = /\b(chest (pain|pressure|tightness)|short(ness)? of breath|difficulty (in )?breathing|trouble breathing|can ?not breathe|can t breathe|unable to breathe|choking|unconscious|unresponsive|passed out|seizures?|stroke|face droop\w*|slurred speech|sudden weakness|severe bleeding|bleeding heavily|overdose|poison\w*|suicid\w*|self harm|kill myself|hurt myself|end my life|can t stay safe|cannot stay safe|swollen (tongue|throat)|throat swelling)\b/;
@@ -52,7 +54,7 @@ function clarify(labels: readonly string[] = []): HealthReply {
 function unsupported(): HealthReply {
   return reply('unknown', 'I do not recognize that question. I only offer limited general information in English, and cannot rule out a serious problem. For non-emergency advice, consult a verified CallADoc doctor. Seek immediate professional help if you feel seriously unwell; do not wait for a CallADoc appointment.');
 }
-export function askChatbot(query: string, context?: HealthContext): HealthReply {
+function askEnglishChatbot(query: string, context?: HealthContext): HealthReply {
   if (typeof query !== 'string' || !query.trim() || query.length > CHATBOT_LIMIT) {
     throw new Error(`Enter a question of 1-${CHATBOT_LIMIT} characters.`);
   }
@@ -102,6 +104,15 @@ export function askChatbot(query: string, context?: HealthContext): HealthReply 
 }
 
 /** Per-conversation, memory-only topic. Never use a shared/global session. */
+export function askChatbot(query: string, context?: HealthContext, language: Language = getLanguage()): HealthReply {
+  const english = askEnglishChatbot(query, context);
+  const sw = kiswahiliReply(query, english);
+  const selected = language === 'sw' || isKiswahiliQuestion(query) ? sw : english;
+  // Emergency status must never be lost when the interface language changes.
+  const emergency = english.emergency || sw.emergency;
+  const enResponse = sw.emergency && !english.emergency ? withMedicalDisclaimer(EMERGENCY_GUIDANCE) : english.response;
+  return {...selected, emergency, localized:{en:enResponse,sw:sw.response}};
+}
 export function createHealthChatSession() {
   let context: HealthContext = {};
   return {
