@@ -1,5 +1,7 @@
 # Hosted functional verification and privacy — Checkpoint 2
 
+Current-state correction (17 November 2026 release): the patient consent is **granted, revision 5**, recorded through the profile at **09:09:41 EAT**. The owner approved preserving that exact revision. References below to registration revision 1 and declined sharing describe earlier checkpoints and must not be used as the current release state. Any later summaries that carried "declined" forward were incorrect. Optional medical-record reading remains disabled for every preference; the grant does not broaden the implemented appointment summary or consultation-document authorization. See `POST_CONSULTATION_FIXES.md` for the corrected access scope and release evidence. The older APK acceptance notes are preserved as historical evidence, not a current consent assertion.
+
 Date: 16 November 2026. Status: in progress; patient onboarding verified,
 doctor approved through normal administrator review; fee/availability setup pending.
 
@@ -330,3 +332,7 @@ retained. Post-deployment authenticated read results and native profile refresh
 remain pending; no success is claimed until observed. No hosted records,
 bookings, payments, accounts, local emulator data or APKs were modified. No Git
 commit or push was performed; unrelated working-tree edits were preserved.
+
+## Final post-consultation evidence — 17 November 2026
+
+The earlier pending statuses in this chronology describe historical checkpoints. **Patient and Doctor completed-history device acceptance PASSED; hosted authorization 28/28 PASSED** (Patient 13/13, Doctor 15/15, previously confirmed separate receipts). All **nine tracked record hashes and five message hashes unchanged**, with **granted consent revision 5 preserved**. Doctor Kiswahili device checks, fresh direct-SDK negative checks and active-appointment device testing are **PENDING, not failed**. See [final release evidence](POST_CONSULTATION_RELEASE.md) and [history implementation evidence](CONSULTATION_HISTORY_ENTRY.md) for scope, artifact verification and preservation receipts. The Doctor remains signed in. This evidence update does not alter hosted records, account settings, APKs, local environments or unrelated edits, and performs no deployment, rebuild, staging, commit or push.
