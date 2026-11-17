@@ -35,6 +35,7 @@ export async function readAppointmentPage(uid: string, role: ParticipantRole, mo
 export interface AppointmentRow {
   appointmentId: string; patientId: string; doctorId: string;
   startAt: number; endAt: number; status: AppointmentStatus;
+  doctorDisplay?: {professionalName:string;specialty:string};
 }
 export function parseAppointment(id: string, data: any, uid: string, role: ParticipantRole): AppointmentRow {
   if (!/^[a-f0-9]{64}$/.test(id) || data.appointmentId !== id || data.schemaVersion !== 1
@@ -43,7 +44,10 @@ export function parseAppointment(id: string, data: any, uid: string, role: Parti
     || !['scheduled','cancelled','completed','no_show'].includes(data.status)
     || !(data.startAt instanceof Timestamp) || !(data.endAt instanceof Timestamp)
     || data.endAt.toMillis() <= data.startAt.toMillis()) throw new Error('Invalid appointment');
-  return {appointmentId:id,patientId:data.patientId,doctorId:data.doctorId,
+  const display=data.doctorDisplay;
+  const validDisplay=display&&typeof display==='object'&&!Array.isArray(display)&&Object.keys(display).sort().join(',')==='professionalName,specialty'
+    &&[display.professionalName,display.specialty].every((value,index)=>typeof value==='string'&&value.trim()===value&&value.length>0&&value.length<=(index===0?200:120)&&!/[\u0000-\u001f\u007f]/.test(value));
+  return {appointmentId:id,patientId:data.patientId,doctorId:data.doctorId,...(validDisplay?{doctorDisplay:{professionalName:display.professionalName,specialty:display.specialty}}:{}),
     startAt:data.startAt.toMillis(),endAt:data.endAt.toMillis(),status:data.status};
 }
 /** Presentation hint only; backend time, identities and approval remain authoritative. */

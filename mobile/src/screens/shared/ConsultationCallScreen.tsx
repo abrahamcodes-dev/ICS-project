@@ -142,7 +142,7 @@ export function CallRoom({consultationId, uid, restart, chatRoom}: {consultation
   const canStart = state.phase === 'idle' && discovery === 'ready' && !!session && !busy && !background;
   const RTCView = (local || remote) ? (require('react-native-webrtc') as typeof import('react-native-webrtc')).RTCView : null;
   return <Screen variant="form">
-    <Text title>{tr("Consultation call")}</Text><Status label={chatRoom?(uid===chatRoom.patientId?tr("With your doctor"):tr("With your patient")):tr("Appointment participants")}/>
+    <View style={{gap:8}}><Text title>{tr('Consultation')}</Text><Status label={chatRoom?(uid===chatRoom.patientId?tr("With your doctor"):tr("With your patient")):tr("Appointment participants")}/></View>
     <Text accessibilityLiveRegion="polite">{busy ? tr("Preparing microphone and camera…") : callStatus(state)}</Text>
     {background && <Text>{tr("The call stopped when the app moved to the background. Reopen the consultation when ready.")}</Text>}
     {state.phase === 'idle' && discovery === 'checking' && <Text>{tr("Checking for an incoming call…")}</Text>}

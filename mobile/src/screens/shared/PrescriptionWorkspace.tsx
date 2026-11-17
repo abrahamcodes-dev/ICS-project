@@ -7,7 +7,8 @@ import {View} from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { useAuth } from '../../hooks/useAuth';
 import { onIdentityRefresh } from '../../services/authService';
-import { readAppointmentPage, type AppointmentCursor, type AppointmentRow } from '../../services/appointmentReads';
+import { readAppointmentPage, observeAppointment, type AppointmentCursor, type AppointmentRow } from '../../services/appointmentReads';
+import {isHostedAcademicDemo} from '../../services/academicDemo';
 import { createPrescriptionSession, validateMedication, type PrescriptionMedication, type Prescription } from '../../services/prescriptionService';
 import { Action, Card, Copy, Field, Loading, Notice, Status, Screen } from '../../ui/design';
 
@@ -61,6 +62,7 @@ export function PrescriptionRecord({ uid, cid, doctor }: { uid: string; cid: str
   const [meds, setMeds] = useState<PrescriptionMedication[]>([]), [confirm, setConfirm] = useState(false);
   const [uncertain, setUncertain] = useState(false), [sending, setSending] = useState(false), [blocked, setBlocked] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [issuer,setIssuer]=useState<{uid:string;name:string}|null>(null);
   const session = useRef<ReturnType<typeof createPrescriptionSession> | null>(null), alive = useRef(true), busy = useRef(false);
   async function read() {
     setLoading(true); setError(null);
@@ -70,9 +72,11 @@ export function PrescriptionRecord({ uid, cid, doctor }: { uid: string; cid: str
   }
   useEffect(() => {
     alive.current = true; const current = createPrescriptionSession(uid, cid); session.current = current; void read();
-    const stop = onIdentityRefresh(() => { alive.current = false; current.dispose(); setRecord(null); setMeds([empty()]); setBlocked(true); });
-    return () => { alive.current = false; current.dispose(); stop(); };
-  }, [uid, cid]);
+    // Appointment display is a verified snapshot; never substitute an arbitrary account name.
+    const stopAppointment=observeAppointment(uid,doctor?'doctor':'patient',cid,row=>{if(alive.current)setIssuer(row.doctorDisplay?{uid:row.doctorId,name:row.doctorDisplay.professionalName}:null);},()=>{if(alive.current)setIssuer(null);});
+    const stop = onIdentityRefresh(() => { alive.current = false; current.dispose(); setRecord(null); setIssuer(null); setMeds([empty()]); setBlocked(true); });
+    return () => { alive.current = false; current.dispose(); stopAppointment(); stop(); };
+  }, [uid, cid, doctor]);
   async function issue() {
     if (!alive.current || busy.current || !confirm || !doctor) return;
     busy.current = true; setSending(true); setError(null); setUncertain(true);
@@ -83,9 +87,10 @@ export function PrescriptionRecord({ uid, cid, doctor }: { uid: string; cid: str
   if (blocked) return <Copy>{tr("Session changed. Reopen prescriptions.")}</Copy>;
   const Container=doctor?View:Card;
   return <Container style={{gap:16}}>{!doctor&&<Copy variant="heading">{tr("Consultation prescription")}</Copy>}
+    {isHostedAcademicDemo()&&<Card tone="mint"><Copy variant="label">{tr('SYNTHETIC ACADEMIC DEMO — NOT A VALID PRESCRIPTION')}</Copy><Copy>{tr('For academic testing only. Do not use this demonstration prescription to obtain or take medication.')}</Copy></Card>}
     {loading && <Loading />}<Notice message={error} />
     {(error||uncertain||record)&&<Action secondary title={tr("Retrieve prescription")} disabled={loading || sending} onPress={() => { void read(); }} />}
-    {record ? <><Status label={tr("Issued prescription")} tone="success"/><Copy tone="muted">{tr("Issued")}{new Date(record.issuedAt).toLocaleString(localeTag())}</Copy><Copy>{tr("Issuing doctor account:")}{' '}{record.doctorId}</Copy>
+    {record ? <><Status label={tr("Issued prescription")} tone="success"/><Copy tone="muted">{tr("Issued")}{' '}{new Date(record.issuedAt).toLocaleString(localeTag())}</Copy><Copy>{tr('Issuing doctor')}: {issuer?.uid===record.doctorId?issuer.name:tr('Verified doctor name unavailable')}</Copy>
       {record.medications.map((m, i) => <Card key={i} tone="mint"><Copy variant="heading" selectable>{m.name}</Copy>{Object.entries(m).filter(([key])=>key!=='name').map(([key, value]) => <React.Fragment key={key}><Copy variant="label">{systemMessage(key.charAt(0).toUpperCase()+key.slice(1))}</Copy><Copy selectable>{value}</Copy></React.Fragment>)}</Card>)}
       <Copy>{tr("Immutable issued record. Corrections and amendments are not supported in this checkpoint.")}</Copy></> : loaded && !loading && <>
       {!doctor&&<Copy>{tr("No prescription has been issued for this consultation.")}</Copy>}

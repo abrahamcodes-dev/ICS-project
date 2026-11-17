@@ -9,7 +9,7 @@ const mockOlder = jest.fn();
 jest.mock('../src/services/authService', () => ({onIdentityRefresh: fn => {mockIdentity=fn; return jest.fn();}}));
 jest.mock('../src/services/consultationService', () => ({
   sendConsultationMessage: input => mockSend({...input}),
-  createConsultationMessageSession: () => ({dispose:mockDispose,loadOlder:mockOlder,start:(_,rows,error)=>{mockRows=rows;mockError=error;}}),
+  createConsultationMessageSession: () => ({dispose:mockDispose,loadOlder:mockOlder,start:(_,rows,error)=>{mockRows=rows;mockError=error;rows([]);}}),
 }));
 const Chat = require('../src/screens/shared/ConsultationChat').default;
 const room = {consultationId:'a'.repeat(64),patientId:'p',doctorId:'d',canSend:true};
@@ -56,6 +56,23 @@ test('unmount disposes session and safely ignores late results',async()=>{
 test('history errors offer bounded resubscription and empty state',async()=>{
  await render();await act(async()=>mockError(new Error('denied')));expect(content()).toContain('Unable to refresh');
  await press('Retry message history');await act(async()=>mockRows([]));expect(content()).toContain('No messages loaded yet');
+});
+test('cache reset does not claim an empty synchronized history before the listener responds',async()=>{
+ await render();expect(content()).toContain('Loading messages');expect(content()).not.toContain('No messages loaded yet');
+ await act(async()=>mockRows([]));expect(content()).toContain('No messages loaded yet');expect(content()).not.toContain('Loading messages');
+});
+test('successful send is neutral even if history synchronization subsequently fails',async()=>{
+ await render();await draft();mockSend.mockResolvedValue({consultationId:room.consultationId,senderId:'p',type:'text'});await press('Send message');
+ const {Notice}=require('../src/ui/design');
+ expect(content()).toContain('Message sent.');expect(tree.root.findAllByType(Notice).some(n=>n.props.message==='Message sent.')).toBe(false);
+ await act(async()=>mockError({code:'unavailable'}));expect(content()).toContain('Your message is saved.');
+ expect(content()).not.toContain('Send not confirmed');expect(tree.root.findByType(Field).props.value).toBe('');
+});
+test('retry listener clears a recovered history error and never disguises access denial as offline',async()=>{
+ await render();await act(async()=>mockError({code:'permission-denied'}));expect(content()).toContain('access was denied');
+ expect(content()).not.toContain('No messages loaded yet');await press('Retry message history');
+ await act(async()=>mockError({code:'unavailable'}));await act(async()=>mockRows([row('Recovered history',1000)]));
+ expect(content()).toContain('Recovered history');expect(content()).not.toContain('could not connect');
 });
 test('new draft after acknowledged send uses a fresh request ID',async()=>{
  await render();mockSend.mockResolvedValue({consultationId:room.consultationId,senderId:'p',type:'text'});

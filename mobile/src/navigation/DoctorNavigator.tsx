@@ -26,7 +26,7 @@ export default function DoctorNavigator() {
       <Stack.Screen name="SubmitVerification" component={SubmitVerificationScreen} />
       <Stack.Screen name="SetAvailability" component={SetAvailabilityScreen} options={{headerShown:false,gestureEnabled:false}} />
       <Stack.Screen name="ConsultationDetails" component={ConsultationDetailsScreen} options={{headerShown:false}} />
-      <Stack.Screen name="ConsultationRoom" component={ConsultationRoomScreen} />
+      <Stack.Screen name="ConsultationRoom" component={ConsultationRoomScreen} options={{title:tr('Consultation')}} />
       <Stack.Screen name="IssuePrescription" component={IssuePrescriptionScreen} options={{title:tr("Create Prescription"),headerTitleAlign:"center"}} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} options={{headerShown:false}} />
     </Stack.Navigator>

@@ -20,6 +20,12 @@ test('unrelated or corrupt document fails closed',()=>{
  expect(()=>parseAppointment(id,data(),'other','patient')).toThrow();
  expect(()=>parseAppointment(id,{...data(),status:'booked'},'p','patient')).toThrow();
 });
+
+test('professional snapshot is copied only when its strict display contract is valid',()=>{
+ const doctorDisplay={professionalName:'Dr Synthetic',specialty:'General Practitioner'};
+ const row=parseAppointment(id,{...data(),doctorDisplay},'p','patient');expect(row.doctorDisplay).toEqual(doctorDisplay);expect(row.doctorDisplay).not.toBe(doctorDisplay);
+ for(const invalid of [{...doctorDisplay,privateField:'hidden'},{...doctorDisplay,professionalName:' '},{...doctorDisplay,professionalName:'raw\nname'}])expect(parseAppointment(id,{...data(),doctorDisplay:invalid},'p','patient').doctorDisplay).toBeUndefined();
+});
 test.each(['cancelled','completed','no_show'])('%s disables entry',status=>{
  const row=parseAppointment(id,{...data(),status},'p','patient');expect(consultationUnavailable(row,'p','patient',2000)).toMatch(/appointment is/);
 });

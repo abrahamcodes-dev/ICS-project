@@ -11,6 +11,15 @@ let tree;
 beforeEach(()=>{jest.clearAllMocks();mockRead.mockImplementation(async appointmentId=>({appointmentId,patientDisplayName:'Ada Patient',patientAvatar:photo}));});
 afterEach(async()=>{if(tree)await act(async()=>tree.unmount());tree=null;});
 async function render(node){await act(async()=>{tree=create(node);});}
+
+test('neutral patient fallback is localized without translating authored names',async()=>{
+ const {setLanguage}=require('../src/i18n/locale');
+ try{await act(async()=>setLanguage('sw'));await render(<AppointmentPatient/>);expect(JSON.stringify(tree.toJSON())).toContain('Mgonjwa');
+ await act(async()=>setLanguage('en'));expect(JSON.stringify(tree.toJSON())).not.toContain('Mgonjwa');expect(JSON.stringify(tree.toJSON())).toContain('Patient');
+ await act(async()=>setLanguage('sw'));
+ await act(async()=>tree.update(<AppointmentPatient display={{patientDisplayName:'Original Patient Name',patientAvatar:null}}/>));expect(JSON.stringify(tree.toJSON())).toContain('Original Patient Name');}
+ finally{await act(async()=>setLanguage('en'));}
+});
 test('name and image rendered; repeated renders and same patient use one request',async()=>{
  await render(<Harness rows={[row(),row(other)]}/>);expect(tree.root.findByType(Image).props.source.uri).toBe(photo);
  expect(JSON.stringify(tree.toJSON())).toContain('Ada Patient');expect(mockRead).toHaveBeenCalledTimes(1);
