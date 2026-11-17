@@ -1,7 +1,7 @@
 import {readFileSync} from 'fs';
 import {resolve} from 'path';
 import {initializeTestEnvironment,assertFails,assertSucceeds,RulesTestEnvironment} from '@firebase/rules-unit-testing';
-import {getDoc,getDocs,collection,setDoc,doc,Timestamp as ClientTimestamp} from 'firebase/firestore';
+import {getDoc,getDocFromServer,getDocs,collection,query,orderBy,documentId,limit,setDoc,doc,Timestamp as ClientTimestamp} from 'firebase/firestore';
 import {uploadBytes as storageUpload,ref,getBytes} from 'firebase/storage';
 import {Timestamp} from 'firebase-admin/firestore';
 import {getAuth} from 'firebase-admin/auth';
@@ -192,6 +192,74 @@ test('hosted admission preserves nested consultation signalling access within Ru
  for(const p of [callPaths.call(consultationId,callId),callPaths.offer(consultationId,callId),callPaths.answer(consultationId,callId)])await assertSucceeds(getDoc(doc(c,p)));
  await db.doc('academicDemoTesters/patient').update({enabled:false});await assertFails(getDoc(doc(c,callPaths.offer(consultationId,callId))));
 });
+
+test.each(['patient','doctor'])('hosted message history permits %s pages under the admission expression budget',async role=>{
+ const m=memory(),batch=db.batch();for(const [p,value]of Object.entries(m.data))batch.set(db.doc(p),value as any);await batch.commit();
+ const email=m.data['users/'+role].email.toLowerCase(),membership={uid:role,email,enabled:true,expectedRole:role,noticeVersion:ACADEMIC_NOTICE_VERSION,expiresAt:Timestamp.fromMillis(Date.now()+3600000)};
+ await db.doc('academicDemoTesters/'+role).set(membership);await db.doc('academicDemoInvitations/'+email).set(membership);
+ for(let index=0;index<50;index++){const id=index.toString(16).padStart(64,'0');await db.doc(`consultations/${consultationId}/messages/${id}`).set({messageId:id,senderId:index%2?'doctor':'patient',type:'text',text:'Synthetic text only',createdAt:m.data['consultations/'+consultationId].createdAt,schemaVersion:1});}
+ const c=rules.authenticatedContext(role,{email,email_verified:true}).firestore();
+ for(const size of [30,50])expect((await assertSucceeds(getDocs(query(collection(c,`consultations/${consultationId}/messages`),orderBy('createdAt','desc'),orderBy(documentId(),'desc'),limit(size))))).size).toBe(size);
+   const appointment=m.data['appointments/'+consultationId],room=m.data['consultations/'+consultationId];
+   await db.doc('appointments/'+consultationId).update({status:'completed',updatedAt:appointment.endAt,outcome:{recordedBy:'doctor',recordedAt:appointment.endAt}});
+   await db.doc('consultations/'+consultationId).update({state:'closed',closedAt:appointment.endAt});
+   await assertSucceeds(getDoc(doc(c,'appointments/'+consultationId))).catch(error=>{throw new Error('Completed appointment: '+error.message);});
+   await assertSucceeds(getDoc(doc(c,'consultations/'+consultationId))).catch(error=>{throw new Error('Completed room: '+error.message);});
+   await assertSucceeds(getDocs(query(collection(c,`consultations/${consultationId}/messages`),orderBy('createdAt','desc'),orderBy(documentId(),'desc'),limit(30)))).catch(error=>{throw new Error('Completed ordered history: '+error.message);});
+   await db.doc('consultations/'+consultationId).update({patientId:'unrelated'});
+   await assertFails(getDocs(query(collection(c,`consultations/${consultationId}/messages`),limit(30))));
+   await db.doc('consultations/'+consultationId).set(room);
+   await db.doc('appointments/'+consultationId).set({...appointment,doctorDisplay:{specialty:'General Practitioner'}});
+   await assertFails(getDocs(query(collection(c,`consultations/${consultationId}/messages`),limit(30))));
+   await db.doc('appointments/'+consultationId).set(appointment);
+   const canonical=m.data['users/'+role];
+   for(const malformed of [
+    {...canonical,fullName:' '}, {...canonical,fullName:'x'.repeat(201)},
+    {...canonical,email:'  '}, {...canonical,email:'\t \uFEFF'},
+    {...canonical,createdAt:'2026-02-30T00:00:00.000Z'},
+    {...canonical,updatedAt:'2026-11-17T25:00:00.000Z'},
+    {...canonical,status:'disabled'}, {...canonical,schemaVersion:2},
+    {...canonical,extraPrivateField:true},
+    Object.fromEntries(Object.entries(canonical).filter(([key])=>key!=='fullName')),
+   ]){
+    await db.doc('users/'+role).set(malformed);
+    await assertFails(getDocs(query(collection(c,`consultations/${consultationId}/messages`),limit(30))));
+   }
+   await db.doc('users/'+role).set(canonical);
+   if(role==='doctor')for(const collectionName of ['patientProfiles','patientHealthProfiles','patientConsents'])await assertFails(getDoc(doc(c,`${collectionName}/patient`)));
+ const outsider=rules.authenticatedContext(uid,{email:'academic@example.test',email_verified:true}).firestore();
+ await assertFails(getDocs(query(collection(outsider,`consultations/${consultationId}/messages`),limit(30))));
+ await db.doc('academicDemoTesters/'+role).update({enabled:false});
+ await assertFails(getDocs(query(collection(c,`consultations/${consultationId}/messages`),limit(30))));
+});
+test.each(['patient','doctor'])('hosted direct message read - %s active',async role=>{
+ const m=memory(),room=m.data['consultations/'+consultationId];
+ const batch=db.batch();for(const [p,value]of Object.entries(m.data))batch.set(db.doc(p),value as any);await batch.commit();
+ const email=m.data['users/'+role].email.toLowerCase(),membership={uid:role,email,enabled:true,expectedRole:role,noticeVersion:ACADEMIC_NOTICE_VERSION,expiresAt:Timestamp.fromMillis(Date.now()+3600000)};
+ await db.doc('academicDemoTesters/'+role).set(membership);await db.doc('academicDemoInvitations/'+email).set(membership);
+ const c=rules.authenticatedContext(role,{email,email_verified:true}).firestore(),textId='b'.repeat(64),attachmentId='c'.repeat(64);
+ const text={messageId:textId,senderId:'patient',type:'text',text:'Synthetic text only',createdAt:room.createdAt,schemaVersion:1};
+ const attachment={messageId:attachmentId,senderId:'doctor',type:'attachment',createdAt:room.createdAt,schemaVersion:1,attachment:{attachmentId,messageId:attachmentId,consultationId,senderId:'doctor',filename:'Synthetic.pdf',contentType:'application/pdf',sizeBytes:32,storagePath:`consultations/${consultationId}/attachments/${attachmentId}/document`,status:'finalized'}};
+ const path=(id:string)=>`consultations/${consultationId}/messages/${id}`;
+ await db.doc(path(textId)).set(text);await db.doc(path(attachmentId)).set(attachment);
+ for(const id of [textId,attachmentId])await assertSucceeds(getDocFromServer(doc(c,path(id))));
+ const outsider=client(),guest=rules.unauthenticatedContext().firestore(),unverified=rules.authenticatedContext(role,{email,email_verified:false}).firestore();
+ for(const denied of [outsider,guest,unverified])await assertFails(getDocFromServer(doc(denied,path(textId))));
+ const administrator={...member(),expectedRole:'administrator'};
+ await db.doc('users/'+uid).set({...identity,role:'administrator'});
+ await db.doc('academicDemoTesters/'+uid).set(administrator);await db.doc('academicDemoInvitations/'+administrator.email).set(administrator);
+ const admin=rules.authenticatedContext(uid,{email:administrator.email,email_verified:true,administrator:true}).firestore();
+ await assertFails(getDocFromServer(doc(admin,path(textId))));
+ await db.doc(path(textId)).set({...text,senderId:'outsider'});await assertFails(getDocFromServer(doc(c,path(textId))));await db.doc(path(textId)).set(text);
+ await db.doc(path(attachmentId)).set({...attachment,attachment:{...attachment.attachment,consultationId:'f'.repeat(64)}});await assertFails(getDocFromServer(doc(c,path(attachmentId))));
+ await db.doc('academicDemoTesters/'+role).update({expiresAt:Timestamp.fromMillis(0)});
+ const expired=rules.authenticatedContext(role,{email,email_verified:true}).firestore();
+ await assertFails(getDocFromServer(doc(c,path(textId))));
+ await assertFails(getDocFromServer(doc(expired,path(textId))));
+ await db.doc('academicDemoTesters/'+role).update({enabled:false,expiresAt:membership.expiresAt});
+ await assertFails(getDocFromServer(doc(c,path(textId))));
+});
+test.todo('hosted completed direct single-message get fits the admission expression budget (current UI uses bounded list reads)');
 
 test('an enrolled patient cannot change the invitation to a doctor role',async()=>{await db.doc('academicDemoInvitations/'+email).update({expectedRole:'doctor'});await expect(requireAcademicAdmission(auth(),true,hosted)).rejects.toThrow();await assertFails(getDoc(doc(client(),'users/'+uid)));});
 

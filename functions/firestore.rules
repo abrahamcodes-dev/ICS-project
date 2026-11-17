@@ -204,9 +204,21 @@ service cloud.firestore {
     return isSignedIn() && workflowIdentity(actor, request.auth.uid);
   }
   function workflowIdentity(data, uid) {
-    return validIdentity(data) && data.uid == uid && data.status == 'active'
+    let fields = ['uid', 'email', 'fullName', 'role', 'status', 'createdAt', 'updatedAt', 'schemaVersion'];
+    let allowed = data.get('role', '') == 'doctor' ? fields.concat(['verificationStatus']) : fields;
+    // Same strict contract as validIdentity + calendar/string checks. Each
+    // required field is accessed below; avoid duplicate key and timestamp regex
+    // walks when this validator is nested in clinical history authorization.
+    return data.keys().hasOnly(allowed)
+      && [data.uid, data.status, data.schemaVersion] == [uid, 'active', 1]
       && data.role in ['patient', 'doctor', 'administrator']
       && (data.role != 'doctor' || data.verificationStatus in ['pending', 'approved', 'rejected'])
+      && data.uid is string && data.email is string
+      && data.fullName is string && data.fullName.size() > 0
+      && data.createdAt is string && data.updatedAt is string && data.updatedAt >= data.createdAt
+      // patientIdentityStrings also enforces nonblank UID/email and the stronger
+      // trimmed, UTF-16 <=200 name bound (subsuming the base whitespace regexes).
+      // identityCalendar enforces the stricter timestamp format and valid day.
       && patientIdentityStrings(data) && identityCalendar(data.createdAt) && identityCalendar(data.updatedAt);
   }
   function workflowReader(uid) {
@@ -297,46 +309,57 @@ service cloud.firestore {
   function appointmentParticipant(data) {
     let actor=currentIdentity();
     return isSignedIn() && workflowIdentity(actor,request.auth.uid)
-      && ((actor.role == 'patient' && data.patientId == request.auth.uid)
-        || (actor.role == 'doctor' && data.doctorId == request.auth.uid));
+      // Select the caller's canonical role before reading the corresponding
+      // field, so participant-constrained queries remain provable by Rules.
+      && (actor.role == 'patient' ? data.patientId == request.auth.uid
+        : actor.role == 'doctor' && data.doctorId == request.auth.uid);
   }
   function appointmentActorId(value) {
-    return value is string && value.size() > 0 && value.size() <= 128
-      && !value.matches('[\\s\\S]*[/\\\\\\x00-\\x1F\\x7F][\\s\\S]*');
+    // Full-match quantifier retains the same 1..128 character bound and exact
+    // forbidden path/control characters without separate length/negative walks.
+    return value is string && value.matches('[^/\\\\\\x00-\\x1F\\x7F]{1,128}');
   }
   function appointmentTerminal(data) {
-    return (data.status == 'scheduled' && data.cancellation == null && data.outcome == null && data.updatedAt == data.createdAt)
-      || (data.status == 'cancelled' && data.outcome == null && data.cancellation is map
-        && data.cancellation.keys().hasAll(['cancelledBy', 'cancelledAt', 'reason'])
-        && data.cancellation.keys().hasOnly(['cancelledBy', 'cancelledAt', 'reason'])
-        && data.cancellation.cancelledBy in [data.patientId, data.doctorId]
-        && data.cancellation.cancelledAt is timestamp && data.cancellation.cancelledAt == data.updatedAt
-        && data.cancellation.cancelledAt < data.startAt
-        && (data.cancellation.reason == null || patientText(data.cancellation.reason, 500)))
-      || (data.status in ['completed', 'no_show'] && data.cancellation == null && data.outcome is map
-        && data.outcome.keys().hasAll(['recordedBy', 'recordedAt']) && data.outcome.keys().hasOnly(['recordedBy', 'recordedAt'])
-        && data.outcome.recordedBy == data.doctorId && data.outcome.recordedAt is timestamp
-        && data.outcome.recordedAt == data.updatedAt && data.outcome.recordedAt >= data.endAt);
+    let outcome = data.outcome;
+    let cancellation = data.cancellation;
+    let status = data.status;
+    let updated = data.updatedAt;
+    // Select only the applicable terminal branch; keep the same validations.
+    return status == 'scheduled' ? [cancellation, outcome, updated] == [null, null, data.createdAt]
+      : status == 'cancelled' ? (outcome == null && cancellation is map
+        && cancellation.keys().hasAll(['cancelledBy', 'cancelledAt', 'reason'])
+        && cancellation.keys().hasOnly(['cancelledBy', 'cancelledAt', 'reason'])
+        && cancellation.cancelledBy in [data.patientId, data.doctorId]
+        && cancellation.cancelledAt is timestamp && cancellation.cancelledAt == updated
+        && cancellation.cancelledAt < data.startAt
+        && (cancellation.reason == null || patientText(cancellation.reason, 500)))
+      : (status in ['completed', 'no_show'] && cancellation == null
+        // Exact map equality retains required/allowed keys and audit bindings.
+        // readableAppointment validates updatedAt as a timestamp first.
+        && outcome == {'recordedBy': data.doctorId, 'recordedAt': updated}
+        && updated >= data.endAt);
   }
   function readableAppointment(data, id) {
+    let display = data.doctorDisplay;
     let fields = ['appointmentId', 'patientId', 'doctorId', 'availabilityId', 'availabilityRevision', 'startAt', 'endAt',
       'doctorDisplay', 'status', 'cancellation', 'outcome', 'schemaVersion', 'createdAt', 'updatedAt'];
     // Every required field is directly accessed and validated below; missing keys fail closed.
     // Avoid a redundant hasAll walk in nested clinical history reads.
     return data.keys().hasOnly(fields)
-      && data.appointmentId == id && id.matches('[a-f0-9]{64}')
+      && [data.appointmentId, data.schemaVersion] == [id, 1] && id.matches('[a-f0-9]{64}')
       && appointmentActorId(data.patientId) && appointmentActorId(data.doctorId) && data.patientId != data.doctorId
-      && data.schemaVersion == 1 && data.status in ['scheduled', 'cancelled', 'completed', 'no_show']
+      && data.status in ['scheduled', 'cancelled', 'completed', 'no_show']
       && data.startAt is timestamp && data.endAt is timestamp
-      && data.endAt.nanos() == 0 && (data.endAt.toMillis() - data.startAt.toMillis()) in [900000, 1800000, 3600000]
-      && data.startAt.toMillis() % 900000 == 0 && data.startAt.nanos() == 0
+      && [data.startAt.nanos(), data.endAt.nanos()] == [0, 0]
+      && (data.endAt.toMillis() - data.startAt.toMillis()) in [900000, 1800000, 3600000]
+      && data.startAt.toMillis() % 900000 == 0
       && data.createdAt is timestamp && data.updatedAt is timestamp
       && data.createdAt < data.startAt && data.updatedAt >= data.createdAt
       && data.availabilityId is string && data.availabilityId.matches('[a-f0-9]{64}')
       && data.availabilityRevision is int && data.availabilityRevision > 0 && data.availabilityRevision <= 9007199254740991
-      && data.doctorDisplay is map && data.doctorDisplay.keys().hasAll(['professionalName', 'specialty'])
-      && data.doctorDisplay.keys().hasOnly(['professionalName', 'specialty'])
-      && patientText(data.doctorDisplay.professionalName, 200) && patientText(data.doctorDisplay.specialty, 120)
+      // Both required display fields are directly validated below (missing fails closed).
+      && display is map && display.keys().hasOnly(['professionalName', 'specialty'])
+      && patientText(display.professionalName, 200) && patientText(display.specialty, 120)
       && appointmentTerminal(data);
   }
   match /appointments/{appointmentId} {
@@ -352,23 +375,26 @@ service cloud.firestore {
   // History authority is independent of current send eligibility.
   function readableConsultation(data, id) {
     let appointment = get(/databases/$(database)/documents/appointments/$(id)).data;
-    let fields = ['consultationId', 'appointmentId', 'patientId', 'doctorId', 'appointmentStartAt',
-      'appointmentEndAt', 'state', 'createdAt', 'closedAt', 'schemaVersion'];
     return appointmentParticipant(appointment) && readableAppointment(appointment, id)
-      && data.keys().hasOnly(fields)
-      && data.schemaVersion == 1 && data.consultationId == id && data.appointmentId == id
-      && data.patientId == appointment.patientId && data.doctorId == appointment.doctorId
-      && data.appointmentStartAt == appointment.startAt && data.appointmentEndAt == appointment.endAt
+      // Exact map equality validates all required/allowed keys and bindings in
+      // one operation; state/timestamps retain their checks below.
+      && data == {'consultationId': id, 'appointmentId': id, 'patientId': appointment.patientId,
+        'doctorId': appointment.doctorId, 'appointmentStartAt': appointment.startAt,
+        'appointmentEndAt': appointment.endAt, 'state': data.state, 'createdAt': data.createdAt,
+        'closedAt': data.closedAt, 'schemaVersion': 1}
       && data.createdAt is timestamp && data.createdAt >= appointment.startAt
       && data.createdAt < appointment.endAt + duration.value(15, 'm')
       // A room created after a cancellation/terminal decision is corrupt.
       && (appointment.status == 'scheduled' || data.createdAt <= appointment.updatedAt)
-      && ((data.state == 'active' && data.closedAt == null)
-        || (data.state == 'closed' && data.closedAt is timestamp && data.closedAt >= data.createdAt
+      && (data.state == 'active' ? data.closedAt == null
+        : (data.state == 'closed' && data.closedAt is timestamp && data.closedAt >= data.createdAt
           && data.closedAt <= appointment.endAt + duration.value(15, 'm')));
   }
   function consultationHistory(id) {
-    return readableConsultation(get(/databases/$(database)/documents/consultations/$(id)).data, id);
+    // Bind the document once: repeated field access through an inline get()
+    // expands the expression tree beyond the hosted admission Rules budget.
+    let room = get(/databases/$(database)/documents/consultations/$(id)).data;
+    return readableConsultation(room, id);
   }
   function readableMessage(data, id, consultationId) {
     let room = get(/databases/$(database)/documents/consultations/$(consultationId)).data;
