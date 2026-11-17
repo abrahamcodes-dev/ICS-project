@@ -1,7 +1,7 @@
 # Hosted functional verification and privacy — Checkpoint 2
 
 Date: 16 November 2026. Status: in progress; patient onboarding verified,
-doctor request submitted, deployed Rules fix verified live; administrator review pending.
+doctor approved through normal administrator review; fee/availability setup pending.
 
 ## Confirmed starting point
 
@@ -227,7 +227,106 @@ profile denial and pending-doctor clinical-availability denial. Passwords/tokens
 are not persisted or sent to the helper; only non-secret result metadata is saved.
 No IAM-bypassing read is counted as successful client Rules authorization.
 
+## Normal administrator approval confirmed
+
+Owner manually opened the submitted synthetic license in the native administrator
+viewer, confirmed its fictional academic-test markings, and approved through the
+normal confirmation flow. Read-only stored-state verification confirmed active,
+email-verified canonical doctor status approved; the request is approved with its
+reviewer bound to the approved administrator. The approved audit actor, request,
+doctor and review timestamp match. The draft activeRequestId is cleared, its
+approvedRequestId is bound, and the published professional profile and revision
+match the reviewed request. Admission remains active and no administrator custom
+claim was granted to the doctor. No account or approval record was edited by the
+verification tool. Fee is not yet configured and no availability days exist.
+
+These bindings establish server eligibility for approved-doctor clinical routes;
+native doctor sign-in/route transition and actual scheduling/payment operations
+must still be observed. Next owner action: sign out of administrator, sign into
+the existing doctor account, save the synthetic consultation fee from Profile,
+then save future availability through Manage Availability. No repeat submission,
+credential upload or approval is required. The earlier read-only helper expected
+a pending doctor and must not be rerun as an approval test after this transition.
+
 No new application/dependency/native changes, deployment, APK rebuild, database
 reset, account deletion or push occurred during this checkpoint preparation.
 The previously verified Phase 3B source/tests and Phase 3C evidence are committed
 as the owner-approved baseline before further functional or privacy changes.
+
+## Patient booking profile-read blocker (16 November 2026)
+
+Owner confirmed native approved-doctor workspace access and successful saves of
+KES 1,500 per 30 minutes and 17 November 09:00–17:00 Africa/Nairobi availability.
+Read-only hosted inspection independently confirmed fee amountMinor 150000,
+currency KES, demo true, revision 1; availability revision 1 covers 06:00–14:00 UTC.
+No booking or payment has been confirmed yet.
+
+The patient profile screen first awaits `getPatientDoctor`, which performs a
+direct `getDoc(doctorPublicProfiles/{doctorId})`; only after that succeeds does it
+call `getAvailableAppointmentTimes`. Its generic eligibility error conflates
+Firestore and callable permission failures. Read-only hosted inspection confirms
+verified, enabled patient Auth, active canonical patient identity, active bound
+invitation/membership, current academic notice acknowledgement, and optional
+medical-record sharing declined. Declined sharing is not a booking prerequisite.
+No available-times service invocation was found in the queried post-17:00 UTC
+log window; this absence is supporting evidence, not a captured client error.
+
+The published Rules source was read back and matched the committed pre-fix
+hosted Rules exactly (ruleset 805b25d1-ff8a-442d-8c1f-3ca15b7d0c4c). An isolated
+admitted-patient/approved-doctor direct-read reproduction failed with Firebase
+permission denial and the Rules evaluator's explicit "maximum of 1000
+expressions" error at the public-profile allow boundary. Binding the caller
+identity alone remained insufficient. The local fix additionally expresses the
+same ten doctor/approval-source bindings as tuple equality; identity schemas,
+calendar/string validation, active/approved checks and hosted admission remain.
+The regression then passed. No mobile change is needed for this Rules correction.
+
+The affected academic suite passes 41/41, including twelve new negative cases:
+anonymous/unverified readers, revoked/expired membership, disabled/malformed
+patient or doctor identities, pending doctor, mismatched approval/publication,
+and direct writes. The complete affected appointment-read/domain Rules suite
+also passes 75/75 (unchanged since that execution): final total two suites,
+116 passed, zero failed or skipped. The three added role-boundary cases confirm
+eligible patient, doctor and administrator public-profile gets; deny collection
+listing, other doctors' private drafts and private admission records; deny
+patient/unrelated-doctor credential and verification reads; and preserve normal
+administrator credential/verification review access.
+Neither final log contains a 1000-expression exhaustion error. Whitespace checks
+pass. Isolated projects/ports were used; interactive emulator data
+was not cleared. The private localhost patient helper captured the actual hosted
+responses at 18:59:49 UTC: own identity HTTP 200; public doctor profile HTTP 403,
+PERMISSION_DENIED ("Missing or insufficient permissions"); available-times callable
+HTTP 200 with 31 times. This fresh-session check confirms callable discovery,
+admission and scheduling eligibility work independently of the failed direct
+profile read. Hosted does not expose the evaluator's expression-limit detail;
+that precise cause was reproduced against the matching Rules in isolation.
+No passwords or tokens are persisted. Deployment requires
+separate owner approval; no hosted records, Rules releases, Functions, APKs or
+Git commits were changed during diagnosis.
+
+### Approved public-profile Rules-only deployment
+
+On 16 November 2026 at 19:11 UTC, the owner-approved correction was deployed only
+to Firestore Rules in `calladoc-academic-demo`, through the existing verified
+release inventory and predeploy guard with `--only firestore:rules`. Project ID
+was independently confirmed through the Firebase Management API. The previous
+published ruleset `805b25d1-ff8a-442d-8c1f-3ca15b7d0c4c`, full source and rollback
+instructions were preserved outside Git in the checkpoint directory before
+deployment. A missing unchanged indexes artifact was restored only in the
+disposable release after its hash matched the existing inventory; no indexes
+were deployed. Functions, Storage Rules and Hosting were not deployed.
+
+Published ruleset `2491e6ab-e4c6-4b34-a37f-b2bb23c58122` was read back and matched
+the tested hosted artifact byte for byte. SHA-256:
+`959696400c5a2901bf58e49045aa6e1b998e45c6a2552100bc0c2bb3dfc90fcd`.
+Three live unauthenticated read checks returned HTTP 403 PERMISSION_DENIED for
+the actual public doctor profile, private doctor profile and administrative
+membership path. Authenticated role boundaries remain covered by the 116
+previously passed affected tests; successful suites were not repeated.
+
+The existing three-check patient helper remains available. A new owner-entered
+patient sign-in is required because credentials and session tokens were not
+retained. Post-deployment authenticated read results and native profile refresh
+remain pending; no success is claimed until observed. No hosted records,
+bookings, payments, accounts, local emulator data or APKs were modified. No Git
+commit or push was performed; unrelated working-tree edits were preserved.

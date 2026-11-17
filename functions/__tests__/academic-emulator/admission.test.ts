@@ -1,7 +1,7 @@
 import {readFileSync} from 'fs';
 import {resolve} from 'path';
 import {initializeTestEnvironment,assertFails,assertSucceeds,RulesTestEnvironment} from '@firebase/rules-unit-testing';
-import {getDoc,setDoc,doc,Timestamp as ClientTimestamp} from 'firebase/firestore';
+import {getDoc,getDocs,collection,setDoc,doc,Timestamp as ClientTimestamp} from 'firebase/firestore';
 import {uploadBytes as storageUpload,ref,getBytes} from 'firebase/storage';
 import {Timestamp} from 'firebase-admin/firestore';
 import {getAuth} from 'firebase-admin/auth';
@@ -23,6 +23,54 @@ const identity={uid,email,fullName:'Synthetic Tester',role:'patient',status:'act
 const member=()=>({uid,email,enabled:true,expectedRole:'patient',noticeVersion:ACADEMIC_NOTICE_VERSION,expiresAt:Timestamp.fromMillis(Date.now()+3600000)});
 const auth=()=>({uid,token:{email,email_verified:true,auth_time:Math.ceil(Date.now()/1000)}});
 const client=(verified=true,customEmail=email)=>rules.authenticatedContext(uid,{email:customEmail,email_verified:verified}).firestore();
+async function seedPublicDoctor(){
+ const doctor='synthetic-approved-doctor',requestId='11111111-1111-4111-8111-111111111111',at=Timestamp.now();
+ const professional={professionalName:'Dr Demo Doctor',specialty:'General Practitioner',registrationNumber:'TEST-ONLY',issuingAuthority:'Synthetic Authority'};
+ const credentialId='22222222-2222-4222-8222-222222222222',reference={credentialId,category:'medical_license',generation:'123',checksum:'a'.repeat(64)};
+ await db.doc('users/'+doctor).set({...identity,uid:doctor,email:'doctor@example.test',role:'doctor',verificationStatus:'approved'});
+ await db.doc('doctorProfiles/'+doctor).set({...professional,uid:doctor,revision:1,activeRequestId:null,approvedRequestId:requestId,schemaVersion:1,createdAt:at,updatedAt:at});
+ await db.doc('doctorCredentials/'+credentialId).set({...reference,doctorUid:doctor,storagePath:`doctorCredentials/${doctor}/${credentialId}/document`,contentType:'image/png',sizeBytes:34142,state:'attached',requestId,schemaVersion:1,createdAt:at,updatedAt:at,expiresAt:Timestamp.fromMillis(at.toMillis()+900000)});
+ await db.doc('verificationRequests/'+requestId).set({requestId,doctorUid:doctor,state:'approved',profileRevision:1,professional,credentials:[reference],previousRequestId:null,reviewedAt:at,reviewerUid:'synthetic-reviewer',schemaVersion:1,createdAt:at,submittedAt:at,updatedAt:at});
+ await db.doc('doctorPublicProfiles/'+doctor).set({uid:doctor,professionalName:'Dr Demo Doctor',specialty:'General Practitioner',approvedRevision:1,approvedRequestId:requestId,schemaVersion:1,publishedAt:at,updatedAt:at});
+ return doctor;
+}
+test('admitted patient reads approved public doctor before available-times discovery',async()=>{
+ const doctor=await seedPublicDoctor();
+ await assertSucceeds(getDoc(doc(client(),'doctorPublicProfiles/'+doctor)));
+});
+test.each(['patient','doctor','administrator'])('public doctor profile preserves %s domain access boundaries',async role=>{
+ const doctor=await seedPublicDoctor();
+ await db.doc('users/'+uid).set({...identity,role,...(role==='doctor'?{verificationStatus:'approved'}:{})});
+ await db.doc('academicDemoTesters/'+uid).update({expectedRole:role});
+ await db.doc('academicDemoInvitations/'+email).update({expectedRole:role});
+ const c=client();
+ const result=await assertSucceeds(getDoc(doc(c,'doctorPublicProfiles/'+doctor)));
+ expect(Object.keys(result.data()!).sort()).toEqual(['uid','professionalName','specialty','approvedRevision','approvedRequestId','schemaVersion','publishedAt','updatedAt'].sort());
+ await assertFails(getDocs(collection(c,'doctorPublicProfiles')));
+ await assertFails(getDoc(doc(c,'doctorProfiles/'+doctor)));
+ await assertFails(getDoc(doc(c,'academicDemoInvitations/'+email)));
+ await assertFails(getDoc(doc(c,'academicDemoTesters/'+uid)));
+ for(const p of ['verificationRequests/11111111-1111-4111-8111-111111111111','doctorCredentials/22222222-2222-4222-8222-222222222222']){
+  if(role==='administrator')await assertSucceeds(getDoc(doc(c,p)));
+  else await assertFails(getDoc(doc(c,p)));
+ }
+});
+test.each(['anonymous','unverified','membership-revoked','membership-expired','patient-disabled','patient-malformed',
+ 'doctor-pending','doctor-disabled','doctor-malformed','approval-binding','publication-binding','direct-write'])('public doctor read safeguards deny %s',async condition=>{
+ const doctor=await seedPublicDoctor(),target=db.doc('users/'+doctor),publication=db.doc('doctorPublicProfiles/'+doctor);
+ if(condition==='membership-revoked')await db.doc('academicDemoTesters/'+uid).update({enabled:false});
+ if(condition==='membership-expired')await db.doc('academicDemoTesters/'+uid).update({expiresAt:Timestamp.fromMillis(1)});
+ if(condition==='patient-disabled')await db.doc('users/'+uid).update({status:'disabled'});
+ if(condition==='patient-malformed')await db.doc('users/'+uid).update({updatedAt:'2026-02-30T00:00:00.000Z'});
+ if(condition==='doctor-pending')await target.update({verificationStatus:'pending'});
+ if(condition==='doctor-disabled')await target.update({status:'disabled'});
+ if(condition==='doctor-malformed')await target.update({updatedAt:'2026-02-30T00:00:00.000Z'});
+ if(condition==='approval-binding')await db.doc('verificationRequests/11111111-1111-4111-8111-111111111111').update({doctorUid:'another-doctor'});
+ if(condition==='publication-binding')await publication.update({specialty:'Different specialty'});
+ const c=condition==='anonymous'?rules.unauthenticatedContext().firestore():condition==='unverified'?client(false):client();
+ if(condition==='direct-write')await assertFails(setDoc(doc(c,'doctorPublicProfiles/'+doctor),{uid:doctor}));
+ else await assertFails(getDoc(doc(c,'doctorPublicProfiles/'+doctor)));
+});
 async function seed(){await db.doc('users/'+uid).set(identity);await db.doc('academicDemoTesters/'+uid).set(member());await db.doc('academicDemoInvitations/'+email).set(member());}
 beforeAll(async()=>{
  if(process.env.GCLOUD_PROJECT!==project||process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8111'

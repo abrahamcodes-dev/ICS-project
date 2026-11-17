@@ -198,7 +198,10 @@ service cloud.firestore {
   }
 
   function strictActive() {
-    return isSignedIn() && workflowIdentity(currentIdentity(), request.auth.uid);
+    let actor = currentIdentity();
+    // Bind once before strict validation to keep public-profile reads within
+    // the Rules expression budget. All identity checks remain unchanged.
+    return isSignedIn() && workflowIdentity(actor, request.auth.uid);
   }
   function workflowIdentity(data, uid) {
     return validIdentity(data) && data.uid == uid && data.status == 'active'
@@ -264,10 +267,12 @@ service cloud.firestore {
       && data.approvedRevision is int && data.approvedRevision > 0 && data.approvedRevision <= 9007199254740991
       && data.publishedAt is timestamp && data.updatedAt is timestamp && data.updatedAt >= data.publishedAt
       && validIdentity(target) && patientIdentityStrings(target) && identityCalendar(target.createdAt) && identityCalendar(target.updatedAt)
-      && target.uid == uid && target.role == 'doctor' && target.status == 'active' && target.verificationStatus == 'approved'
-      && approved.requestId == data.approvedRequestId && approved.doctorUid == uid && approved.state == 'approved'
-      && approved.profileRevision == data.approvedRevision && approved.professional.professionalName == data.professionalName
-      && approved.professional.specialty == data.specialty;
+      // Tuple equality retains every approval binding with fewer expressions.
+      && [target.uid, target.role, target.status, target.verificationStatus,
+          approved.requestId, approved.doctorUid, approved.state, approved.profileRevision,
+          approved.professional.professionalName, approved.professional.specialty]
+        == [uid, 'doctor', 'active', 'approved', data.approvedRequestId, uid, 'approved',
+          data.approvedRevision, data.professionalName, data.specialty];
   }
   match /doctorPublicProfiles/{uid} {
     allow get: if strictActive() && publicDoctor(resource.data, uid);
