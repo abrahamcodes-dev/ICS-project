@@ -163,3 +163,10 @@ test('appointment loading failure does not show empty state and refresh recovers
  await render(PatientAppointments);expect(JSON.stringify(tree.toJSON())).toContain('Unable to load appointments');expect(JSON.stringify(tree.toJSON())).not.toContain('No upcoming appointments');
  await press('Refresh appointments');expect(JSON.stringify(tree.toJSON())).toContain('No upcoming appointments');
 });
+
+test('completed patient card navigates to separate read-only history',async()=>{
+ require('../src/services/appointmentReads').readAppointmentPage.mockResolvedValue({rows:[{...row(),status:'completed'}],cursor:null});
+ await render(PatientAppointments);await expandAppointment();await press('View consultation history');
+ expect(navigation.navigate).toHaveBeenCalledWith('ConsultationHistory',{appointmentId:id});
+ expect(tree.root.findAllByType(Action).find(a=>a.props.title==='Open consultation').props.disabled).toBe(true);
+});

@@ -9,8 +9,8 @@ import { readAppointmentPage, consultationUnavailable, type AppointmentRow, type
 import { useSchedulingSession } from '../../hooks/useSchedulingSession';
 import { schedulingError } from '../../services/schedulingService';
 
-export default function SchedulingAppointments({ uid, role, open, rate, mode = 'upcoming', boundary, end, patientPresentation, header, findDoctor, renderCard }:
-  { uid: string; role: ParticipantRole; open(id: string): void; rate?(id: string): void; mode?: AppointmentPageMode; boundary: number; end?: number; patientPresentation?: boolean; header?(refresh:()=>void,disabled:boolean):React.ReactNode; findDoctor?():void; renderCard?(a:AppointmentRow,content:React.ReactNode,now:number):React.ReactNode }) {
+export default function SchedulingAppointments({ uid, role, open, history, rate, mode = 'upcoming', boundary, end, patientPresentation, header, findDoctor, renderCard }:
+  { uid: string; role: ParticipantRole; open(id: string): void; history?(id: string): void; rate?(id: string): void; mode?: AppointmentPageMode; boundary: number; end?: number; patientPresentation?: boolean; header?(refresh:()=>void,disabled:boolean):React.ReactNode; findDoctor?():void; renderCard?(a:AppointmentRow,content:React.ReactNode,now:number):React.ReactNode }) {
   useLocale();
   const session = useSchedulingSession(uid), generation = useRef(0), busy = useRef(false), deciding = useRef(false);
   const [rows, setRows] = useState<AppointmentRow[]>([]), [cursor, setCursor] = useState<AppointmentCursor | null>(null);
@@ -62,7 +62,8 @@ export default function SchedulingAppointments({ uid, role, open, rate, mode = '
     {rows.map(a => {
       const unavailable = consultationUnavailable(a, uid, role, now);
       const content=<>
-        {unavailable && <Copy>{systemMessage(unavailable)}</Copy>}<Action title={tr("Open consultation")} disabled={!!unavailable} onPress={() => {
+        {unavailable && <Copy>{systemMessage(unavailable)}</Copy>}{history && a.status==='completed' && a[`${role}Id`]===uid && <Action title={tr("View consultation history")} onPress={()=>history(a.appointmentId)}/>}
+        <Action title={tr("Open consultation")} disabled={!!unavailable} onPress={() => {
           if (!consultationUnavailable(a, uid, role, Date.now())) open(a.appointmentId);
         }}/>
         {role === 'patient' && a.patientId === uid && a.status === 'completed' && rate &&

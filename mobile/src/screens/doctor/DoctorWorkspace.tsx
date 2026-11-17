@@ -37,14 +37,14 @@ export default function DoctorWorkspace({navigation}:NativeStackScreenProps<Doct
  if(identity.status!=='ready'||identity.user?.role!=='doctor'||identity.user.status!=='active'||identity.user.verificationStatus!=='approved'||!identity.firebaseUid)
   return <Screen><Copy>{tr("Clinical access requires an active, approved doctor account.")}</Copy></Screen>;
  return <View style={{flex:1,backgroundColor:colors.background}}>
-  <DoctorContent key={`${identity.firebaseUid}:${tab}`} uid={identity.firebaseUid} notifications={()=>navigation.navigate('Notifications')} prescriptions={()=>navigation.navigate('IssuePrescription')} details={appointmentId=>navigation.navigate('ConsultationDetails',{appointmentId})} tab={tab} select={setTab} manage={()=>navigation.navigate('SetAvailability')} open={appointmentId=>navigation.navigate('ConsultationRoom',{appointmentId})}/>
+  <DoctorContent history={appointmentId=>navigation.navigate('ConsultationHistory',{appointmentId})} key={`${identity.firebaseUid}:${tab}`} uid={identity.firebaseUid} notifications={()=>navigation.navigate('Notifications')} prescriptions={()=>navigation.navigate('IssuePrescription')} details={appointmentId=>navigation.navigate('ConsultationDetails',{appointmentId})} tab={tab} select={setTab} manage={()=>navigation.navigate('SetAvailability')} open={appointmentId=>navigation.navigate('ConsultationRoom',{appointmentId})}/>
   <SafeAreaView edges={['bottom']} style={{backgroundColor:colors.tabBarBackground,borderTopWidth:1,borderColor:colors.border}}>
    <View style={{flexDirection:'row'}}>{doctorTabs.map(name=><Pressable key={name} accessibilityRole="tab" accessibilityLabel={systemMessage(name)} accessibilityState={{selected:tab===name}} onPress={()=>setTab(name)} style={({pressed})=>({flex:1,minHeight:64,paddingVertical:12,paddingHorizontal:4,alignItems:'center',gap:5,justifyContent:'center',opacity:pressed?0.65:1,borderRadius:12,backgroundColor:tab===name?colors.mint:colors.tabBarBackground})}><PatientIcon name={tabIcons[name]} color={tab===name?colors.tabActive:colors.tabInactive} size={24}/><Text style={{color:tab===name?colors.tabActive:colors.tabInactive,fontSize:12,fontWeight:tab===name?'700':'400',textAlign:'center'}}>{systemMessage(name)}</Text></Pressable>)}</View>
   </SafeAreaView>
  </View>;
 }
 
-export function DoctorContent({uid,tab,select,open,manage,details,notifications=()=>{},prescriptions=()=>{}}:{uid:string;tab:Tab;select(tab:Tab):void;open(id:string):void;manage():void;details?(id:string):void;notifications?():void;prescriptions?():void}){
+export function DoctorContent({uid,tab,select,open,manage,history,details,notifications=()=>{},prescriptions=()=>{}}:{uid:string;tab:Tab;select(tab:Tab):void;open(id:string):void;manage():void;history?(id:string):void;details?(id:string):void;notifications?():void;prescriptions?():void}){
   useLocale();
  const [rows,setRows]=useState<AppointmentRow[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState(false),[retry,setRetry]=useState(0);
  const [now,setNow]=useState(Date.now());
@@ -55,7 +55,7 @@ export function DoctorContent({uid,tab,select,open,manage,details,notifications=
  if(tab==='Schedule')return <DoctorSchedule uid={uid} open={open} manage={manage} details={details}/>;
  if(tab==='Profile')return <DoctorAccount uid={uid} manage={manage} notifications={notifications} prescriptions={prescriptions}/>;
  if(tab==='Home')return <DoctorHomeDashboard uid={uid} rows={rows} loading={loading} error={error} now={now} retry={()=>setRetry(v=>v+1)} viewAll={()=>select('Consultations')} open={open} notifications={notifications} prescriptions={prescriptions}/>;
- return <DoctorConsultations uid={uid} open={open} details={details}/>;
+ return <DoctorConsultations uid={uid} open={open} history={history} details={details}/>;
 }
 
 export function DoctorAppointmentCard({appointment:a,uid,now,open}:{appointment:AppointmentRow;uid:string;now:number;open(id:string):void}){

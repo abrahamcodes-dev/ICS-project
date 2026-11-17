@@ -9,15 +9,15 @@ import type {PatientStackParams,DoctorStackParams} from '../../navigation/types'
 import {useAuth} from '../../hooks/useAuth';
 import {observeAppointments,consultationUnavailable, type AppointmentRow, type ParticipantRole} from '../../services/appointmentReads';
 
-function Appointments({role,open}: {role:ParticipantRole;open(id:string):void}) {
+function Appointments({role,open,history}: {role:ParticipantRole;open(id:string):void;history?(id:string):void}) {
   useLocale();
   const identity=useAuth(), focused=useIsFocused();
   if (!focused) return null;
   if (identity.status !== 'ready' || identity.user?.status !== 'active' || identity.user.role !== role || !identity.firebaseUid)
     return <Text>{tr("Sign in with an active")}{role} {tr("account.")}</Text>;
-  return <AppointmentList key={`${role}:${identity.firebaseUid}`} uid={identity.firebaseUid} role={role} open={open}/>;
+  return <AppointmentList key={`${role}:${identity.firebaseUid}`} uid={identity.firebaseUid} role={role} open={open} history={history}/>;
 }
-export function AppointmentList({uid,role,open}: {uid:string;role:ParticipantRole;open(id:string):void}) {
+export function AppointmentList({uid,role,open,history}: {uid:string;role:ParticipantRole;open(id:string):void;history?(id:string):void}) {
   useLocale();
   const [rows,setRows]=useState<AppointmentRow[]>([]),[error,setError]=useState(false),[loading,setLoading]=useState(true);
   const [attempt,setAttempt]=useState(0),[now,setNow]=useState(Date.now());
@@ -38,6 +38,7 @@ export function AppointmentList({uid,role,open}: {uid:string;role:ParticipantRol
     {rows.map(a=>{const reason=consultationUnavailable(a,uid,role,now);return <View key={a.appointmentId} style={{gap:8}}>
       <Text>{new Date(a.startAt).toLocaleString(localeTag())} — {a.status.replace('_',' ')}</Text>
       {reason && <Text>{reason}</Text>}
+      {history && a.status==='completed' && a[`${role}Id`]===uid && <Button title={tr("View consultation history")} onPress={()=>history(a.appointmentId)}/>}
       <Button title={tr("Open consultation")} disabled={!!reason} onPress={()=>{
         if(!consultationUnavailable(a,uid,role,Date.now()))open(a.appointmentId);
       }}/>
@@ -46,9 +47,9 @@ export function AppointmentList({uid,role,open}: {uid:string;role:ParticipantRol
 }
 export function PatientAppointmentsScreen({navigation}:NativeStackScreenProps<PatientStackParams,'Appointments'>){
   useLocale();
-  return <Appointments role="patient" open={appointmentId=>navigation.navigate('Consultation',{appointmentId})}/>;
+  return <Appointments history={appointmentId=>navigation.navigate('ConsultationHistory',{appointmentId})} role="patient" open={appointmentId=>navigation.navigate('Consultation',{appointmentId})}/>;
 }
 export function DoctorAppointmentsScreen({navigation}:NativeStackScreenProps<DoctorStackParams,'Appointments'>){
   useLocale();
-  return <Appointments role="doctor" open={appointmentId=>navigation.navigate('ConsultationRoom',{appointmentId})}/>;
+  return <Appointments history={appointmentId=>navigation.navigate('ConsultationHistory',{appointmentId})} role="doctor" open={appointmentId=>navigation.navigate('ConsultationRoom',{appointmentId})}/>;
 }

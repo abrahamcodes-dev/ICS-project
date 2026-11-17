@@ -3,6 +3,7 @@ import {tr} from "../i18n/translate";
 import {useLocale} from "../i18n/react";
 import ConsultationDetailsScreen from '../screens/doctor/ConsultationDetailsScreen';
 import React from "react";
+import ConsultationHistoryScreen from "../screens/shared/ConsultationHistoryScreen";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import SubmitVerificationScreen from "../screens/doctor/SubmitVerificationScreen";
 import SetAvailabilityScreen from "../screens/doctor/SetAvailabilityScreen";
@@ -28,6 +29,7 @@ export default function DoctorNavigator() {
       <Stack.Screen name="ConsultationDetails" component={ConsultationDetailsScreen} options={{headerShown:false}} />
       <Stack.Screen name="ConsultationRoom" component={ConsultationRoomScreen} options={{title:tr('Consultation')}} />
       <Stack.Screen name="IssuePrescription" component={IssuePrescriptionScreen} options={{title:tr("Create Prescription"),headerTitleAlign:"center"}} />
+      <Stack.Screen name="ConsultationHistory" component={ConsultationHistoryScreen} options={{title:tr("Consultation history")}} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} options={{headerShown:false}} />
     </Stack.Navigator>
   );

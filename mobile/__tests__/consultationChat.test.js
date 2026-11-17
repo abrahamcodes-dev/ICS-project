@@ -6,6 +6,9 @@ let mockRows, mockError, mockIdentity;
 const mockSend = jest.fn();
 const mockDispose = jest.fn();
 const mockOlder = jest.fn();
+const mockView = jest.fn(),mockAttachmentSession=jest.fn();
+jest.mock('../src/services/consultationAttachments',()=>({...jest.requireActual('../src/services/consultationAttachments'),
+  createAttachmentSession:(...args)=>{mockAttachmentSession(...args);return {view:mockView,dispose:jest.fn()};}}));
 jest.mock('../src/services/authService', () => ({onIdentityRefresh: fn => {mockIdentity=fn; return jest.fn();}}));
 jest.mock('../src/services/consultationService', () => ({
   sendConsultationMessage: input => mockSend({...input}),
@@ -85,4 +88,22 @@ test('message bubbles distinguish participants without changing chronological or
  const {Card}=require('../src/ui/design');const bubbles=tree.root.findAllByType(Card).filter(n=>n.props.style?.maxWidth==='92%');
  expect(bubbles.map(n=>n.props.tone)).toEqual(['mint','surface']);
  expect(bubbles.map(n=>n.props.style.alignSelf)).toEqual(['flex-end','flex-start']);
+});
+
+test('explicit history hides all composers even if a malformed room advertises sending',async()=>{
+ await act(async()=>{tree=create(<Chat room={room} uid="p" readOnly/>);});
+ expect(tree.root.findAllByType(Field)).toHaveLength(0);
+ for(const title of ['Send message','Retry same message','Attach document'])expect(tree.root.findAllByType(Action).map(a=>a.props.title)).not.toContain(title);
+ expect(tree.root.findAllByType(require('../src/screens/shared/ConsultationAttachments').ConsultationAttachmentComposer)).toHaveLength(0);
+ await act(async()=>mockRows([row('existing clinical content',1000)]));expect(content()).toContain('existing clinical content');expect(content()).toContain('Read-only history');expect(mockSend).not.toHaveBeenCalled();
+});
+
+test('history attachment opens through the existing private reader without mounting upload controls',async()=>{
+ const attachment={attachmentId:'b'.repeat(64),consultationId:room.consultationId,messageId:'b'.repeat(64),senderId:'d',filename:'Original synthetic report.pdf',contentType:'application/pdf',sizeBytes:100};
+ mockView.mockRejectedValue({code:'functions/permission-denied'});
+ await act(async()=>{tree=create(<Chat room={{...room,canSend:false}} uid="p" readOnly/>);});
+ await act(async()=>mockRows([{...row('document',1000),type:'attachment',attachment}]));
+ await press('View private document');
+ expect(mockAttachmentSession).toHaveBeenCalledWith('p',room.consultationId);expect(mockView).toHaveBeenCalledWith(attachment);
+ expect(mockSend).not.toHaveBeenCalled();expect(tree.root.findAllByType(Field)).toHaveLength(0);
 });

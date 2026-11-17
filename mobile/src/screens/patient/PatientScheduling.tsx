@@ -36,6 +36,7 @@ export function PatientAppointments({ navigation }: NativeStackScreenProps<Patie
           {(['upcoming','history'] as const).map(value=><Pressable key={value} accessibilityRole="tab" accessibilityLabel={value==='upcoming'?tr("Upcoming & Active"):tr("Appointment History")} accessibilityState={{selected:mode===value}} onPress={()=>setMode(value)} style={{flex:1,minHeight:64,padding:8,borderRadius:18,backgroundColor:mode===value?colors.primary:colors.surface,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6}}><PatientIcon name="calendar" color={mode===value?colors.onPrimary:colors.muted} size={20}/><Copy variant="label" style={{flex:1,textAlign:'center',color:mode===value?colors.onPrimary:colors.muted}}>{value==='upcoming'?'Upcoming &\nActive':'Appointment\nHistory'}</Copy></Pressable>)}
         </View>
       </>}
+      history={appointmentId => navigation.navigate('ConsultationHistory', { appointmentId })}
       open={appointmentId => navigation.navigate('Consultation', { appointmentId })}
       rate={consultationId => navigation.navigate('RateDoctor', { consultationId })}
     />}

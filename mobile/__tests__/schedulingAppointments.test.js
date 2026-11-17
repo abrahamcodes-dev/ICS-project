@@ -83,3 +83,15 @@ test('duplicate completion presses submit once; late unmounted result cannot ref
  await act(async()=>tree.unmount());tree=null;
  await act(async()=>resolve({appointmentId:id,status:'completed'}));expect(readAppointmentPage).toHaveBeenCalledTimes(1);
 });
+
+test.each(['patient','doctor'])('completed owned %s has a separate history action, never an active entry',async role=>{
+ const history=jest.fn(),uid=role==='patient'?'p':'d';readAppointmentPage.mockResolvedValue({rows:[{...row(),status:'completed'}],cursor:null});
+ await act(async()=>{tree=create(<List uid={uid} role={role} boundary={boundary} open={open} history={history}/>);});
+ expect(button('Open consultation').props.disabled).toBe(true);await press('View consultation history');expect(history).toHaveBeenCalledWith(id);expect(open).not.toHaveBeenCalled();
+});
+test.each(['scheduled','cancelled','no_show'])('no history action for %s',async status=>{
+ readAppointmentPage.mockResolvedValue({rows:[{...row(),status}],cursor:null});await act(async()=>{tree=create(<List uid="p" role="patient" boundary={boundary} open={open} history={jest.fn()}/>);});expect(button('View consultation history')).toBeUndefined();
+});
+test('unrelated completed appointment has no history entry',async()=>{
+ readAppointmentPage.mockResolvedValue({rows:[{...row(),status:'completed',patientId:'other'}],cursor:null});await act(async()=>{tree=create(<List uid="p" role="patient" boundary={boundary} open={open} history={jest.fn()}/>);});expect(button('View consultation history')).toBeUndefined();
+});

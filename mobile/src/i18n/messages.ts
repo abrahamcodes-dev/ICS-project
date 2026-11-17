@@ -1,5 +1,6 @@
 /** Explicit interface messages only; never apply to authored clinical content. */
 export const en = {
+  "View consultation history": "View consultation history",
   "Google sign-in is linked to this account.": "Google sign-in is linked to this account.",
   "Link Google account": "Link Google account",
   "Google sign-in is not configured for this build.": "Google sign-in is not configured for this build.",
@@ -991,6 +992,7 @@ export const en = {
 } as const;
 export type MessageKey = keyof typeof en;
 export const sw: Record<MessageKey, string> = {
+  "View consultation history": "Tazama historia ya mashauriano",
   "Google sign-in is linked to this account.": "Kuingia kwa Google kumeunganishwa na akaunti hii.",
   "Link Google account": "Unganisha akaunti ya Google",
   "Google sign-in is not configured for this build.": "Kuingia kwa Google hakujasanidiwa katika toleo hili.",

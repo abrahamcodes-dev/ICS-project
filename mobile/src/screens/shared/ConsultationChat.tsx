@@ -13,7 +13,7 @@ import { createConsultationMessageSession, sendConsultationMessage,
   type ConsultationView, type ConsultationMessageView, type MessageCursor } from '../../services/consultationService';
 
 /** Mounted only inside the authorized appointment gate; server authorization remains authoritative. */
-export default function ConsultationChat({ room, uid }: { room: ConsultationView; uid: string }) {
+export default function ConsultationChat({ room, uid, readOnly = false }: { room: ConsultationView; uid: string; readOnly?: boolean }) {
   useLocale();
   const [messages, setMessages] = useState<ConsultationMessageView[]>([]);
   const [attachment,setAttachment]=useState<ConsultationAttachment|null>(null);
@@ -74,7 +74,7 @@ export default function ConsultationChat({ room, uid }: { room: ConsultationView
     starting=false;
   }
   async function send() {
-    if (!alive.current || busy.current || (!intent.current && (!text.trim() || !room.canSend))) return;
+    if (readOnly || !alive.current || busy.current || (!intent.current && (!text.trim() || !room.canSend))) return;
     if (!intent.current) intent.current = { consultationId: room.consultationId, messageRequestId: uuid.v4(), text };
     busy.current = true; setSending(true); setSendError(false); setNotice(null);
     try {
@@ -98,7 +98,7 @@ export default function ConsultationChat({ room, uid }: { room: ConsultationView
     :tr('Unable to refresh message history. Check your connection and access.');
   if (blocked) return <Card><Copy>{tr("Session changed. Reopen the consultation to continue.")}</Copy></Card>;
   return <Card>
-    <Copy variant="heading">{tr("Consultation messages")}</Copy><Status label={room.canSend?tr("Private conversation"):tr("Read-only history")}/>
+    <Copy variant="heading">{tr("Consultation messages")}</Copy><Status label={!readOnly && room.canSend?tr("Private conversation"):tr("Read-only history")}/>
     <Copy>{tr("Messages are private to the appointment participants. History may be cached while offline.")}</Copy>
     {loading && <Loading label={tr("Loading messages...")} />}
     {readingError && <><Notice message={historyNotice} /><Action title={tr("Retry message history")} onPress={retryReads} /></>}
@@ -108,6 +108,7 @@ export default function ConsultationChat({ room, uid }: { room: ConsultationView
       <Copy variant="caption" tone="muted">{message.senderId === uid ? tr("You") : message.senderId === room.doctorId ? tr("Doctor") : tr("Patient")} · {new Date(message.createdAt).toLocaleString(localeTag())}</Copy>
       {message.type==='attachment'&&message.attachment?<><Copy>{message.attachment.contentType==='application/pdf'?tr("PDF document"):tr("Image document")}</Copy><Copy numberOfLines={3}>{message.attachment.filename}</Copy><Copy tone="muted">{Math.ceil(message.attachment.sizeBytes/1024)} {tr("KiB · Shared")}</Copy><Action secondary title={tr("View private document")} onPress={()=>setAttachment(message.attachment!)}/></>:<Copy selectable>{message.text}</Copy>}
     </Card>)}
+    {!readOnly && <>
     {!room.canSend && <Copy>{tr("This consultation is not available for new messages.")}</Copy>}
     <Field label={tr("Message")} multiline placeholder={tr("Type a message...")} maxLength={4000} value={text} editable={!sending && !sendError && room.canSend} onChangeText={setText} />
     {sendError?<Notice message={systemMessage(notice)}/>:notice&&<Copy accessibilityLiveRegion="polite">{systemMessage(notice)}</Copy>}
@@ -115,6 +116,7 @@ export default function ConsultationChat({ room, uid }: { room: ConsultationView
     <Action title={sending ? tr("Sending...") : sendError ? tr("Retry same message") : tr("Send message")} disabled={sending || (!sendError && (!text.trim() || !room.canSend))} onPress={() => { void send(); }} />
     {sendError && <Copy>{tr("The pending text stays unchanged for safe retries. Leaving discards its retry key; check history before composing it again.")}</Copy>}
     <ConsultationAttachmentComposer room={room} uid={uid}/>
+    </>}
     {attachment&&<ConsultationAttachmentViewer room={room} uid={uid} attachment={attachment} onClose={()=>setAttachment(null)}/>}
   </Card>;
 }

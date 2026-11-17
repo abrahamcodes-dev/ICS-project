@@ -2,6 +2,7 @@ import {systemMessage} from '../i18n/translate';
 import {tr} from "../i18n/translate";
 import {useLocale} from "../i18n/react";
 import React from "react";
+import ConsultationHistoryScreen from "../screens/shared/ConsultationHistoryScreen";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import HealthProfileScreen from "../screens/patient/HealthProfileScreen";
 import BookAppointmentScreen from "../screens/patient/BookAppointmentScreen";
@@ -32,6 +33,7 @@ export default function PatientNavigator() {
       <Stack.Screen name="Prescriptions" component={PrescriptionsScreen} />
       <Stack.Screen name="RateDoctor" component={RateDoctorScreen} />
       <Stack.Screen name="Chatbot" component={ChatbotScreen} />
+      <Stack.Screen name="ConsultationHistory" component={ConsultationHistoryScreen} options={{title:tr("Consultation history")}} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
     </Stack.Navigator>
   );

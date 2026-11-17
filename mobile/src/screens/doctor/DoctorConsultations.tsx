@@ -9,11 +9,11 @@ import {AppointmentPatient} from '../../components/AppointmentPatient';
 import {useAppointmentPatients} from '../../hooks/useAppointmentPatients';
 import {consultationUnavailable,type AppointmentRow} from '../../services/appointmentReads';
 
-export default function DoctorConsultations({uid,open,details}:{uid:string;open(id:string):void;details?(id:string):void}){
+export default function DoctorConsultations({uid,open,history:viewHistory,details}:{uid:string;open(id:string):void;history?(id:string):void;details?(id:string):void}){
   useLocale();
  const p=usePalette(),[history,setHistory]=useState(false),[boundary]=useState(()=>Date.now()-45*60000);
  return <Screen variant="dashboard">
-  <SchedulingAppointments key={history?'history':'upcoming'} uid={uid} role="doctor" mode={history?'history':'upcoming'} boundary={boundary} open={open}
+  <SchedulingAppointments key={history?'history':'upcoming'} uid={uid} role="doctor" mode={history?'history':'upcoming'} boundary={boundary} open={open} history={viewHistory}
    header={(refresh,disabled)=><>
     <View style={{flexDirection:'row',alignItems:'center',gap:8}}><Copy title style={{flex:1}}>{tr("Consultations")}</Copy><Pressable accessibilityRole="button" accessibilityLabel={tr("Refresh consultations")} accessibilityState={{disabled}} disabled={disabled} onPress={refresh} style={{width:48,height:48,alignItems:'center',justifyContent:'center',borderRadius:24,backgroundColor:p.surface}}><Copy style={{fontSize:26,color:p.accent}}>↻</Copy></Pressable></View>
     <View style={{flexDirection:'row',borderRadius:14,padding:4,backgroundColor:p.surface,borderWidth:1,borderColor:p.border}}>{['Upcoming & Active','History'].map((name,index)=><Pressable key={name} accessibilityRole="tab" accessibilityLabel={name} accessibilityState={{selected:history===(index===1)}} onPress={()=>setHistory(index===1)} style={{flex:1,minHeight:48,padding:8,alignItems:'center',justifyContent:'center',borderRadius:11,backgroundColor:history===(index===1)?p.primary:p.surface}}><Copy variant="label" style={{color:history===(index===1)?p.onPrimary:p.muted,textAlign:'center'}}>{name}</Copy></Pressable>)}</View>
