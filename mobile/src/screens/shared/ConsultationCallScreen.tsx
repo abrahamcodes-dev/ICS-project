@@ -1,3 +1,6 @@
+import {systemMessage} from "../../i18n/translate";
+import {tr} from "../../i18n/translate";
+import {useLocale} from "../../i18n/react";
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Linking, Platform, StyleSheet, View } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
@@ -25,18 +28,20 @@ export function callStatus(state: CallSessionState) {
 export type ConsultationCallRoute = { params?: { appointmentId?: string } };
 /** Existing patient/doctor routes supply the appointment ID; IDs never confer authorization. */
 export default function ConsultationCallScreen({route,renderOptions}: {route?: ConsultationCallRoute;renderOptions?(room:ConsultationView):React.ReactNode}) {
+  useLocale();
   const focused = useIsFocused();
   const identity = useAuth();
   const appointmentId = route?.params?.appointmentId;
   if (!focused) return null; // Native stacks retain blurred screens: unmount all call resources on blur.
   if (identity.status !== 'ready' || identity.user?.status !== 'active'
-    || !['patient','doctor'].includes(identity.user.role)) return <Screen><Text>Sign in with an active patient or doctor account.</Text></Screen>;
-  if (!appointmentId || !/^[a-f0-9]{64}$/.test(appointmentId)) return <Screen><Text>Open a scheduled appointment to enter its consultation.</Text></Screen>;
-  if (Platform.OS !== 'android' && Platform.OS !== 'ios') return <Screen><Text>Calls require an Android or iOS development build.</Text></Screen>;
+    || !['patient','doctor'].includes(identity.user.role)) return <Screen><Text>{tr("Sign in with an active patient or doctor account.")}</Text></Screen>;
+  if (!appointmentId || !/^[a-f0-9]{64}$/.test(appointmentId)) return <Screen><Text>{tr("Open a scheduled appointment to enter its consultation.")}</Text></Screen>;
+  if (Platform.OS !== 'android' && Platform.OS !== 'ios') return <Screen><Text>{tr("Calls require an Android or iOS development build.")}</Text></Screen>;
   return <ConsultationGate key={`${identity.firebaseUid}:${appointmentId}`} appointmentId={appointmentId} uid={identity.firebaseUid!} renderOptions={renderOptions} />;
 }
 
 function ConsultationGate({appointmentId, uid,renderOptions}: {appointmentId: string; uid: string;renderOptions?(room:ConsultationView):React.ReactNode}) {
+  useLocale();
   const [room, setRoom] = useState<ConsultationView | null>(null);
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -52,17 +57,18 @@ function ConsultationGate({appointmentId, uid,renderOptions}: {appointmentId: st
     }).catch(() => { if (active) setError(true); });
     return () => { active = false; };
   }, [appointmentId, uid, attempt]);
-  if (error) return <Screen><Card><Text>Unable to open this consultation. Check your connection, appointment time and eligibility.</Text>
-    <Button title="Retry opening consultation" onPress={() => setAttempt(v => v + 1)} /></Card></Screen>;
-  if (!room) return <Screen><Loading label="Opening consultation..."/></Screen>;
-  if (room.state === 'closed') return <Screen>{renderOptions?.(room)}<Text title>Consultation history</Text>
-    <Text>This consultation has ended. Calls and new messages are unavailable.</Text>
+  if (error) return <Screen><Card><Text>{tr("Unable to open this consultation. Check your connection, appointment time and eligibility.")}</Text>
+    <Button title={tr("Retry opening consultation")} onPress={() => setAttempt(v => v + 1)} /></Card></Screen>;
+  if (!room) return <Screen><Loading label={tr("Opening consultation...")}/></Screen>;
+  if (room.state === 'closed') return <Screen>{renderOptions?.(room)}<Text title>{tr("Consultation history")}</Text>
+    <Text>{tr("This consultation has ended. Calls and new messages are unavailable.")}</Text>
     <ConsultationChat room={room} uid={uid} /></Screen>;
   return <View style={{flex:1}}>{renderOptions?.(room)}<CallRoom consultationId={room.consultationId} uid={uid} restart={() => setSessionKey(v => v + 1)} key={sessionKey} chatRoom={room} /></View>;
 }
 
 /** Shared interface; all role and appointment authority remains in the backend. */
 export function CallRoom({consultationId, uid, restart, chatRoom}: {consultationId: string; uid: string; restart(): void; chatRoom?: ConsultationView}) {
+  useLocale();
   const interrupt = useRef<() => void>(() => {});
   const media = useMemo(() => createCallMedia(() => interrupt.current()), []);
   const alive = useRef(true);
@@ -83,7 +89,7 @@ export function CallRoom({consultationId, uid, restart, chatRoom}: {consultation
     requestId: () => uuid.v4(),
     get localStream() { return media.stream ?? undefined; },
     onRemoteStream(stream: MediaStream | null) { if (alive.current) setRemote(stream); },
-    onRemoteAudioUnavailable() { if (alive.current) setMessage('The other participant’s microphone is unavailable or muted. Ask them to check their microphone.'); },
+    onRemoteAudioUnavailable() { if (alive.current) setMessage(tr("The other participant’s microphone is unavailable or muted. Ask them to check their microphone.")); },
   }), [media]);
   const p=usePalette();
   const {session, state} = useConsultationCall(consultationId, options);
@@ -122,7 +128,7 @@ export function CallRoom({consultationId, uid, restart, chatRoom}: {consultation
       media.clear();
       if (alive.current) {
         setLocal(null); setRemote(null);
-        setMessage(e instanceof CallMediaError ? e.message : 'Unable to prepare this call.');
+        setMessage(e instanceof CallMediaError ? e.message : tr("Unable to prepare this call."));
         setPermissionDenied(e instanceof CallMediaError && e.reason === 'permission');
       }
     } finally { busyRef.current = false; if (alive.current) setBusy(false); }
@@ -130,57 +136,57 @@ export function CallRoom({consultationId, uid, restart, chatRoom}: {consultation
   function end() { media.clear(); setLocal(null); setRemote(null); if (state.call) void session?.end(); else session?.dispose(); }
   interrupt.current = () => {
     if (!alive.current) return;
-    end(); setMessage('Another call or app interrupted the audio. Start another call when ready.');
+    end(); setMessage(tr("Another call or app interrupted the audio. Start another call when ready."));
   };
   const incoming = state.phase === 'ringing' && state.call?.recipientId === uid;
   const canStart = state.phase === 'idle' && discovery === 'ready' && !!session && !busy && !background;
   const RTCView = (local || remote) ? (require('react-native-webrtc') as typeof import('react-native-webrtc')).RTCView : null;
   return <Screen variant="form">
-    <Text title>Consultation call</Text><Status label={chatRoom?(uid===chatRoom.patientId?'With your doctor':'With your patient'):'Appointment participants'}/>
-    <Text accessibilityLiveRegion="polite">{busy ? 'Preparing microphone and camera…' : callStatus(state)}</Text>
-    {background && <Text>The call stopped when the app moved to the background. Reopen the consultation when ready.</Text>}
-    {state.phase === 'idle' && discovery === 'checking' && <Text>Checking for an incoming call…</Text>}
-    {state.phase === 'idle' && discovery === 'occupied' && <Text>A call is already active. It cannot be resumed on this device.</Text>}
-    {discovery === 'error' && state.phase === 'idle' && <View><Text>Unable to check for calls. Check your connection and access.</Text>
-      <Button title="Retry checking calls" onPress={() => setRefresh(v => v + 1)} /></View>}
-    <Notice message={message}/>
-    {permissionDenied && <Button title="Open device settings" onPress={() => { void Linking.openSettings().catch(() => setMessage('Unable to open device settings.')); }} />}
-    {state.phase === 'error' && <Text>The call could not continue. Check your connection and consultation eligibility before trying again.</Text>}
-    {incoming && <Card tone="mint"><Text title>Incoming {state.call?.mode === 'video' ? 'video' : 'audio'} call</Text><Text>Your consultation participant is calling. Accept when you are ready.</Text></Card>}
-    {state.phase === 'ringing' && !incoming && <Text>Calling your consultation participant. Waiting for an answer...</Text>}
-    {['starting','accepting','connecting'].includes(state.phase) && <Loading label="Establishing a connection..."/>}
+    <Text title>{tr("Consultation call")}</Text><Status label={chatRoom?(uid===chatRoom.patientId?tr("With your doctor"):tr("With your patient")):tr("Appointment participants")}/>
+    <Text accessibilityLiveRegion="polite">{busy ? tr("Preparing microphone and camera…") : callStatus(state)}</Text>
+    {background && <Text>{tr("The call stopped when the app moved to the background. Reopen the consultation when ready.")}</Text>}
+    {state.phase === 'idle' && discovery === 'checking' && <Text>{tr("Checking for an incoming call…")}</Text>}
+    {state.phase === 'idle' && discovery === 'occupied' && <Text>{tr("A call is already active. It cannot be resumed on this device.")}</Text>}
+    {discovery === 'error' && state.phase === 'idle' && <View><Text>{tr("Unable to check for calls. Check your connection and access.")}</Text>
+      <Button title={tr("Retry checking calls")} onPress={() => setRefresh(v => v + 1)} /></View>}
+    <Notice message={systemMessage(message)}/>
+    {permissionDenied && <Button title={tr("Open device settings")} onPress={() => { void Linking.openSettings().catch(() => setMessage(tr("Unable to open device settings."))); }} />}
+    {state.phase === 'error' && <Text>{tr("The call could not continue. Check your connection and consultation eligibility before trying again.")}</Text>}
+    {incoming && <Card tone="mint"><Text title>{tr("Incoming")}{' '}{state.call?.mode === 'video' ? 'video' : 'audio'} {tr("call")}</Text><Text>{tr("Your consultation participant is calling. Accept when you are ready.")}</Text></Card>}
+    {state.phase === 'ringing' && !incoming && <Text>{tr("Calling your consultation participant. Waiting for an answer...")}</Text>}
+    {['starting','accepting','connecting'].includes(state.phase) && <Loading label={tr("Establishing a connection...")}/>}
     {state.phase === 'idle' && <View style={styles.controls}>
-      <Button title="Start audio call" disabled={!canStart} onPress={() => { void withMedia('audio', false); }} />
-      <Button title="Start video call" disabled={!canStart} onPress={() => { void withMedia('video', false); }} />
+      <Button title={tr("Start audio call")} disabled={!canStart} onPress={() => { void withMedia('audio', false); }} />
+      <Button title={tr("Start video call")} disabled={!canStart} onPress={() => { void withMedia('video', false); }} />
     </View>}
     {incoming && <View style={styles.controls}>
-      <Button title="Accept call" disabled={busy || background} onPress={() => { void withMedia(state.call!.mode, true); }} />
-      <Button danger title="Reject call" onPress={end} />
+      <Button title={tr("Accept call")} disabled={busy || background} onPress={() => { void withMedia(state.call!.mode, true); }} />
+      <Button danger title={tr("Reject call")} onPress={end} />
     </View>}
     {(local || remote) && <View style={[styles.stage,{backgroundColor:p.mediaBackground}]}>
-      {RTCView && remote && remote.getVideoTracks().length > 0 ? <RTCView testID="remote-video" streamURL={remote.toURL()} accessibilityLabel="Remote participant video" style={styles.video} objectFit="contain"/> : <View style={styles.mediaPlaceholder}><Text style={{color:p.onMedia,textAlign:'center'}}>{state.call?.mode==='audio'?'Audio consultation':'Remote video is not available'}</Text><Text style={{color:p.onMedia,textAlign:'center'}}>{callStatus(state)}</Text></View>}
-      {RTCView && local && local.getVideoTracks().length > 0 && camera && <View style={[styles.preview,{backgroundColor:p.mediaBackground}]}><RTCView testID="local-video" streamURL={local.toURL()} accessibilityLabel="Your camera preview" style={{flex:1}} mirror={front} objectFit="cover"/><Text variant="caption" style={{color:p.onMedia,textAlign:'center'}}>You</Text></View>}
+      {RTCView && remote && remote.getVideoTracks().length > 0 ? <RTCView testID="remote-video" streamURL={remote.toURL()} accessibilityLabel={tr("Remote participant video")} style={styles.video} objectFit="contain"/> : <View style={styles.mediaPlaceholder}><Text style={{color:p.onMedia,textAlign:'center'}}>{state.call?.mode==='audio'?tr("Audio consultation"):tr("Remote video is not available")}</Text><Text style={{color:p.onMedia,textAlign:'center'}}>{callStatus(state)}</Text></View>}
+      {RTCView && local && local.getVideoTracks().length > 0 && camera && <View style={[styles.preview,{backgroundColor:p.mediaBackground}]}><RTCView testID="local-video" streamURL={local.toURL()} accessibilityLabel={tr("Your camera preview")} style={{flex:1}} mirror={front} objectFit="cover"/><Text variant="caption" style={{color:p.onMedia,textAlign:'center'}}>{tr("You")}</Text></View>}
     </View>}
     {local && !terminal && <View style={styles.controls}>
-      <Button title={microphone ? 'Mute microphone' : 'Unmute microphone'} onPress={() => { media.microphone(!microphone); setMicrophone(!microphone); }} />
-      <Button title={speakerOverride === true ? 'Use earpiece' : 'Use speaker'} onPress={() => {
+      <Button title={microphone ? tr("Mute microphone") : tr("Unmute microphone")} onPress={() => { media.microphone(!microphone); setMicrophone(!microphone); }} />
+      <Button title={speakerOverride === true ? tr("Use earpiece") : tr("Use speaker")} onPress={() => {
         try { media.speaker(speakerOverride !== true); setSpeakerOverride(speakerOverride !== true); }
-        catch { setMessage('Unable to change the audio output.'); }
+        catch { setMessage(tr("Unable to change the audio output.")); }
       }} />
-      {speakerOverride !== null && <Button title="Use automatic audio" onPress={() => {
+      {speakerOverride !== null && <Button title={tr("Use automatic audio")} onPress={() => {
         try { media.speaker(null); setSpeakerOverride(null); }
-        catch { setMessage('Unable to change the audio output.'); }
+        catch { setMessage(tr("Unable to change the audio output.")); }
       }} />}
       {local.getVideoTracks().length > 0 && <>
-        <Button title={camera ? 'Disable camera' : 'Enable camera'} onPress={() => { media.camera(!camera); setCamera(!camera); }} />
-        <Button title="Switch camera" disabled={!camera} onPress={() => {
-          if (media.switchCamera()) setFront(v => !v); else setMessage('Camera switching is unavailable on this device.');
+        <Button title={camera ? tr("Disable camera") : tr("Enable camera")} onPress={() => { media.camera(!camera); setCamera(!camera); }} />
+        <Button title={tr("Switch camera")} disabled={!camera} onPress={() => {
+          if (media.switchCamera()) setFront(v => !v); else setMessage(tr("Camera switching is unavailable on this device."));
         }} />
       </>}
     </View>}
     {!terminal && (busy || !['idle','loading'].includes(state.phase)) && !incoming &&
-      <Button danger title="End call" disabled={state.phase === 'ending'} onPress={end} />}
-    {terminal && <Button title="Check for another call" onPress={restart} />}
+      <Button danger title={tr("End call")} disabled={state.phase === 'ending'} onPress={end} />}
+    {terminal && <Button title={tr("Check for another call")} onPress={restart} />}
     {chatRoom && <ConsultationChat key={`${uid}:${consultationId}`} room={chatRoom} uid={uid} />}
   </Screen>;
 }

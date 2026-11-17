@@ -1,3 +1,5 @@
+import {tr} from "../../i18n/translate";
+import {useLocale} from "../../i18n/react";
 import {AccountConnections} from '../../components/AccountConnections';
 import {PaymentHistory} from '../../components/Payments';
 import {AccountDeletion} from '../../components/AccountDeletion';
@@ -28,10 +30,12 @@ function usePatientAppointments(){
  return {...(focused&&state.uid===firebaseUid?state:{rows:EMPTY_ROWS,error:false,loading:true}),retry:()=>setRetry(v=>v+1)};
 }
 export function PatientHomeScreen({navigation}:NativeStackScreenProps<PatientStackParams,'Home'>){
+  useLocale();
  const data=usePatientAppointments();return <PatientHomeDashboard navigation={navigation} data={data}/>;
 }
 export {PatientAppointments,DoctorsScreen,DoctorProfileScreen} from './PatientScheduling';
 export function PatientProfileScreen({navigation}:NativeStackScreenProps<PatientStackParams,'Profile'>){
+  useLocale();
  const {user,logout,firebaseUid}=useAuth(),[error,setError]=useState<string|null>(null),[busy,setBusy]=useState(false);
- return <Screen variant="dashboard" footer={<PatientMenu navigation={navigation} active="Profile"/>}><Copy title>My profile</Copy><Card><Copy title>{user?.fullName||'Patient'}</Copy><Copy>{user?.email}</Copy><Copy>Patient account</Copy><Copy>Health profile editing is not available in this presentation workflow yet.</Copy>{firebaseUid&&<AvatarEditor key={firebaseUid} uid={firebaseUid}/>}{firebaseUid&&<PatientPrivacy key={`privacy:${firebaseUid}`} uid={firebaseUid}/>}{firebaseUid&&<AccountConnections key={`connections:${firebaseUid}`} uid={firebaseUid}/>}{firebaseUid&&<AccountDeletion key={`deletion:${firebaseUid}`} uid={firebaseUid}/>}{firebaseUid&&<PaymentHistory key={`payments:${firebaseUid}`} uid={firebaseUid} confirmed={()=>navigation.navigate('Appointments')}/>}<Notice message={error}/><Action title="Sign out" disabled={busy} onPress={()=>{setBusy(true);void logout().catch(()=>setError('Unable to sign out. Please retry.')).finally(()=>setBusy(false));}}/></Card></Screen>;
+ return <Screen variant="dashboard" footer={<PatientMenu navigation={navigation} active="Profile"/>}><Copy title>{tr("My profile")}</Copy><Card><Copy title>{user?.fullName||tr("Patient")}</Copy><Copy>{user?.email}</Copy><Copy>{tr("Patient account")}</Copy><Copy>{tr("Health profile editing is not available in this presentation workflow yet.")}</Copy>{firebaseUid&&<AvatarEditor key={firebaseUid} uid={firebaseUid}/>}{firebaseUid&&<PatientPrivacy key={`privacy:${firebaseUid}`} uid={firebaseUid}/>}{firebaseUid&&<AccountConnections key={`connections:${firebaseUid}`} uid={firebaseUid}/>}{firebaseUid&&<AccountDeletion key={`deletion:${firebaseUid}`} uid={firebaseUid}/>}{firebaseUid&&<PaymentHistory key={`payments:${firebaseUid}`} uid={firebaseUid} confirmed={()=>navigation.navigate('Appointments')}/>}<Notice message={error}/><Action title={tr("Sign out")} disabled={busy} onPress={()=>{setBusy(true);void logout().catch(()=>setError(tr("Unable to sign out. Please retry."))).finally(()=>setBusy(false));}}/></Card></Screen>;
 }

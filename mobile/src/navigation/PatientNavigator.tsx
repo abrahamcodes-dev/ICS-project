@@ -1,3 +1,6 @@
+import {systemMessage} from '../i18n/translate';
+import {tr} from "../i18n/translate";
+import {useLocale} from "../i18n/react";
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import HealthProfileScreen from "../screens/patient/HealthProfileScreen";
@@ -14,12 +17,13 @@ import {usePalette} from '../ui/design';
 const Stack = createNativeStackNavigator<PatientStackParams>();
 
 export default function PatientNavigator() {
+  useLocale();
   const colors=usePalette();
   return (
-    <Stack.Navigator initialRouteName="Home" screenOptions={{headerStyle:{backgroundColor:colors.background},headerTintColor:colors.text,contentStyle:{backgroundColor:colors.background}}}>
+    <Stack.Navigator initialRouteName="Home" screenOptions={({route})=>({title:systemMessage(route.name),headerStyle:{backgroundColor:colors.background},headerTintColor:colors.text,contentStyle:{backgroundColor:colors.background}})}>
       <Stack.Screen name="Home" component={PatientHomeScreen} options={{headerShown:false}} />
       <Stack.Screen name="Doctors" component={DoctorsScreen} options={{headerShown:false}} />
-      <Stack.Screen name="DoctorProfile" component={DoctorProfileScreen} options={{title:'Doctor profile'}} />
+      <Stack.Screen name="DoctorProfile" component={DoctorProfileScreen} options={{title:tr("Doctor profile")}} />
       <Stack.Screen name="Profile" component={PatientProfileScreen} />
       <Stack.Screen name="Appointments" component={PatientAppointments} options={{headerShown:false}} />
       <Stack.Screen name="HealthProfile" component={HealthProfileScreen} />

@@ -28,7 +28,7 @@ test.each([false,true])('registration preserves doctor role with optional photo=
  for(const [label,value] of [['Full name','Doctor Test'],['Email','doctor@example.test'],['Password','password123'],['Confirm password','password123']])await act(async()=>tree.root.findAllByType(Field).find(n=>n.props.label===label).props.onChangeText(value));
  if(withPhoto)await act(async()=>tree.root.findByProps({accessibilityLabel:'Choose optional profile picture',accessibilityRole:'button'}).props.onPress());
  await press('Create account');
- expect(registerUser).toHaveBeenCalledWith('doctor@example.test','password123','Doctor Test','doctor');
+ expect(registerUser).toHaveBeenCalledWith('doctor@example.test','password123','Doctor Test','doctor',undefined);
  expect(completed).toHaveBeenCalledWith('owner');
  if(withPhoto){expect(service.uploadRegistrationAvatar).toHaveBeenCalledWith('owner',photo);expect(photo.dispose).toHaveBeenCalled();}else expect(service.uploadRegistrationAvatar).not.toHaveBeenCalled();
 });

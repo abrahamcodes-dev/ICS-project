@@ -1,3 +1,6 @@
+import {systemMessage,displayCode} from "../../i18n/translate";
+import {tr} from "../../i18n/translate";
+import {useLocale} from "../../i18n/react";
 import {AccountConnections} from '../../components/AccountConnections';
 import {AccountDeletion} from '../../components/AccountDeletion';
 import React,{useEffect,useRef,useState} from 'react';
@@ -10,13 +13,15 @@ import type {DoctorDraftInput,DoctorProfile} from '@shared/types/profiles';
 import type {CredentialCategory,DoctorCredentialRecord,VerificationRequest} from '@shared/types/verification';
 
 export default function SubmitVerificationScreen(){
+  useLocale();
  const {user,status,firebaseUid}=useAuth();
  if(status!=='ready'||user?.role!=='doctor'||user.status!=='active'||!['pending','rejected'].includes(user.verificationStatus)||!firebaseUid)
-  return <Screen><Copy>Verification submission requires an active pending or rejected doctor account.</Copy></Screen>;
+  return <Screen><Copy>{tr("Verification submission requires an active pending or rejected doctor account.")}</Copy></Screen>;
  return <VerificationForm key={firebaseUid} uid={firebaseUid}/>;
 }
-const labels={professionalName:'Professional name',specialty:'Specialty',registrationNumber:'Registration number',issuingAuthority:'Issuing authority',phoneNumber:'Phone number (optional)'};
+const labels={professionalName:tr("Professional name"),specialty:'Specialty',registrationNumber:tr("Registration number"),issuingAuthority:tr("Issuing authority"),phoneNumber:tr("Phone number (optional)")};
 export function VerificationForm({uid}:{uid:string}){
+  useLocale();
  const {user,refreshIdentity,logout}=useAuth();
  const session=useRef<ReturnType<typeof createVerificationSession>|null>(null),alive=useRef(false),working=useRef(false);
  const [profile,setProfile]=useState<DoctorProfile|null>(null),[values,setValues]=useState<DoctorDraftInput>({}),[loaded,setLoaded]=useState(false);
@@ -41,37 +46,37 @@ export function VerificationForm({uid}:{uid:string}){
  const locked=!!profile?.activeRequestId;
  const dirty=Object.keys(fields).some(key=>(values[key as keyof DoctorDraftInput]?.trim()||'')!==(profile?.[key as keyof DoctorDraftInput]||''));
  function validate(complete:boolean){try{draftInput(values,complete);return true;}catch(e){setError((e as Error).message);return false;}}
- return <Screen variant="form"><Copy tone="muted">Professional onboarding</Copy><Copy title>Doctor verification</Copy><Copy>Account status: {user?.role==='doctor'?user.verificationStatus:'Unavailable'}. Clinical access remains locked until approval.</Copy>
-  <Status label={user?.role==='doctor'?user.verificationStatus:'Unavailable'} tone={user?.role==='doctor'&&user.verificationStatus==='rejected'?'error':'warning'}/><Notice message={error}/>{message&&<Copy accessibilityLiveRegion="polite">{message}</Copy>}{busy&&<Loading label={progress===null?'Working…':`Uploading: ${progress}%`}/>}
-  <Action title="Refresh status and draft" disabled={busy} onPress={()=>void run(async current=>{await refreshIdentity();await load(current);})}/>
-  {!loaded&&<Copy>Load your saved draft before editing.</Copy>}
-  <Card><Copy variant="heading">1. Professional profile</Copy>{(Object.keys(fields) as (keyof DoctorDraftInput)[]).map(key=><Field key={key} label={labels[key]} value={values[key]??''} maxLength={fields[key]} editable={loaded&&!locked&&!busy} keyboardType={key==='phoneNumber'?'phone-pad':'default'} onChangeText={value=>setValues(old=>({...old,[key]:value}))}/>)}
-   <Copy>All professional fields except phone are required for submission. Drafts may be incomplete. Saving replaces these editable fields.</Copy>
-   {locked&&<Copy>Your submitted profile is locked while review is pending.</Copy>}
-   {user?.role==='doctor'&&user.verificationStatus==='rejected'&&<Copy>After rejection, correct and save the profile to create a newer revision, then upload fresh credentials.</Copy>}
-   <Action title="Save draft" disabled={!loaded||busy||locked} onPress={()=>{if(validate(false))void run(async current=>{await current.save(values);await load(current);if(alive.current)setMessage('Draft saved.');});}}/>
-   {profile&&<Copy>Saved revision: {profile.revision}</Copy>}
+ return <Screen variant="form"><Copy tone="muted">{tr("Professional onboarding")}</Copy><Copy title>{tr("Doctor verification")}</Copy><Copy>{tr("Account status:")}{' '}{user?.role==='doctor'?displayCode(user.verificationStatus):systemMessage('Unavailable')}{tr(". Clinical access remains locked until approval.")}</Copy>
+  <Status label={user?.role==='doctor'?user.verificationStatus:tr("Unavailable")} tone={user?.role==='doctor'&&user.verificationStatus==='rejected'?'error':'warning'}/><Notice message={error}/>{message&&<Copy accessibilityLiveRegion="polite">{systemMessage(message)}</Copy>}{busy&&<Loading label={progress===null?tr("Working…"):tr("Uploading: {0}%", {"0": progress})}/>}
+  <Action title={tr("Refresh status and draft")} disabled={busy} onPress={()=>void run(async current=>{await refreshIdentity();await load(current);})}/>
+  {!loaded&&<Copy>{tr("Load your saved draft before editing.")}</Copy>}
+  <Card><Copy variant="heading">{tr("1. Professional profile")}</Copy>{(Object.keys(fields) as (keyof DoctorDraftInput)[]).map(key=><Field key={key} label={labels[key]} value={values[key]??''} maxLength={fields[key]} editable={loaded&&!locked&&!busy} keyboardType={key==='phoneNumber'?'phone-pad':'default'} onChangeText={value=>setValues(old=>({...old,[key]:value}))}/>)}
+   <Copy>{tr("All professional fields except phone are required for submission. Drafts may be incomplete. Saving replaces these editable fields.")}</Copy>
+   {locked&&<Copy>{tr("Your submitted profile is locked while review is pending.")}</Copy>}
+   {user?.role==='doctor'&&user.verificationStatus==='rejected'&&<Copy>{tr("After rejection, correct and save the profile to create a newer revision, then upload fresh credentials.")}</Copy>}
+   <Action title={tr("Save draft")} disabled={!loaded||busy||locked} onPress={()=>{if(validate(false))void run(async current=>{await current.save(values);await load(current);if(alive.current)setMessage(tr("Draft saved."));});}}/>
+   {profile&&<Copy>{tr("Saved revision:")}{' '}{profile.revision}</Copy>}
   </Card>
-  <Card><Copy variant="heading">2. Private credentials</Copy><Copy>PDF, JPEG or PNG, up to 5 MiB each. Select 1–5 documents, including a medical license. Upload and finalize within 15 minutes.</Copy>
-   {categories.map(value=><Action key={value} title={value.replace(/_/g,' ')} secondary={category!==value} selected={category===value} disabled={busy||locked} onPress={()=>setCategory(value)}/>)}
-   <Action title="Select and upload credential" disabled={!loaded||busy||locked||records.length>=5} onPress={()=>void run(async current=>{
+  <Card><Copy variant="heading">{tr("2. Private credentials")}</Copy><Copy>{tr("PDF, JPEG or PNG, up to 5 MiB each. Select 1–5 documents, including a medical license. Upload and finalize within 15 minutes.")}</Copy>
+   {categories.map(value=><Action key={value} title={displayCode(value)} secondary={category!==value} selected={category===value} disabled={busy||locked} onPress={()=>setCategory(value)}/>)}
+   <Action title={tr("Select and upload credential")} disabled={!loaded||busy||locked||records.length>=5} onPress={()=>void run(async current=>{
     const picked=await DocumentPicker.getDocumentAsync({type:mimeTypes,multiple:false,copyToCacheDirectory:true});if(picked.canceled||!alive.current)return;
     add(await current.upload(picked.assets[0],category,id=>{if(alive.current)setCredentialId(id);},value=>{if(alive.current)setProgress(value);}));
    })}/>
-   <Copy>Keep recovery IDs privately. Files are never made public. If interrupted after upload, retry finalization; expired unfinished slots require a new upload.</Copy>
-   <Field label="Credential recovery ID" value={credentialId} onChangeText={setCredentialId} autoCapitalize="none" editable={!busy}/>
-   <Action title="Recover credential / retry finalization" disabled={busy||locked||!credentialId||records.length>=5} onPress={()=>void run(async current=>{const record=await current.credential(credentialId);add(record.state==='prepared'?await current.finalize(credentialId):record);})}/>
-   {records.map(record=><Card tone="mint" key={record.credentialId}><Copy>{record.category.replace(/_/g,' ')} — {record.state}</Copy><Copy selectable>{record.credentialId}</Copy><Action title={`Remove ${record.credentialId} from selection`} secondary disabled={busy||locked} onPress={()=>setRecords(old=>old.filter(r=>r.credentialId!==record.credentialId))}/></Card>)}
-   <Copy>Removing a selection does not delete its stored file. After restarting the app, recover known IDs; automatic credential listing is not permitted.</Copy>
+   <Copy>{tr("Keep recovery IDs privately. Files are never made public. If interrupted after upload, retry finalization; expired unfinished slots require a new upload.")}</Copy>
+   <Field label={tr("Credential recovery ID")} value={credentialId} onChangeText={setCredentialId} autoCapitalize="none" editable={!busy}/>
+   <Action title={tr("Recover credential / retry finalization")} disabled={busy||locked||!credentialId||records.length>=5} onPress={()=>void run(async current=>{const record=await current.credential(credentialId);add(record.state==='prepared'?await current.finalize(credentialId):record);})}/>
+   {records.map(record=><Card tone="mint" key={record.credentialId}><Copy>{displayCode(record.category)} — {displayCode(record.state)}</Copy><Copy selectable>{record.credentialId}</Copy><Action title={tr("Remove {0} from selection", {"0": record.credentialId})} secondary disabled={busy||locked} onPress={()=>setRecords(old=>old.filter(r=>r.credentialId!==record.credentialId))}/></Card>)}
+   <Copy>{tr("Removing a selection does not delete its stored file. After restarting the app, recover known IDs; automatic credential listing is not permitted.")}</Copy>
   </Card>
-  <Action title="Submit verification" disabled={busy||locked||!profile||dirty||records.length===0} onPress={()=>{if(!validate(true)||!profile)return;void run(async current=>{const result=await current.submit(profile,records);if(!alive.current)return;setRequestId(result.requestId);const found=await current.request(result.requestId);if(alive.current){setRequest(found);setMessage('Verification request received.');}await load(current);await refreshIdentity();});}}/>
-  {dirty&&<Copy>Save your changes before submitting.</Copy>}
-  <Card><Copy variant="heading">3. Submission status</Copy><Field label="Verification request recovery ID" value={requestId} onChangeText={setRequestId} autoCapitalize="none" editable={!busy}/>
-   <Action title="Read verification request" disabled={busy||!requestId} onPress={()=>void run(async current=>{const found=await current.request(requestId);if(alive.current)setRequest(found);})}/>
-   {request&&<><Status label={'Request status: '+request.state} tone={request.state==='rejected'?'error':request.state==='approved'?'success':'warning'}/><Copy selectable>{request.requestId}</Copy>{request.state==='rejected'&&<Copy>Reason: {request.rejectionReason}</Copy>}</>}
-   <Copy>Pending requests reload from your profile. Rejected history requires its known request ID after restarting; the backend does not allow listing requests.</Copy>
+  <Action title={tr("Submit verification")} disabled={busy||locked||!profile||dirty||records.length===0} onPress={()=>{if(!validate(true)||!profile)return;void run(async current=>{const result=await current.submit(profile,records);if(!alive.current)return;setRequestId(result.requestId);const found=await current.request(result.requestId);if(alive.current){setRequest(found);setMessage(tr("Verification request received."));}await load(current);await refreshIdentity();});}}/>
+  {dirty&&<Copy>{tr("Save your changes before submitting.")}</Copy>}
+  <Card><Copy variant="heading">{tr("3. Submission status")}</Copy><Field label={tr("Verification request recovery ID")} value={requestId} onChangeText={setRequestId} autoCapitalize="none" editable={!busy}/>
+   <Action title={tr("Read verification request")} disabled={busy||!requestId} onPress={()=>void run(async current=>{const found=await current.request(requestId);if(alive.current)setRequest(found);})}/>
+   {request&&<><Status label={tr("Request status: ")+displayCode(request.state)} tone={request.state==='rejected'?'error':request.state==='approved'?'success':'warning'}/><Copy selectable>{request.requestId}</Copy>{request.state==='rejected'&&<Copy>{tr("Reason:")}{' '}{request.rejectionReason}</Copy>}</>}
+   <Copy>{tr("Pending requests reload from your profile. Rejected history requires its known request ID after restarting; the backend does not allow listing requests.")}</Copy>
   </Card>
   <AvatarEditor key={uid} uid={uid}/>
-  <AccountConnections key={`connections:${uid}`} uid={uid}/><AccountDeletion key={`deletion:${uid}`} uid={uid}/><Action secondary title="Sign out" disabled={busy} onPress={()=>void run(async()=>{await logout();})}/>
+  <AccountConnections key={`connections:${uid}`} uid={uid}/><AccountDeletion key={`deletion:${uid}`} uid={uid}/><Action secondary title={tr("Sign out")} disabled={busy} onPress={()=>void run(async()=>{await logout();})}/>
  </Screen>;
 }

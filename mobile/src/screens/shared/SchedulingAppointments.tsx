@@ -1,3 +1,7 @@
+import {systemMessage} from "../../i18n/translate";
+import {localeTag} from "../../i18n/locale";
+import {tr} from "../../i18n/translate";
+import {useLocale} from "../../i18n/react";
 import React, { useEffect, useRef, useState } from 'react';
 import { Action, Card, Copy, Field, Loading, Notice } from '../../ui/design';
 import { readAppointmentPage, consultationUnavailable, type AppointmentRow, type AppointmentCursor,
@@ -7,6 +11,7 @@ import { schedulingError } from '../../services/schedulingService';
 
 export default function SchedulingAppointments({ uid, role, open, rate, mode = 'upcoming', boundary, end, patientPresentation, header, findDoctor, renderCard }:
   { uid: string; role: ParticipantRole; open(id: string): void; rate?(id: string): void; mode?: AppointmentPageMode; boundary: number; end?: number; patientPresentation?: boolean; header?(refresh:()=>void,disabled:boolean):React.ReactNode; findDoctor?():void; renderCard?(a:AppointmentRow,content:React.ReactNode,now:number):React.ReactNode }) {
+  useLocale();
   const session = useSchedulingSession(uid), generation = useRef(0), busy = useRef(false), deciding = useRef(false);
   const [rows, setRows] = useState<AppointmentRow[]>([]), [cursor, setCursor] = useState<AppointmentCursor | null>(null);
   const [loading, setLoading] = useState(true), [error, setError] = useState<string | null>(null), [retry, setRetry] = useState(0);
@@ -19,7 +24,7 @@ export default function SchedulingAppointments({ uid, role, open, rate, mode = '
       const page = await readAppointmentPage(uid, role, mode, boundary, more ? cursor ?? undefined : undefined, end);
       if (token !== generation.current) return;
       setRows(previous => [...new Map([...(more ? previous : []), ...page.rows].map(a => [a.appointmentId, a])).values()]); setCursor(page.cursor);
-    } catch { if (token === generation.current) setError('Unable to load appointments. Refresh to retry.'); }
+    } catch { if (token === generation.current) setError(tr("Unable to load appointments. Refresh to retry.")); }
     finally { if (token === generation.current) { busy.current = false; setLoading(false); } }
   }
   useEffect(() => {
@@ -34,7 +39,7 @@ export default function SchedulingAppointments({ uid, role, open, rate, mode = '
     try {
       await session.cancel(cancel.appointmentId, reason);
       if (token !== generation.current) return;
-      setCancel(null); setMessage('Appointment canceled.'); setRetry(v => v + 1);
+      setCancel(null); setMessage(tr("Appointment canceled.")); setRetry(v => v + 1);
     } catch (e) { if (token === generation.current) { setError(schedulingError(e)); setUncertain(true); } }
     finally { deciding.current = false; if (token === generation.current) setPending(false); }
   }
@@ -45,43 +50,43 @@ export default function SchedulingAppointments({ uid, role, open, rate, mode = '
     try {
       await session.complete(complete.appointmentId);
       if (token !== generation.current) return;
-      setComplete(null); setMessage('Appointment completed. Open Consultation prescriptions to select the confirmed completed appointment.');
+      setComplete(null); setMessage(tr("Appointment completed. Open Consultation prescriptions to select the confirmed completed appointment."));
       setRetry(v => v + 1);
     } catch (e) { if (token === generation.current) { setError(schedulingError(e)); setUncertain(true); } }
     finally { deciding.current = false; if (token === generation.current) setPending(false); }
   }
   return <>
-    {header ? header(()=>{setMessage(null);setRetry(v=>v+1);},loading||pending) : <Action secondary title="Refresh appointments" disabled={loading || pending} onPress={() => { setMessage(null); setRetry(v => v + 1); }}/>}
-    {loading && <Loading label="Loading appointments..."/>}<Notice message={error}/>{message && <Copy>{message}</Copy>}
-    {!loading && !error && !rows.length && <Card>{patientPresentation?<><Copy variant="heading">{mode==='upcoming'?'No upcoming appointments':'No appointment history yet'}</Copy><Copy tone="muted">{mode==='upcoming'?'Your booked consultations will appear here.':'Your past consultations will appear here.'}</Copy>{findDoctor&&<Action title="Find a doctor" onPress={findDoctor}/>}</>:<Copy>No appointments in this view.</Copy>}</Card>}
+    {header ? header(()=>{setMessage(null);setRetry(v=>v+1);},loading||pending) : <Action secondary title={tr("Refresh appointments")} disabled={loading || pending} onPress={() => { setMessage(null); setRetry(v => v + 1); }}/>}
+    {loading && <Loading label={tr("Loading appointments...")}/>}<Notice message={error}/>{message && <Copy>{systemMessage(message)}</Copy>}
+    {!loading && !error && !rows.length && <Card>{patientPresentation?<><Copy variant="heading">{mode==='upcoming'?tr("No upcoming appointments"):tr("No appointment history yet")}</Copy><Copy tone="muted">{mode==='upcoming'?tr("Your booked consultations will appear here."):tr("Your past consultations will appear here.")}</Copy>{findDoctor&&<Action title={tr("Find a doctor")} onPress={findDoctor}/>}</>:<Copy>{tr("No appointments in this view.")}</Copy>}</Card>}
     {rows.map(a => {
       const unavailable = consultationUnavailable(a, uid, role, now);
       const content=<>
-        {unavailable && <Copy>{unavailable}</Copy>}<Action title="Open consultation" disabled={!!unavailable} onPress={() => {
+        {unavailable && <Copy>{systemMessage(unavailable)}</Copy>}<Action title={tr("Open consultation")} disabled={!!unavailable} onPress={() => {
           if (!consultationUnavailable(a, uid, role, Date.now())) open(a.appointmentId);
         }}/>
         {role === 'patient' && a.patientId === uid && a.status === 'completed' && rate &&
-          <Action title="Rate or view my rating" onPress={() => rate(a.appointmentId)}/>}
+          <Action title={tr("Rate or view my rating")} onPress={() => rate(a.appointmentId)}/>}
         {role === 'doctor' && a.doctorId === uid && a.status === 'scheduled' && a.endAt <= now &&
-          <Action title="Record completed appointment" disabled={pending || !!complete} onPress={() => {
+          <Action title={tr("Record completed appointment")} disabled={pending || !!complete} onPress={() => {
             if (a.endAt <= Date.now()) { setComplete(a); setUncertain(false); setMessage(null); setError(null); }
           }} />}
-        {role === 'patient' && a.status === 'scheduled' && a.startAt > now && <Action secondary title="Cancel appointment" disabled={pending || !!cancel}
+        {role === 'patient' && a.status === 'scheduled' && a.startAt > now && <Action secondary title={tr("Cancel appointment")} disabled={pending || !!cancel}
           onPress={() => { setCancel(a); setReason(''); setUncertain(false); setMessage(null); }}/>}</>;
-      return renderCard?<React.Fragment key={a.appointmentId}>{renderCard(a,content,now)}</React.Fragment>:<Card key={a.appointmentId}><Copy title>{new Date(a.startAt).toLocaleString()}</Copy><Copy>{a.status.replace('_',' ')}</Copy>{content}</Card>;
+      return renderCard?<React.Fragment key={a.appointmentId}>{renderCard(a,content,now)}</React.Fragment>:<Card key={a.appointmentId}><Copy title>{new Date(a.startAt).toLocaleString(localeTag())}</Copy><Copy>{a.status.replace('_',' ')}</Copy>{content}</Card>;
     })}
-    {cursor && <Action title="Load more appointments" disabled={loading || pending} onPress={() => void load(true)}/>}
-    {complete && <Card><Copy title>Confirm appointment completion</Copy><Copy>{new Date(complete.startAt).toLocaleString()}</Copy>
-      <Copy>Confirm that this appointment was completed. This is a permanent outcome, not a no-show. Backend authorization and timing checks still apply.</Copy>
-      {uncertain && <Copy>Completion is unconfirmed. Retry the same outcome or refresh appointments to check.</Copy>}
-      <Action title={pending ? 'Recording completion...' : uncertain ? 'Retry same completion' : 'Confirm completion'}
+    {cursor && <Action title={tr("Load more appointments")} disabled={loading || pending} onPress={() => void load(true)}/>}
+    {complete && <Card><Copy title>{tr("Confirm appointment completion")}</Copy><Copy>{new Date(complete.startAt).toLocaleString(localeTag())}</Copy>
+      <Copy>{tr("Confirm that this appointment was completed. This is a permanent outcome, not a no-show. Backend authorization and timing checks still apply.")}</Copy>
+      {uncertain && <Copy>{tr("Completion is unconfirmed. Retry the same outcome or refresh appointments to check.")}</Copy>}
+      <Action title={pending ? tr("Recording completion...") : uncertain ? tr("Retry same completion") : tr("Confirm completion")}
         disabled={pending || !session} onPress={() => { void confirmComplete(); }} />
-      <Action secondary title="Close completion confirmation" disabled={pending} onPress={() => setComplete(null)} />
+      <Action secondary title={tr("Close completion confirmation")} disabled={pending} onPress={() => setComplete(null)} />
     </Card>}
-    {cancel && <Card><Copy title>Confirm cancellation</Copy><Copy>{new Date(cancel.startAt).toLocaleString()}</Copy>
-      <Field label="Cancellation reason (optional)" value={reason} editable={!pending && !uncertain} maxLength={500} onChangeText={setReason}/>
-      {uncertain && <Copy>The result is uncertain. Retry the same cancellation or refresh appointments to check.</Copy>}
-      <Action danger title={uncertain ? 'Retry same cancellation' : 'Confirm cancellation'} disabled={pending || !session} onPress={() => void confirmCancel()}/>
-      <Action secondary title="Keep appointment / close" disabled={pending} onPress={() => setCancel(null)}/></Card>}
+    {cancel && <Card><Copy title>{tr("Confirm cancellation")}</Copy><Copy>{new Date(cancel.startAt).toLocaleString(localeTag())}</Copy>
+      <Field label={tr("Cancellation reason (optional)")} value={reason} editable={!pending && !uncertain} maxLength={500} onChangeText={setReason}/>
+      {uncertain && <Copy>{tr("The result is uncertain. Retry the same cancellation or refresh appointments to check.")}</Copy>}
+      <Action danger title={uncertain ? tr("Retry same cancellation") : tr("Confirm cancellation")} disabled={pending || !session} onPress={() => void confirmCancel()}/>
+      <Action secondary title={tr("Keep appointment / close")} disabled={pending} onPress={() => setCancel(null)}/></Card>}
   </>;
 }

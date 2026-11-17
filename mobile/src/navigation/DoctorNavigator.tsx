@@ -1,3 +1,6 @@
+import {systemMessage} from '../i18n/translate';
+import {tr} from "../i18n/translate";
+import {useLocale} from "../i18n/react";
 import ConsultationDetailsScreen from '../screens/doctor/ConsultationDetailsScreen';
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -14,16 +17,17 @@ import {usePalette} from '../ui/design';
 const Stack = createNativeStackNavigator<DoctorStackParams>();
 
 export default function DoctorNavigator() {
+  useLocale();
   const colors=usePalette();
   return (
-    <Stack.Navigator initialRouteName="DoctorWorkspace" screenOptions={{headerStyle:{backgroundColor:colors.background},headerTintColor:colors.text,contentStyle:{backgroundColor:colors.background}}}>
+    <Stack.Navigator initialRouteName="DoctorWorkspace" screenOptions={({route})=>({title:systemMessage(route.name),headerStyle:{backgroundColor:colors.background},headerTintColor:colors.text,contentStyle:{backgroundColor:colors.background}})}>
       <Stack.Screen name="DoctorWorkspace" component={DoctorWorkspace} options={{headerShown:false}} />
       <Stack.Screen name="Appointments" component={DoctorAppointmentsScreen} />
       <Stack.Screen name="SubmitVerification" component={SubmitVerificationScreen} />
       <Stack.Screen name="SetAvailability" component={SetAvailabilityScreen} options={{headerShown:false,gestureEnabled:false}} />
       <Stack.Screen name="ConsultationDetails" component={ConsultationDetailsScreen} options={{headerShown:false}} />
       <Stack.Screen name="ConsultationRoom" component={ConsultationRoomScreen} />
-      <Stack.Screen name="IssuePrescription" component={IssuePrescriptionScreen} options={{title:"Create Prescription",headerTitleAlign:"center"}} />
+      <Stack.Screen name="IssuePrescription" component={IssuePrescriptionScreen} options={{title:tr("Create Prescription"),headerTitleAlign:"center"}} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} options={{headerShown:false}} />
     </Stack.Navigator>
   );

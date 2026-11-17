@@ -4,13 +4,14 @@ import { StatusBar } from "expo-status-bar";
 import { AuthProvider } from "./src/context/AuthContext";
 import RootNavigator from "./src/navigation/RootNavigator";
 import {SafeAreaProvider} from 'react-native-safe-area-context';
+import {LanguageProvider} from './src/i18n/react';
 
 export default function App() {
   const dark=useColorScheme()==='dark';
   return (
-    <SafeAreaProvider><AuthProvider>
+    <SafeAreaProvider><LanguageProvider><AuthProvider>
       <StatusBar style={dark?"light":"dark"} />
       <RootNavigator />
-    </AuthProvider></SafeAreaProvider>
+    </AuthProvider></LanguageProvider></SafeAreaProvider>
   );
 }

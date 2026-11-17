@@ -1,3 +1,7 @@
+import {systemMessage} from "../../i18n/translate";
+import {localeTag} from "../../i18n/locale";
+import {tr} from "../../i18n/translate";
+import {useLocale} from "../../i18n/react";
 import React, { useEffect, useRef, useState } from 'react';
 import {ConsultationAttachmentComposer,ConsultationAttachmentViewer} from './ConsultationAttachments';
 import type {ConsultationAttachment} from '@shared/types/consultationAttachments';
@@ -9,6 +13,7 @@ import { createConsultationMessageSession, sendConsultationMessage,
 
 /** Mounted only inside the authorized appointment gate; server authorization remains authoritative. */
 export default function ConsultationChat({ room, uid }: { room: ConsultationView; uid: string }) {
+  useLocale();
   const [messages, setMessages] = useState<ConsultationMessageView[]>([]);
   const [attachment,setAttachment]=useState<ConsultationAttachment|null>(null);
   const [text, setText] = useState('');
@@ -66,32 +71,32 @@ export default function ConsultationChat({ room, uid }: { room: ConsultationView
     try {
       const result = await sendConsultationMessage(intent.current);
       if (!alive.current) return;
-      if (result.consultationId !== room.consultationId || result.senderId !== uid || result.type !== 'text') throw new Error('Invalid acknowledgment');
-      intent.current = null; setText(''); setNotice('Message acknowledged by the server. History updates when connected.');
+      if (result.consultationId !== room.consultationId || result.senderId !== uid || result.type !== 'text') throw new Error(tr("Invalid acknowledgment"));
+      intent.current = null; setText(''); setNotice(tr("Message acknowledged by the server. History updates when connected."));
     } catch {
       if (alive.current) {
         setSendError(true);
-        setNotice('Send not confirmed. It may already be saved, or access, timing or rate limits may prevent sending. Retry the same message to check safely.');
+        setNotice(tr("Send not confirmed. It may already be saved, or access, timing or rate limits may prevent sending. Retry the same message to check safely."));
       }
     } finally { busy.current = false; if (alive.current) setSending(false); }
   }
-  if (blocked) return <Card><Copy>Session changed. Reopen the consultation to continue.</Copy></Card>;
+  if (blocked) return <Card><Copy>{tr("Session changed. Reopen the consultation to continue.")}</Copy></Card>;
   return <Card>
-    <Copy variant="heading">Consultation messages</Copy><Status label={room.canSend?'Private conversation':'Read-only history'}/>
-    <Copy>Messages are private to the appointment participants. History may be cached while offline.</Copy>
-    {loading && <Loading label="Loading messages..." />}
-    {readingError && <><Notice message="Unable to refresh message history. Check your connection and access." /><Action title="Retry message history" onPress={retryReads} /></>}
-    {!loading && !messages.length && <Copy>No messages loaded yet.</Copy>}
-    {messages.length > 0 && !exhausted && <Action title={olderBusy ? 'Loading older messages...' : 'Load older messages'} disabled={olderBusy} onPress={() => { void older(); }} />}
+    <Copy variant="heading">{tr("Consultation messages")}</Copy><Status label={room.canSend?tr("Private conversation"):tr("Read-only history")}/>
+    <Copy>{tr("Messages are private to the appointment participants. History may be cached while offline.")}</Copy>
+    {loading && <Loading label={tr("Loading messages...")} />}
+    {readingError && <><Notice message={tr("Unable to refresh message history. Check your connection and access.")} /><Action title={tr("Retry message history")} onPress={retryReads} /></>}
+    {!loading && !messages.length && <Copy>{tr("No messages loaded yet.")}</Copy>}
+    {messages.length > 0 && !exhausted && <Action title={olderBusy ? tr("Loading older messages...") : tr("Load older messages")} disabled={olderBusy} onPress={() => { void older(); }} />}
     {messages.map(message => <Card key={message.messageId} tone={message.senderId===uid?'mint':'surface'} style={{alignSelf:message.senderId===uid?'flex-end':'flex-start',maxWidth:'92%',borderBottomRightRadius:message.senderId===uid?6:24,borderBottomLeftRadius:message.senderId===uid?24:6}}>
-      <Copy variant="caption" tone="muted">{message.senderId === uid ? 'You' : message.senderId === room.doctorId ? 'Doctor' : 'Patient'} · {new Date(message.createdAt).toLocaleString()}</Copy>
-      {message.type==='attachment'&&message.attachment?<><Copy>{message.attachment.contentType==='application/pdf'?'PDF document':'Image document'}</Copy><Copy numberOfLines={3}>{message.attachment.filename}</Copy><Copy tone="muted">{Math.ceil(message.attachment.sizeBytes/1024)} KiB · Shared</Copy><Action secondary title="View private document" onPress={()=>setAttachment(message.attachment!)}/></>:<Copy selectable>{message.text}</Copy>}
+      <Copy variant="caption" tone="muted">{message.senderId === uid ? tr("You") : message.senderId === room.doctorId ? tr("Doctor") : tr("Patient")} · {new Date(message.createdAt).toLocaleString(localeTag())}</Copy>
+      {message.type==='attachment'&&message.attachment?<><Copy>{message.attachment.contentType==='application/pdf'?tr("PDF document"):tr("Image document")}</Copy><Copy numberOfLines={3}>{message.attachment.filename}</Copy><Copy tone="muted">{Math.ceil(message.attachment.sizeBytes/1024)} {tr("KiB · Shared")}</Copy><Action secondary title={tr("View private document")} onPress={()=>setAttachment(message.attachment!)}/></>:<Copy selectable>{message.text}</Copy>}
     </Card>)}
-    {!room.canSend && <Copy>This consultation is not available for new messages.</Copy>}
-    <Field label="Message" multiline placeholder="Type a message..." maxLength={4000} value={text} editable={!sending && !sendError && room.canSend} onChangeText={setText} />
-    <Notice message={notice} />
-    <Action title={sending ? 'Sending...' : sendError ? 'Retry same message' : 'Send message'} disabled={sending || (!sendError && (!text.trim() || !room.canSend))} onPress={() => { void send(); }} />
-    {sendError && <Copy>The pending text stays unchanged for safe retries. Leaving discards its retry key; check history before composing it again.</Copy>}
+    {!room.canSend && <Copy>{tr("This consultation is not available for new messages.")}</Copy>}
+    <Field label={tr("Message")} multiline placeholder={tr("Type a message...")} maxLength={4000} value={text} editable={!sending && !sendError && room.canSend} onChangeText={setText} />
+    <Notice message={systemMessage(notice)} />
+    <Action title={sending ? tr("Sending...") : sendError ? tr("Retry same message") : tr("Send message")} disabled={sending || (!sendError && (!text.trim() || !room.canSend))} onPress={() => { void send(); }} />
+    {sendError && <Copy>{tr("The pending text stays unchanged for safe retries. Leaving discards its retry key; check history before composing it again.")}</Copy>}
     <ConsultationAttachmentComposer room={room} uid={uid}/>
     {attachment&&<ConsultationAttachmentViewer room={room} uid={uid} attachment={attachment} onClose={()=>setAttachment(null)}/>}
   </Card>;

@@ -1,3 +1,7 @@
+import {displayCode} from "../../i18n/translate";
+import {localeTag} from "../../i18n/locale";
+import {tr} from "../../i18n/translate";
+import {useLocale} from "../../i18n/react";
 ﻿import React, {useContext, useEffect, useRef, useState} from 'react';
 import {AppState, Image, Modal, View} from 'react-native';
 import Pdf from 'react-native-pdf';
@@ -7,12 +11,14 @@ import {adminVerificationError, createAdminVerificationSession, type PrivateCred
 import type {VerificationQueueItem} from '@shared/types/verificationQueue';
 
 export default function VerificationQueueScreen() {
+  useLocale();
   const account = useContext(AuthContext);
   if (account.status !== 'ready' || account.user?.role !== 'administrator' || account.user.status !== 'active')
-    return <Screen variant="dashboard"><Notice message="An active administrator account is required." /></Screen>;
+    return <Screen variant="dashboard"><Notice message={tr("An active administrator account is required.")} /></Screen>;
   return <Dashboard key={account.user.uid} uid={account.user.uid} logout={account.logout} />;
 }
 function Dashboard({uid, logout}: {uid: string; logout(): Promise<void>}) {
+  useLocale();
   const colors = usePalette();
   const api = useRef<ReturnType<typeof createAdminVerificationSession> | null>(null);
   const active = useRef(false), locked = useRef(false), viewerGeneration = useRef(0);
@@ -53,65 +59,65 @@ function Dashboard({uid, logout}: {uid: string; logout(): Promise<void>}) {
   async function decide() {
     if (!selected || !confirm || locked.current || !api.current) return;
     if (confirm === 'rejected' && (!reason.trim() || reason.trim().length > 1000 || /[\u0000-\u001f\u007f]/.test(reason))) {
-      setError('Enter a rejection reason of 1–1000 characters without control characters.'); return;
+      setError(tr("Enter a rejection reason of 1–1000 characters without control characters.")); return;
     }
     locked.current = true; setBusy(true); setError(null); closeViewer();
     try {
       await api.current.review(selected, confirm === 'approved' ? {decision: 'approved'} : {decision: 'rejected', rejectionReason: reason.trim()});
       if (!active.current) return;
       setItems(rows => rows.filter(row => row.requestId !== selected.requestId)); setSelected(null); setConfirm(null); setReason('');
-      setSuccess(confirm === 'approved' ? 'Doctor verification approved.' : 'Doctor verification rejected. The reason is available to the doctor.');
+      setSuccess(confirm === 'approved' ? tr("Doctor verification approved.") : tr("Doctor verification rejected. The reason is available to the doctor."));
     } catch (e) { if (active.current) setError(adminVerificationError(e)); }
     finally { locked.current = false; if (active.current) setBusy(false); }
   }
   return <Screen>
-    <Copy tone="muted">Administrator workspace</Copy><Copy title>Doctor verification</Copy>
-    <Copy>Review professional details and supporting evidence before making a decision.</Copy>
+    <Copy tone="muted">{tr("Administrator workspace")}</Copy><Copy title>{tr("Doctor verification")}</Copy>
+    <Copy>{tr("Review professional details and supporting evidence before making a decision.")}</Copy>
     <Notice message={error} />
     {success && <Copy accessibilityLiveRegion="polite">{success}</Copy>}
-    {busy && <Loading label="Loading verification information…" />}
+    {busy && <Loading label={tr("Loading verification information…")} />}
     {selected ? <Card>
-      <Status label="Pending review" tone="warning"/><Copy title>{selected.professional.professionalName}</Copy>
-      <Copy>Specialty: {selected.professional.specialty}</Copy>
-      <Copy>Registration: {selected.professional.registrationNumber}</Copy>
-      <Copy>Issuing authority: {selected.professional.issuingAuthority}</Copy>
-      <Copy>Submitted: {new Date(selected.submittedAt.seconds * 1000).toLocaleString()}</Copy>
-      <Copy>Profile revision: {selected.profileRevision}</Copy>
-      <Copy>Request: {selected.requestId}</Copy>
+      <Status label={tr("Pending review")} tone="warning"/><Copy title>{selected.professional.professionalName}</Copy>
+      <Copy>{tr("Specialty:")}{' '}{selected.professional.specialty}</Copy>
+      <Copy>{tr("Registration:")}{' '}{selected.professional.registrationNumber}</Copy>
+      <Copy>{tr("Issuing authority:")}{' '}{selected.professional.issuingAuthority}</Copy>
+      <Copy>{tr("Submitted:")}{' '}{new Date(selected.submittedAt.seconds * 1000).toLocaleString(localeTag())}</Copy>
+      <Copy>{tr("Profile revision:")}{' '}{selected.profileRevision}</Copy>
+      <Copy>{tr("Request:")}{' '}{selected.requestId}</Copy>
       {selected.credentials.map((credential, i) => <Action key={credential.credentialId}
-        title={`View ${credential.category.replace(/_/g, ' ')} (${i + 1})`} secondary disabled={busy || opening}
+        title={tr("View {0} ({1})", {"0": displayCode(credential.category), "1": i + 1})} secondary disabled={busy || opening}
         onPress={() => {void openDocument(credential.credentialId);}} />)}
-      {opening && <Loading label="Downloading selected credential securely…" />}
-      {opening && <Action title="Cancel document download" secondary onPress={closeViewer} />}
-      <Field multiline helperText="Required for rejection. Explain what the doctor needs to correct." label="Rejection reason" value={reason} onChangeText={setReason} maxLength={1000} editable={!busy} />
+      {opening && <Loading label={tr("Downloading selected credential securely…")} />}
+      {opening && <Action title={tr("Cancel document download")} secondary onPress={closeViewer} />}
+      <Field multiline helperText={tr("Required for rejection. Explain what the doctor needs to correct.")} label={tr("Rejection reason")} value={reason} onChangeText={setReason} maxLength={1000} editable={!busy} />
       {confirm ? <>
-        <Copy>{confirm === 'approved' ? 'Approve this doctor and publish their verified professional profile?' : 'Reject this submission with the reason shown above?'}</Copy>
-        <Action title={confirm === 'approved' ? 'Confirm approval' : 'Confirm rejection'} danger={confirm === 'rejected'} disabled={busy || opening} onPress={() => {void decide();}} />
-        <Action title="Cancel decision" secondary disabled={busy} onPress={() => setConfirm(null)} />
+        <Copy>{confirm === 'approved' ? tr("Approve this doctor and publish their verified professional profile?") : tr("Reject this submission with the reason shown above?")}</Copy>
+        <Action title={confirm === 'approved' ? tr("Confirm approval") : tr("Confirm rejection")} danger={confirm === 'rejected'} disabled={busy || opening} onPress={() => {void decide();}} />
+        <Action title={tr("Cancel decision")} secondary disabled={busy} onPress={() => setConfirm(null)} />
       </> : <>
-        <Action title="Approve doctor" disabled={busy || opening} onPress={() => setConfirm('approved')} />
-        <Action title="Reject submission" danger disabled={busy || opening} onPress={() => setConfirm('rejected')} />
+        <Action title={tr("Approve doctor")} disabled={busy || opening} onPress={() => setConfirm('approved')} />
+        <Action title={tr("Reject submission")} danger disabled={busy || opening} onPress={() => setConfirm('rejected')} />
       </>}
-      <Action title="Back to queue" secondary disabled={busy} onPress={() => {closeViewer(); setSelected(null); setReason(''); setConfirm(null); setError(null);}} />
+      <Action title={tr("Back to queue")} secondary disabled={busy} onPress={() => {closeViewer(); setSelected(null); setReason(''); setConfirm(null); setError(null);}} />
     </Card> : <>
-      <Action title="Refresh queue" disabled={busy} onPress={() => {setSuccess(null); void load();}} />
-      {!busy && !items.length && !error && <Card><Copy>No pending verification requests.</Copy></Card>}
-      {items.map(item => <Card key={item.requestId}><Status label="Pending review" tone="warning"/>
+      <Action title={tr("Refresh queue")} disabled={busy} onPress={() => {setSuccess(null); void load();}} />
+      {!busy && !items.length && !error && <Card><Copy>{tr("No pending verification requests.")}</Copy></Card>}
+      {items.map(item => <Card key={item.requestId}><Status label={tr("Pending review")} tone="warning"/>
         <Copy variant="heading">{item.professional.professionalName}</Copy><Copy>{item.professional.specialty}</Copy>
-        <Copy>{item.credentials.length} credential(s) · Revision {item.profileRevision}</Copy>
-        <Action title={`Review ${item.professional.professionalName}`} disabled={busy} onPress={() => {setSelected(item); setSuccess(null); setError(null);}} />
+        <Copy>{item.credentials.length} {tr("credential(s) · Revision")}{item.profileRevision}</Copy>
+        <Action title={tr("Review {0}", {"0": item.professional.professionalName})} disabled={busy} onPress={() => {setSelected(item); setSuccess(null); setError(null);}} />
       </Card>)}
-      {cursor && <Action title="Load more requests" secondary disabled={busy} onPress={() => {void load(cursor);}} />}
+      {cursor && <Action title={tr("Load more requests")} secondary disabled={busy} onPress={() => {void load(cursor);}} />}
     </>}
-    <Action title="Sign out" secondary disabled={busy} onPress={() => {closeViewer(); api.current?.dispose(); void logout().catch(e => {if(active.current)setError(adminVerificationError(e));});}} />
+    <Action title={tr("Sign out")} secondary disabled={busy} onPress={() => {closeViewer(); api.current?.dispose(); void logout().catch(e => {if(active.current)setError(adminVerificationError(e));});}} />
     <Modal visible={viewer !== null} onRequestClose={closeViewer} animationType="slide">
       <View style={{flex: 1, backgroundColor: colors.background, padding: 24, paddingTop: 48}}>
-        <Copy title>Private credential</Copy>
+        <Copy title>{tr("Private credential")}</Copy>
         {viewer?.contentType === 'application/pdf' ? <Pdf style={{flex: 1, width: '100%'}} source={{uri: viewer.uri, cache: false}} trustAllCerts={false}
-          enableAnnotationRendering={false} onError={() => {closeViewer(); setError('Unable to render this PDF on this device. No review decision was made.');}} />
-          : viewer && <Image accessibilityLabel="Selected doctor credential" source={{uri: viewer.uri}} style={{flex: 1, width: '100%'}} resizeMode="contain"
-            onError={() => {closeViewer(); setError('Unable to display this image. No review decision was made.');}} />}
-        <Action title="Close credential" onPress={closeViewer} />
+          enableAnnotationRendering={false} onError={() => {closeViewer(); setError(tr("Unable to render this PDF on this device. No review decision was made."));}} />
+          : viewer && <Image accessibilityLabel={tr("Selected doctor credential")} source={{uri: viewer.uri}} style={{flex: 1, width: '100%'}} resizeMode="contain"
+            onError={() => {closeViewer(); setError(tr("Unable to display this image. No review decision was made."));}} />}
+        <Action title={tr("Close credential")} onPress={closeViewer} />
       </View>
     </Modal>
   </Screen>;

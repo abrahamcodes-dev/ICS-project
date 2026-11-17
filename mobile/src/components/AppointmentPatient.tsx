@@ -1,3 +1,4 @@
+import {tr} from '../i18n/translate';
 import React,{useState} from 'react';
 import {Image,View} from 'react-native';
 import {Copy} from '../ui/design';
@@ -9,7 +10,7 @@ export function AppointmentPatient({display,compact=false,children,prominent=fal
  const [failed,setFailed]=useState<string|null>(null);
  const size=prominent?64:compact?32:40;
  return <View style={{flex:1,flexDirection:'row',alignItems:'center',gap:8}}>
-  {image&&failed!==image?<Image accessibilityLabel={name+' profile picture'} source={{uri:image}} style={{width:size,height:size,borderRadius:size/2}} onError={()=>setFailed(image)}/>:<ProfileAvatar name={name} size={size}/>}
+  {image&&failed!==image?<Image accessibilityLabel={tr("{0} profile picture",{"0":name})} source={{uri:image}} style={{width:size,height:size,borderRadius:size/2}} onError={()=>setFailed(image)}/>:<ProfileAvatar name={name} size={size}/>}
   {children?<View style={{flex:1,gap:5}}><Copy variant="label">{name}</Copy>{children}</View>:<Copy variant={prominent?'heading':'label'} style={{flex:1}}>{name}</Copy>}
  </View>;
 }

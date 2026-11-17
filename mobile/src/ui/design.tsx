@@ -1,3 +1,6 @@
+import {tr} from "../i18n/translate";
+import {useLocale, LanguageSelector} from "../i18n/react";
+import {systemMessage} from '../i18n/translate';
 import React, {useEffect, useRef, useState} from 'react';
 import {AccessibilityInfo, Animated, ActivityIndicator, KeyboardAvoidingView, Platform, Pressable,
   ScrollView, Text, TextInput, View, type TextProps, type TextInputProps,
@@ -15,6 +18,7 @@ import {usePalette} from './theme';
 
 export function Copy({children, title=false, variant, tone='default', style, ...props}:
   TextProps & {children:React.ReactNode; title?:boolean; variant?:'heading'|'body'|'label'|'caption'; tone?:'default'|'muted'}) {
+  useLocale();
   const c=usePalette(), size=title ? typography.title : typography[variant ?? 'body'];
   return <Text {...props} style={[{color:tone==='muted'?c.muted:c.text, fontSize:size,
     lineHeight:Math.ceil(size*1.3), fontWeight:title||variant==='heading'?'700':variant==='label'?'600':'400'}, style]}
@@ -26,6 +30,7 @@ export type ScreenVariant = 'onboarding'|'form'|'dashboard'|'chat'|'immersive';
  * and can use footer for a keyboard-aware composer or call controls. */
 export function Screen({children, variant='onboarding', footer}:
   {children:React.ReactNode; variant?:ScreenVariant; footer?:React.ReactNode}) {
+  useLocale();
   const c=usePalette(), fixed=variant==='chat'||variant==='immersive', immersive=variant==='immersive';
   const body:ViewStyle={width:'100%', maxWidth:variant==='dashboard'?720:480,
     alignSelf:'center', gap:spacing.large};
@@ -34,7 +39,7 @@ export function Screen({children, variant='onboarding', footer}:
       {fixed ? <View style={{flex:1,padding:immersive?0:spacing.medium}}>{children}</View> :
         <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
           contentContainerStyle={{flexGrow:1,padding:spacing.large,justifyContent:variant==='onboarding'?'center':'flex-start'}}>
-          <View style={body}>{children}</View>
+          <View style={body}><LanguageSelector/>{children}</View>
         </ScrollView>}
       {footer && <View style={{padding:spacing.medium,gap:spacing.small,backgroundColor:c.tabBarBackground}}>{footer}</View>}
     </KeyboardAvoidingView>
@@ -43,6 +48,7 @@ export function Screen({children, variant='onboarding', footer}:
 
 export function Card({children, tone='surface', style}:
   {children:React.ReactNode; tone?:'surface'|'mint'; style?:StyleProp<ViewStyle>}) {
+  useLocale();
   const c=usePalette(), opacity=useRef(new Animated.Value(1)).current;
   useEffect(()=>{
     let active=true;
@@ -60,6 +66,8 @@ export function Card({children, tone='surface', style}:
 
 export function Action({title,onPress,disabled=false,secondary=false,danger=false,selected=false,loading=false}:
   {title:string;onPress():void;disabled?:boolean;secondary?:boolean;danger?:boolean;selected?:boolean;loading?:boolean}) {
+  useLocale();
+  title=systemMessage(title);
   const c=usePalette(), blocked=disabled||loading, filled=danger||!secondary;
   const color=blocked?c.onDisabled:filled?c.onPrimary:c.text;
   return <Pressable accessibilityRole="button" accessibilityLabel={title}
@@ -77,6 +85,9 @@ export function Action({title,onPress,disabled=false,secondary=false,danger=fals
 
 export function Field({label,style,onFocus,onBlur,error,helperText,...props}:
   TextInputProps & {label:string;error?:string;helperText?:string}) {
+  useLocale();
+  label=systemMessage(label);
+  if(props.placeholder) props={...props,placeholder:systemMessage(props.placeholder)};
   const c=usePalette(), [focused,setFocused]=useState(false), disabled=props.editable===false;
   return <View style={{gap:spacing.small}}>
     <Text style={{color:c.text,fontSize:typography.label,lineHeight:20,fontWeight:'600'}}>{label}</Text>
@@ -94,24 +105,28 @@ export function Field({label,style,onFocus,onBlur,error,helperText,...props}:
 }
 
 export function Notice({message}: {message:string|null}) {
+  useLocale();
   const c=usePalette();
   return message ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite"
-    style={{color:c.error,fontSize:typography.body,lineHeight:24}}>{message}</Text> : null;
+    style={{color:c.error,fontSize:typography.body,lineHeight:24}}>{systemMessage(message)}</Text> : null;
 }
 /** Text labels carry meaning; color is supplementary. Non-interactive by design. */
 export function Status({label,tone='neutral'}:
   {label:string;tone?:'neutral'|'success'|'warning'|'error'}) {
+  useLocale();
   const c=usePalette(), color=tone==='neutral'?c.text:tone==='error'?c.error:c[tone];
   return <View style={{alignSelf:'flex-start',borderRadius:radius.pill,paddingHorizontal:12,
     paddingVertical:6,backgroundColor:tone==='neutral'?c.surfaceSecondary:tone==='success'?c.successSurface:tone==='warning'?c.warningSurface:c.errorSurface}}>
-    <Text style={{color,fontSize:typography.label,lineHeight:20,fontWeight:'600'}}>{label}</Text>
+    <Text style={{color,fontSize:typography.label,lineHeight:20,fontWeight:'600'}}>{systemMessage(label)}</Text>
   </View>;
 }
-export function Loading({label='Loading your account…'}:{label?:string}) {
+export function Loading({label=tr("Loading your account…")}:{label?:string}) {
+  useLocale();
   const c=usePalette();
   return <View accessibilityLiveRegion="polite" accessibilityState={{busy:true}} style={{gap:12}}>
     <ActivityIndicator color={c.accent} accessible={false}/><Copy>{label}</Copy>
   </View>;
 }
 /** Native geometry: stethoscope bowl, chestpiece and wireless arcs. */
-export function Brand(){const c=usePalette();return <View accessible accessibilityLabel="CallADoc, care within reach" style={{alignItems:'center',gap:12}}><View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{width:76,height:72}}><View style={{position:'absolute',left:8,top:8,width:40,height:40,borderWidth:5,borderTopWidth:0,borderColor:c.accent,borderBottomLeftRadius:22,borderBottomRightRadius:22}}/><View style={{position:'absolute',left:26,top:43,width:32,height:22,borderLeftWidth:5,borderBottomWidth:5,borderColor:c.accent,borderBottomLeftRadius:15}}/><View style={{position:'absolute',left:50,top:48,width:16,height:16,borderRadius:8,borderWidth:4,borderColor:c.accent}}/>{[18,28].map(size=><View key={size} style={{position:'absolute',right:0,top:0,width:size,height:size,borderTopWidth:3,borderRightWidth:3,borderColor:c.accent,borderTopRightRadius:size}}/>)}</View><Copy title>CallADoc</Copy><Copy>Care within reach.</Copy></View>;}
+export function Brand(){
+  useLocale();const c=usePalette();return <View accessible accessibilityLabel={tr("CallADoc, care within reach")} style={{alignItems:'center',gap:12}}><View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{width:76,height:72}}><View style={{position:'absolute',left:8,top:8,width:40,height:40,borderWidth:5,borderTopWidth:0,borderColor:c.accent,borderBottomLeftRadius:22,borderBottomRightRadius:22}}/><View style={{position:'absolute',left:26,top:43,width:32,height:22,borderLeftWidth:5,borderBottomWidth:5,borderColor:c.accent,borderBottomLeftRadius:15}}/><View style={{position:'absolute',left:50,top:48,width:16,height:16,borderRadius:8,borderWidth:4,borderColor:c.accent}}/>{[18,28].map(size=><View key={size} style={{position:'absolute',right:0,top:0,width:size,height:size,borderTopWidth:3,borderRightWidth:3,borderColor:c.accent,borderTopRightRadius:size}}/>)}</View><Copy title>{tr("CallADoc")}</Copy><Copy>{tr("Care within reach.")}</Copy></View>;}

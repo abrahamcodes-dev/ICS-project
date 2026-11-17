@@ -1,3 +1,6 @@
+import {SafeAreaView} from 'react-native-safe-area-context';
+import {tr} from "../i18n/translate";
+import {useLocale} from "../i18n/react";
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { useAuth } from "../hooks/useAuth";
@@ -15,6 +18,7 @@ import { NotificationInbox } from '../screens/shared/NotificationsScreen';
 // Routes to the correct role-based navigator once auth state is known.
 // Sprint 1 deliverable: Guest -> Login/Register -> role-specific stack.
 export default function RootNavigator() {
+  useLocale();
   const { user, loading, status, registrationOpen } = useAuth();
   const theme=navigationTheme(useColorScheme());
 
@@ -39,8 +43,9 @@ export default function RootNavigator() {
   }
 }
 function PendingDoctor({ uid }: { uid: string }) {
+  useLocale();
   const [inbox, setInbox] = React.useState(false);
   // This branch never opens clinical navigation, even for a forged notification destination.
   if (inbox) return <NotificationInbox uid={uid} back={() => setInbox(false)} open={() => setInbox(false)}/>;
-  return <View style={{flex:1}}><Action title="Verification notifications" onPress={() => setInbox(true)}/><SubmitVerificationScreen/></View>;
+  return <SafeAreaView style={{flex:1}}><Action title={tr("Verification notifications")} onPress={() => setInbox(true)}/><SubmitVerificationScreen/></SafeAreaView>;
 }
