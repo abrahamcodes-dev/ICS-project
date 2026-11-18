@@ -1,4 +1,5 @@
 import {localeTag} from "../../i18n/locale";
+import {systemMessage} from '../../i18n/translate';
 import {tr} from "../../i18n/translate";
 import {useLocale} from "../../i18n/react";
 import React, {useEffect,useState} from 'react';
@@ -37,7 +38,7 @@ export function AppointmentList({uid,role,open,history}: {uid:string;role:Partic
     {!loading && !error && !rows.length && <Text>{tr("No appointments found. A scheduled appointment must be booked before calling.")}</Text>}
     {rows.map(a=>{const reason=consultationUnavailable(a,uid,role,now);return <View key={a.appointmentId} style={{gap:8}}>
       <Text>{new Date(a.startAt).toLocaleString(localeTag())} — {a.status.replace('_',' ')}</Text>
-      {reason && <Text>{reason}</Text>}
+      {reason && <Text>{systemMessage(reason)}</Text>}
       {history && a.status==='completed' && a[`${role}Id`]===uid && <Button title={tr("View consultation history")} onPress={()=>history(a.appointmentId)}/>}
       <Button title={tr("Open consultation")} disabled={!!reason} onPress={()=>{
         if(!consultationUnavailable(a,uid,role,Date.now()))open(a.appointmentId);

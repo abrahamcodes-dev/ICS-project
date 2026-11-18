@@ -2,7 +2,7 @@ const React=require('react'),{act,create}=require('react-test-renderer');
 const {Action,Field}=require('../src/ui/design');
 const mockGet=jest.fn(),mockIssue=jest.fn(),mockDispose=jest.fn();let mockIdentity,mockAppointment,mockAcademic=false;
 jest.mock('@react-navigation/native',()=>({useIsFocused:()=>true}));
-jest.mock('../src/hooks/useAuth',()=>({useAuth:()=>({status:'ready',firebaseUid:'doctor',user:{status:'active',role:'doctor'}})}));
+jest.mock('../src/hooks/useAuth',()=>({useAuth:()=>({status:'ready',firebaseUid:'doctor',user:{status:'active',role:'doctor',verificationStatus:'approved'}})}));
 jest.mock('../src/services/appointmentReads',()=>({readAppointmentPage:jest.fn(),observeAppointment:jest.fn((uid,role,id,next)=>{mockAppointment=next;return jest.fn();})}));
 jest.mock('../src/services/academicDemo',()=>({isHostedAcademicDemo:()=>mockAcademic}));
 jest.mock('../src/services/authService',()=>({onIdentityRefresh:fn=>{mockIdentity=fn;return jest.fn();}}));
@@ -85,4 +85,31 @@ test('submission shows progress, blocks duplicates and only shows success after 
  await render();await fill();await press('Send prescription');let resolve;mockIssue.mockReturnValue(new Promise(r=>resolve=r));const submit=tree.root.findAllByType(Action).find(a=>a.props.title==='Confirm issuance');
  await act(async()=>{submit.props.onPress();submit.props.onPress();});expect(mockIssue).toHaveBeenCalledTimes(1);expect(text()).toContain('Submitting...');expect(text()).not.toContain('Issued prescription');
  await act(async()=>resolve({doctorId:'doctor',issuedAt:123,medications:[{name:'Synthetic'}]}));expect(text()).toContain('Issued prescription');
+});
+
+test('native prescription title follows authorized read-only state and live language changes',async()=>{
+ const Screen=require('../src/screens/doctor/IssuePrescriptionScreen').default,{setLanguage}=require('../src/i18n/locale');
+ const navigation={setOptions:jest.fn()};let resolve;mockGet.mockReturnValue(new Promise(r=>{resolve=r;}));
+ await act(async()=>{tree=create(<Screen route={{params:{appointmentId:'a'.repeat(64)}}} navigation={navigation}/>);});
+ expect(navigation.setOptions).toHaveBeenLastCalledWith({title:'Digital prescriptions'});
+ await act(async()=>resolve({doctorId:'doctor',issuedAt:123,medications:[{name:'Original authored medication'}]}));
+ expect(navigation.setOptions).toHaveBeenLastCalledWith({title:'View prescription'});expect(tree.root.findAllByType(Field)).toHaveLength(0);
+ try {await act(async()=>setLanguage('sw'));expect(navigation.setOptions).toHaveBeenLastCalledWith({title:'Tazama maagizo ya dawa'});expect(text()).toContain('Original authored medication');expect(mockIssue).not.toHaveBeenCalled();}
+ finally {await act(async()=>setLanguage('en'));}
+ await act(async()=>mockIdentity());expect(navigation.setOptions).toHaveBeenLastCalledWith({title:'Digital prescriptions'});expect(text()).not.toContain('Original authored medication');
+});
+
+test('list and creation titles are distinct from an issued prescription and reset on back',async()=>{
+ const Screen=require('../src/screens/doctor/IssuePrescriptionScreen').default,navigation={setOptions:jest.fn()};
+ require('../src/services/appointmentReads').readAppointmentPage.mockResolvedValue({rows:[{appointmentId:'a'.repeat(64),status:'completed',startAt:1}],cursor:null});
+ await act(async()=>{tree=create(<Screen navigation={navigation}/>);});expect(navigation.setOptions).toHaveBeenLastCalledWith({title:'Digital prescriptions'});
+ await press('View consultation prescription');expect(navigation.setOptions).toHaveBeenLastCalledWith({title:'Create Prescription'});
+ expect(text()).toContain('Create Prescription');expect(mockIssue).not.toHaveBeenCalled();
+ await press('Back to appointments');expect(navigation.setOptions).toHaveBeenLastCalledWith({title:'Digital prescriptions'});
+});
+
+test('a failed prescription read never advertises creation',async()=>{
+ const Screen=require('../src/screens/doctor/IssuePrescriptionScreen').default,navigation={setOptions:jest.fn()};mockGet.mockRejectedValue({code:'permission-denied'});
+ await act(async()=>{tree=create(<Screen route={{params:{appointmentId:'a'.repeat(64)}}} navigation={navigation}/>);});
+ expect(navigation.setOptions).toHaveBeenLastCalledWith({title:'Digital prescriptions'});expect(text()).not.toContain('Create Prescription');expect(tree.root.findAllByType(Field)).toHaveLength(0);expect(mockIssue).not.toHaveBeenCalled();
 });

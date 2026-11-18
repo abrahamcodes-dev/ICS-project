@@ -5,9 +5,9 @@ jest.mock('../src/screens/shared/RatingPanels',()=>({DoctorRatingSummaryPanel:()
 const mockSession={ownDay:jest.fn(async()=>({day:null}))};
 jest.mock('../src/hooks/useSchedulingSession',()=>({useSchedulingSession:()=>mockSession}));
 jest.mock('../src/services/schedulingService',()=>({schedulingError:()=> 'Unavailable',DAY_MS:86400000,localDate:(t=Date.now())=>{const d=new Date(t);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');},localDateRange:day=>{const d=new Date(day+'T00:00:00'),e=new Date(d);e.setDate(e.getDate()+1);return {start:d.getTime(),end:e.getTime()};}}));
-let mockNext,mockStatus='approved';const mockStop=jest.fn(),mockLogout=jest.fn(async()=>{});
+let mockNext,mockStatus='approved',mockAuthStatus='ready';const mockStop=jest.fn(),mockLogout=jest.fn(async()=>{});
 jest.mock('@react-navigation/native',()=>({useIsFocused:()=>true}));
-jest.mock('../src/hooks/useAuth',()=>({useAuth:()=>({status:'ready',firebaseUid:'d',user:{role:'doctor',status:'active',verificationStatus:mockStatus,fullName:'Doctor Example',email:'doctor@example.test'},logout:mockLogout})}));
+jest.mock('../src/hooks/useAuth',()=>({useAuth:()=>({status:mockAuthStatus,firebaseUid:'d',user:{role:'doctor',status:'active',verificationStatus:mockStatus,fullName:'Doctor Example',email:'doctor@example.test'},logout:mockLogout})}));
 jest.mock('../src/services/firebaseConfig',()=>({db:{}}));jest.mock('firebase/firestore',()=>({}));
 jest.mock('../src/services/appointmentReads',()=>({...jest.requireActual('../src/services/appointmentReads'),readAppointmentPage:jest.fn(),observeAppointments:jest.fn((uid,role,next)=>{mockNext=next;return mockStop;})}));
 jest.mock('../src/services/doctorProfileRead',()=>({readOwnDoctorProfile:jest.fn(async()=>({specialty:'General medicine',registrationNumber:'TEST'}))}));
@@ -16,7 +16,7 @@ const {Action,Field}=require('../src/ui/design'),{observeAppointments}=require('
 let tree;const navigation={navigate:jest.fn()},id='a'.repeat(64);
 async function render(){await act(async()=>{tree=create(<Workspace navigation={navigation}/>);});}
 async function tab(name){await act(async()=>tree.root.findAll(n=>n.props?.accessibilityRole==='tab'&&n.props.accessibilityLabel===name)[0].props.onPress());}
-beforeEach(()=>{jest.clearAllMocks();require('../src/services/appointmentReads').readAppointmentPage.mockResolvedValue({rows:[],cursor:null});mockStatus='approved';jest.spyOn(require('react-native').AccessibilityInfo,'isReduceMotionEnabled').mockResolvedValue(true);});
+beforeEach(()=>{jest.clearAllMocks();mockAuthStatus='ready';require('../src/services/appointmentReads').readAppointmentPage.mockResolvedValue({rows:[],cursor:null});mockStatus='approved';jest.spyOn(require('react-native').AccessibilityInfo,'isReduceMotionEnabled').mockResolvedValue(true);});
 afterEach(async()=>{if(tree)await act(async()=>tree.unmount());tree=null;});
 test('four bottom tabs expose selection and release old listener on switch',async()=>{await render();expect(observeAppointments).toHaveBeenCalledWith('d','doctor',expect.any(Function),expect.any(Function),true);await tab('Schedule');expect(mockStop).toHaveBeenCalled();expect(JSON.stringify(tree.toJSON())).toContain('Appointments (0)');await act(async()=>tree.root.findAllByType(Action).find(n=>n.props.title==='Manage availability').props.onPress());expect(navigation.navigate).toHaveBeenCalledWith('SetAvailability');});
 test('consultation navigation uses appointment ID and ignores late previous tab results',async()=>{await render();const late=mockNext;require('../src/services/appointmentReads').readAppointmentPage.mockResolvedValue({rows:[{appointmentId:id,patientId:'p',doctorId:'d',status:'scheduled',startAt:Date.now()-1000,endAt:Date.now()+10000}],cursor:null});await tab('Consultations');await act(async()=>late([]));await act(async()=>tree.root.findAll(n=>n.props.accessibilityHint==='Open consultation details')[0].props.onPress());expect(navigation.navigate).toHaveBeenCalledWith('ConsultationDetails',{appointmentId:id});});
@@ -162,4 +162,78 @@ test('profile sign out prevents duplicate requests and permits retry after failu
  await act(async()=>{button().props.onPress();button().props.onPress();});expect(mockLogout).toHaveBeenCalledTimes(1);expect(button().props.disabled).toBe(true);
  await act(async()=>reject(Error('offline')));expect(JSON.stringify(tree.toJSON())).toContain('Unable to sign out');expect(button().props.disabled).toBe(false);
  await act(async()=>button().props.onPress());expect(mockLogout).toHaveBeenCalledTimes(2);
+});
+
+test('Kiswahili profile actions use stable keys and keep their panel across language changes',async()=>{
+ const {setLanguage}=require('../src/i18n/locale'),{tr}=require('../src/i18n/translate');
+ await render();await tab('Profile');
+ try {
+  await act(async()=>setLanguage('sw'));
+  const press=async key=>act(async()=>tree.root.findAll(n=>n.props.accessibilityLabel===tr(key)&&n.props.accessibilityRole==='button')[0].props.onPress());
+  expect(JSON.stringify(tree.toJSON())).toContain(tr('Help & support'));expect(JSON.stringify(tree.toJSON())).not.toContain('Help & support');
+  await press('Manage availability');expect(navigation.navigate).toHaveBeenCalledWith('SetAvailability');
+  await press('Edit profile');expect(JSON.stringify(tree.toJSON())).toContain(tr('Approved professional information cannot currently be edited. You can still change your profile picture.'));
+  await act(async()=>setLanguage('en'));expect(JSON.stringify(tree.toJSON())).toContain('Approved professional information cannot currently be edited');
+ } finally {await act(async()=>setLanguage('en'));}
+});
+
+test('Doctor consultation tabs translate text and accessibility labels without changing query mode',async()=>{
+ const {setLanguage}=require('../src/i18n/locale');await render();await tab('Consultations');
+ try {
+  await act(async()=>setLanguage('sw'));
+  const tabs=()=>tree.root.findAll(n=>n.props.accessibilityRole==='tab');
+  expect(tabs().some(n=>n.props.accessibilityLabel==='Ijayo na inayoendelea')).toBe(true);
+  expect(tabs().some(n=>n.props.accessibilityLabel==='History')).toBe(false);
+  await act(async()=>tabs().find(n=>n.props.accessibilityLabel==='Historia').props.onPress());
+  expect(require('../src/services/appointmentReads').readAppointmentPage).toHaveBeenLastCalledWith('d','doctor','history',expect.any(Number),undefined,undefined);
+  await act(async()=>setLanguage('en'));expect(tabs().find(n=>n.props.accessibilityLabel==='History').props.accessibilityState.selected).toBe(true);
+ } finally {await act(async()=>setLanguage('en'));}
+});
+
+test.each([['en','sw'],['sw','en']])('complete React root remount restores Profile for %s to %s only after auth validation',async(from,to)=>{
+ const locale=require('../src/i18n/locale'),handoff=require('../src/navigation/localeRestoration');
+ const store={getItem:async()=>from,setItem:jest.fn(async()=>{})};
+ const native=jest.fn(async()=>true);
+ try {
+  await act(async()=>locale.initializeLanguage(store,native));
+  handoff.finishLocaleLinkCheck(handoff.beginLocaleLinkCheck(),null);
+  await render();await tab(from==='sw'?'Wasifu':'Profile');
+  await act(async()=>locale.setLanguage(to));
+  expect(store.setItem).toHaveBeenCalledWith(locale.LANGUAGE_KEY,to);
+  await act(async()=>tree.unmount());tree=null; // destroy the entire React test root, not a rerender
+  mockAuthStatus='loadingIdentity';
+  await act(async()=>locale.initializeLanguage({...store,getItem:async()=>to},native));
+  await render();expect(tree.root.findAll(n=>n.props.accessibilityRole==='tab')).toHaveLength(0);
+  mockAuthStatus='ready';await act(async()=>tree.update(<Workspace navigation={navigation}/>));
+  const selected=tree.root.findAll(n=>n.props.accessibilityRole==='tab'&&typeof n.props.style==='function'&&n.props.accessibilityState?.selected);
+  expect(selected.map(n=>n.props.accessibilityLabel)).toEqual([to==='sw'?'Wasifu':'Profile']);
+  // Consumed: an unrelated later remount defaults to Home.
+  await act(async()=>tree.unmount());tree=null;await render();
+  expect(tree.root.findAll(n=>n.props.accessibilityRole==='tab'&&typeof n.props.style==='function'&&n.props.accessibilityState?.selected).map(n=>n.props.accessibilityLabel)).toEqual([to==='sw'?'Mwanzo':'Home']);
+ } finally {
+  handoff.discardLocaleRestoration();mockAuthStatus='ready';
+  await act(async()=>{await locale.initializeLanguage({getItem:async()=>'en',setItem:async()=>{}});await locale.setLanguage('en');});
+ }
+});
+
+test('a subsequent workspace tab action cancels a pending handoff before native completion',async()=>{
+ const handoff=require('../src/navigation/localeRestoration');
+ handoff.finishLocaleLinkCheck(handoff.beginLocaleLinkCheck(),null);
+ await render();await tab('Profile');
+ const generation=handoff.beginLocaleSelection();handoff.prepareLocaleRestoration(generation);
+ await tab('Schedule');handoff.finishLocaleRestoration(generation,true);
+ await act(async()=>tree.unmount());tree=null;await render();
+ expect(tree.root.findAll(n=>n.props.accessibilityRole==='tab'&&typeof n.props.style==='function'&&n.props.accessibilityState?.selected).map(n=>n.props.accessibilityLabel)).toEqual(['Home']);
+});
+
+test('a recreated authorized workspace waits for the in-flight native acknowledgement',async()=>{
+ const handoff=require('../src/navigation/localeRestoration');
+ handoff.finishLocaleLinkCheck(handoff.beginLocaleLinkCheck(),null);
+ await render();await tab('Profile');
+ const generation=handoff.beginLocaleSelection();handoff.prepareLocaleRestoration(generation);
+ await act(async()=>tree.unmount());tree=null;await render();
+ const selected=()=>tree.root.findAll(n=>n.props.accessibilityRole==='tab'&&typeof n.props.style==='function'&&n.props.accessibilityState?.selected).map(n=>n.props.accessibilityLabel);
+ expect(selected()).toEqual(['Home']);
+ await act(async()=>handoff.finishLocaleRestoration(generation,true));
+ expect(selected()).toEqual(['Profile']);
 });

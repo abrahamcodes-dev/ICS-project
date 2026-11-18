@@ -57,3 +57,7 @@ export function displayDate(value: number | Date, mode: 'date' | 'time' | 'datet
   return mode === 'date' ? date.toLocaleDateString(localeTag(), settings)
     : mode === 'time' ? date.toLocaleTimeString(localeTag(), settings) : date.toLocaleString(localeTag(), settings);
 }
+/** Display only; appointment timestamps and duration locks remain unchanged. */
+export function displayMinutes(minutes: number) {
+  return tr(minutes === 1 ? '{count} minute' : '{count} minutes', {count: new Intl.NumberFormat(localeTag()).format(minutes)});
+}

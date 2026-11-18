@@ -24,3 +24,15 @@ test('confirmation prevents duplicate cancellation and refreshes on success',asy
 test('cancel failure reports uncertainty and reloads authoritative state',async()=>{mockCancel.mockRejectedValue(Error('offline'));await render(row());await press('Cancel appointment');await act(async()=>action('Confirm cancellation').props.onPress());expect(JSON.stringify(tree.toJSON())).toContain('Cancellation not confirmed');expect(mockStop).toHaveBeenCalled();});
 test('cancellation restricted by owner status and start time',()=>{expect(canCancel(row(),'other',Date.now())).toBe(false);expect(canCancel(row(1000,'completed'),'d',Date.now())).toBe(false);expect(canCancel(row(-1000),'d',Date.now())).toBe(false);});
 test('missing profile falls back and unavailable private information is explicit',async()=>{mockRead.mockRejectedValue(Error('denied'));await render(row());expect(JSON.stringify(tree.toJSON())).toContain('Patient');await press('Patient information');expect(JSON.stringify(tree.toJSON())).toContain('medical information is not available');await press('Previous consultations');expect(JSON.stringify(tree.toJSON())).toContain('history is not available');await act(async()=>mockError());expect(JSON.stringify(tree.toJSON())).toContain('Appointment unavailable');expect(action('Join consultation')).toBeUndefined();});
+
+test.each(['completed','cancelled','no_show'])('Kiswahili duration/status localize but %s remains unable to join',async status=>{
+ const {setLanguage}=require('../src/i18n/locale'),{systemMessage,tr}=require('../src/i18n/translate');await render(row(-3600000,status));
+ try {
+  await act(async()=>setLanguage('sw'));
+  const text=JSON.stringify(tree.toJSON());expect(text).toContain('dakika 30');expect(text).not.toContain('30 minutes');
+  expect(text).toContain(systemMessage('This appointment is '+status.replace('_',' ')+'.'));expect(text).not.toContain('This appointment is');
+  expect(action(tr('Join consultation')).props.disabled).toBe(true);
+  await act(async()=>action(tr('Join consultation')).props.onPress());
+  expect(join).not.toHaveBeenCalled();
+ } finally {await act(async()=>setLanguage('en'));}
+});

@@ -14,13 +14,30 @@ import { View, useColorScheme } from 'react-native';
 import { Action } from '../ui/design';
 import {navigationTheme} from '../ui/theme';
 import { NotificationInbox } from '../screens/shared/NotificationsScreen';
+import {beginLocaleLinkCheck, finishLocaleLinkCheck, discardLocaleRestoration, validateLocaleIdentity} from './localeRestoration';
+import {Linking} from 'react-native';
 
 // Routes to the correct role-based navigator once auth state is known.
 // Sprint 1 deliverable: Guest -> Login/Register -> role-specific stack.
 export default function RootNavigator() {
   useLocale();
-  const { user, loading, status, registrationOpen } = useAuth();
+  const { user, loading, status, registrationOpen, firebaseUid } = useAuth();
   const theme=navigationTheme(useColorScheme());
+  React.useEffect(() => {
+    if (registrationOpen) discardLocaleRestoration();
+    else validateLocaleIdentity({status, firebaseUid, user});
+  }, [status, firebaseUid, user, registrationOpen]);
+  React.useLayoutEffect(() => {
+    let active = true;
+    const check = beginLocaleLinkCheck();
+    const subscription = Linking.addEventListener('url', () => discardLocaleRestoration());
+    void Linking.getInitialURL().then(url => {
+      if (active) finishLocaleLinkCheck(check, url);
+    }).catch(() => {
+      if (active) { discardLocaleRestoration(); finishLocaleLinkCheck(check, null); }
+    });
+    return () => { active = false; subscription.remove(); };
+  }, []);
 
   if (registrationOpen) return <NavigationContainer theme={theme}><GuestNavigator /></NavigationContainer>;
   if (loading) return <AccountStatusScreen />;
@@ -35,7 +52,7 @@ export default function RootNavigator() {
     case "patient":
       return <NavigationContainer theme={theme}><PatientNavigator /></NavigationContainer>;
     case "doctor":
-      return <NavigationContainer theme={theme}><DoctorNavigator /></NavigationContainer>;
+      return <NavigationContainer theme={theme} onStateChange={discardLocaleRestoration}><DoctorNavigator /></NavigationContainer>;
     case "administrator":
       return <NavigationContainer theme={theme}><AdminNavigator /></NavigationContainer>;
     default:

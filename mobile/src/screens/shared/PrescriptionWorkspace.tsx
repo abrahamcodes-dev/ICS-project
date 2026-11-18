@@ -12,21 +12,23 @@ import {isHostedAcademicDemo} from '../../services/academicDemo';
 import { createPrescriptionSession, validateMedication, type PrescriptionMedication, type Prescription } from '../../services/prescriptionService';
 import { Action, Card, Copy, Field, Loading, Notice, Status, Screen } from '../../ui/design';
 
-export default function PrescriptionWorkspace() {
+export type PrescriptionMode = 'list' | 'loading' | 'create' | 'view';
+export default function PrescriptionWorkspace({onModeChange}:{onModeChange?(mode:PrescriptionMode):void} = {}) {
   useLocale();
   const identity = useAuth(), focused = useIsFocused();
   if (!focused) return null;
   const role = identity.user?.role;
   if (identity.status !== 'ready' || identity.user?.status !== 'active' || !identity.firebaseUid || (role !== 'doctor' && role !== 'patient'))
     return <Screen><Copy>{tr("An active patient or doctor account is required.")}</Copy></Screen>;
-  return <PrescriptionAppointments key={`${identity.firebaseUid}:${role}`} uid={identity.firebaseUid} role={role} />;
+  return <PrescriptionAppointments key={`${identity.firebaseUid}:${role}`} uid={identity.firebaseUid} role={role} onModeChange={onModeChange} />;
 }
-function PrescriptionAppointments({ uid, role }: { uid: string; role: 'patient' | 'doctor' }) {
+function PrescriptionAppointments({ uid, role, onModeChange }: { uid: string; role: 'patient' | 'doctor'; onModeChange?(mode:PrescriptionMode):void }) {
   useLocale();
   const [rows, setRows] = useState<AppointmentRow[]>([]), [cursor, setCursor] = useState<AppointmentCursor | null>(null);
   const [selected, setSelected] = useState<string | null>(null), [loading, setLoading] = useState(false), [error, setError] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const alive = useRef(true), busy = useRef(false);
+  useEffect(()=>{if(!selected||blocked)onModeChange?.('list');},[selected,blocked,onModeChange]);
   async function load(more: boolean) {
     if (!alive.current || busy.current) return;
     busy.current = true; setLoading(true); setError(false);
@@ -45,7 +47,7 @@ function PrescriptionAppointments({ uid, role }: { uid: string; role: 'patient' 
   return <Screen variant="dashboard"><Copy title>{tr("Digital prescriptions")}</Copy>
     <Copy>{tr("Select a completed appointment. Issuance requires an existing consultation and a backend-recorded completed outcome; elapsed time alone is not completion.")}</Copy>
     {selected ? <><Action secondary title={tr("Back to appointments")} onPress={() => setSelected(null)} />
-      <PrescriptionRecord key={selected} uid={uid} cid={selected} doctor={role === 'doctor'} /></> : <>
+      <PrescriptionRecord key={selected} uid={uid} cid={selected} doctor={role === 'doctor'} onModeChange={onModeChange} /></> : <>
       <Action title={tr("Refresh appointments")} disabled={loading} onPress={() => { void load(false); }} />
       {loading && <Loading />}<Notice message={error ? tr("Unable to load appointments. Refresh to retry.") : null} />
       {!loading && !rows.some(r => r.status === 'completed') && <Copy>{tr("No completed appointments in the loaded pages.")}</Copy>}
@@ -56,7 +58,7 @@ function PrescriptionAppointments({ uid, role }: { uid: string; role: 'patient' 
   </Screen>;
 }
 const empty = (): PrescriptionMedication => ({ name: '', dosage: '', frequency: '', duration: '', instructions: '' });
-export function PrescriptionRecord({ uid, cid, doctor }: { uid: string; cid: string; doctor: boolean }) {
+export function PrescriptionRecord({ uid, cid, doctor, onModeChange }: { uid: string; cid: string; doctor: boolean; onModeChange?(mode:PrescriptionMode):void }) {
   useLocale();
   const [record, setRecord] = useState<Prescription | null>(null), [loading, setLoading] = useState(true), [loaded, setLoaded] = useState(false);
   const [meds, setMeds] = useState<PrescriptionMedication[]>([]), [confirm, setConfirm] = useState(false);
@@ -64,6 +66,9 @@ export function PrescriptionRecord({ uid, cid, doctor }: { uid: string; cid: str
   const [error, setError] = useState<string | null>(null);
   const [issuer,setIssuer]=useState<{uid:string;name:string}|null>(null);
   const session = useRef<ReturnType<typeof createPrescriptionSession> | null>(null), alive = useRef(true), busy = useRef(false);
+  // Presentation only: never offer a creation title before an authorized read succeeds.
+  const mode:PrescriptionMode = blocked ? 'loading' : record ? 'view' : loading || error || !loaded ? 'loading' : doctor ? 'create' : 'loading';
+  useEffect(()=>{onModeChange?.(mode);},[mode,onModeChange]);
   async function read() {
     setLoading(true); setError(null);
     try { const p = await session.current!.get(); if (alive.current) { setRecord(p); setLoaded(true); } }
@@ -86,7 +91,7 @@ export function PrescriptionRecord({ uid, cid, doctor }: { uid: string; cid: str
   }
   if (blocked) return <Copy>{tr("Session changed. Reopen prescriptions.")}</Copy>;
   const Container=doctor?View:Card;
-  return <Container style={{gap:16}}>{!doctor&&<Copy variant="heading">{tr("Consultation prescription")}</Copy>}
+  return <Container style={{gap:16}}><Copy variant="heading">{mode==='view'?tr('View prescription'):mode==='create'?tr('Create Prescription'):tr('Consultation prescription')}</Copy>
     {isHostedAcademicDemo()&&<Card tone="mint"><Copy variant="label">{tr('SYNTHETIC ACADEMIC DEMO — NOT A VALID PRESCRIPTION')}</Copy><Copy>{tr('For academic testing only. Do not use this demonstration prescription to obtain or take medication.')}</Copy></Card>}
     {loading && <Loading />}<Notice message={error} />
     {(error||uncertain||record)&&<Action secondary title={tr("Retrieve prescription")} disabled={loading || sending} onPress={() => { void read(); }} />}

@@ -80,3 +80,10 @@ test('empty persistent session becomes signedOut only after Auth resolves',()=>{
  const h=setup(null,null);expect(h.emit).not.toHaveBeenCalled();
  h.changeUid(null);expect(h.emit.mock.lastCall[0].status).toBe('signedOut');h.controller.stop();
 });
+
+test('a transient startup identity read failure retains the session and explicit refresh recovers',async()=>{
+ const h=setup();h.loadIdentity.mockRejectedValueOnce({code:'unavailable'});
+ await h.controller.refresh();expect(h.emit.mock.lastCall[0]).toMatchObject({status:'identityError',firebaseUid:'u1',user:null});
+ await h.controller.refresh();expect(h.emit.mock.lastCall[0]).toMatchObject({status:'ready',firebaseUid:'u1',user:expect.objectContaining({uid:'u1'})});
+ expect(h.emit.mock.calls.some(([s])=>s.status==='signedOut')).toBe(false);h.controller.stop();
+});

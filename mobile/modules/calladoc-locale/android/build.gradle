@@ -1,0 +1,19 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.calladoclocale'
+version = '1.0.0'
+
+android {
+  namespace 'expo.modules.calladoclocale'
+  defaultConfig {
+    versionName '1.0.0'
+  }
+}
+
+dependencies {
+  // Same version already required by react-native-screens; no dependency upgrade.
+  implementation 'androidx.appcompat:appcompat:1.7.1'
+}

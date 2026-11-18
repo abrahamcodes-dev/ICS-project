@@ -1,5 +1,12 @@
 /** Explicit interface messages only; never apply to authored clinical content. */
 export const en = {
+  "Help & support": "Help & support",
+  "{count} minute": "{count} minute",
+  "{count} minutes": "{count} minutes",
+  "This appointment is completed.": "This appointment is completed.",
+  "This appointment is cancelled.": "This appointment is cancelled.",
+  "This appointment is no show.": "This appointment is no show.",
+  "View prescription": "View prescription",
   "View consultation history": "View consultation history",
   "Google sign-in is linked to this account.": "Google sign-in is linked to this account.",
   "Link Google account": "Link Google account",
@@ -992,6 +999,13 @@ export const en = {
 } as const;
 export type MessageKey = keyof typeof en;
 export const sw: Record<MessageKey, string> = {
+  "Help & support": "Msaada na usaidizi",
+  "{count} minute": "dakika {count}",
+  "{count} minutes": "dakika {count}",
+  "This appointment is completed.": "Miadi hii imekamilika.",
+  "This appointment is cancelled.": "Miadi hii imeghairiwa.",
+  "This appointment is no show.": "Miadi hii haikuhudhuriwa.",
+  "View prescription": "Tazama maagizo ya dawa",
   "View consultation history": "Tazama historia ya mashauriano",
   "Google sign-in is linked to this account.": "Kuingia kwa Google kumeunganishwa na akaunti hii.",
   "Link Google account": "Unganisha akaunti ya Google",

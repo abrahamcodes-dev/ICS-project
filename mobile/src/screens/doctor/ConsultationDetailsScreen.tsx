@@ -1,4 +1,4 @@
-import {systemMessage} from "../../i18n/translate";
+import {systemMessage,displayMinutes} from "../../i18n/translate";
 import {localeTag} from "../../i18n/locale";
 import {tr} from "../../i18n/translate";
 import {useLocale} from "../../i18n/react";
@@ -49,10 +49,10 @@ export function ConsultationDetails({uid,id,back,join}:{uid:string;id:string;bac
   {!row&&!error&&<Loading label={tr("Loading consultation details...")}/>}{error&&<><Notice message={tr("Appointment unavailable. Check your connection and account access.")}/><Action title={tr("Retry details")} onPress={()=>setRetry(v=>v+1)}/></>}
   {row&&<>
    <Card><AppointmentPatient prominent display={patients[id]}/></Card>
-   <Card style={{gap:2}}>{information('calendar',new Date(row.startAt).toLocaleDateString(localeTag(),{weekday:'long',year:'numeric',month:'long',day:'numeric'}))}{information('clock',`${time(row.startAt)} – ${time(row.endAt)} · ${(row.endAt-row.startAt)/60000} minutes`)}{information('clock',Intl.DateTimeFormat().resolvedOptions().timeZone)}</Card>
+   <Card style={{gap:2}}>{information('calendar',new Date(row.startAt).toLocaleDateString(localeTag(),{weekday:'long',year:'numeric',month:'long',day:'numeric'}))}{information('clock',`${time(row.startAt)} – ${time(row.endAt)} · ${displayMinutes((row.endAt-row.startAt)/60000)}`)}{information('clock',Intl.DateTimeFormat().resolvedOptions().timeZone)}</Card>
    {([tr("Patient information"),tr("Previous consultations")] as const).map((label,index)=><Card key={label} style={{padding:12}}><Pressable accessibilityRole="button" accessibilityLabel={label} onPress={()=>setInfo(index===0?tr("Patient medical information is not available through this appointment."):tr("Patient-specific consultation history is not available here. Your Consultations History tab lists your authorized appointments."))} style={{minHeight:48,flexDirection:'row',alignItems:'center',gap:12}}><PatientIcon name={index===0?'profile':'calendar'} size={24} color={p.accent}/><Copy variant="label" style={{flex:1}}>{label}</Copy><Copy>›</Copy></Pressable></Card>)}
    {info&&<Copy tone="muted">{info}</Copy>}
-   <View style={{backgroundColor:p.infoSurface,borderRadius:14,padding:16}}><Copy style={{color:p.info}}>{reason??'Consultation is available. You can join now.'}</Copy></View>
+   <View style={{backgroundColor:p.infoSurface,borderRadius:14,padding:16}}><Copy style={{color:p.info}}>{reason?systemMessage(reason):tr('Consultation is available. You can join now.')}</Copy></View>
    <Action title={tr("Join consultation")} disabled={!!reason||busy} onPress={()=>{const a=latest.current;if(a&&!busy&&!consultationUnavailable(a,uid,'doctor',Date.now()))join();}}/>
    {canCancel(row,uid,now)&&<Pressable accessibilityRole="button" accessibilityLabel={tr("Cancel appointment")} accessibilityState={{disabled:busy}} disabled={busy} onPress={()=>{setConfirm(true);setFailure(null);}} style={{minHeight:52,borderRadius:16,borderWidth:1,borderColor:p.error,alignItems:'center',justifyContent:'center'}}><Copy style={{color:p.error,fontWeight:'600'}}>{tr("Cancel appointment")}</Copy></Pressable>}
    {confirm&&canCancel(row,uid,now)&&<Card><Copy>{tr("Cancel this appointment? This cannot be undone.")}</Copy><Action title={tr("Confirm cancellation")} danger disabled={busy||!session} onPress={()=>void cancel()}/><Action title={tr("Keep appointment")} secondary disabled={busy} onPress={()=>setConfirm(false)}/></Card>}

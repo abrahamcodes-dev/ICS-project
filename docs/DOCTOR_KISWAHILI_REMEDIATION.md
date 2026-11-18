@@ -1,0 +1,135 @@
+# Doctor Kiswahili acceptance remediation — 18 November 2026
+
+Local implementation only. The installed hosted APK has not been rebuilt, replaced or changed by this task. Doctor Kiswahili device reacceptance is pending a separately approved replacement APK.
+
+## Changes
+
+- Doctor consultation tabs translate both visible text and accessibility labels through the typed catalogue; their query modes and selection state remain unchanged.
+- Doctor Profile translates Help & support. Profile menus now use stable action keys rather than comparing translated titles with English strings. This also preserves the selected panel across language changes and keeps Kiswahili availability/edit-profile navigation functional.
+- Appointment duration uses a localized number and singular/plural minute label (`30 minutes` / `dakika 30`). Completed, cancelled and no-show explanations use explicit catalogue entries. The existing appointment eligibility function and timing restrictions remain untouched; only the displayed text changes. Nearby Doctor appointment cards and the shared appointments route also translate their controlled reason strings.
+- Prescription navigation uses a neutral Digital prescriptions title for list/loading/error states, Create Prescription only after an authorized read finds no issued record, and View prescription / Tazama maagizo ya dawa for issued-record viewing. Inline headings agree with the current state. Title changes track language switching, selection, back navigation and identity refresh. No issue/retrieval/session authorization or immutable-record behaviour is changed.
+- Authored medications, messages, documents, identifiers, appointment timestamps and KES amounts are unchanged. The synthetic-demo warning remains present.
+
+## Startup/account-refresh investigation
+
+Observed on the installed APK: Kiswahili preference survived a cold restart, but canonical account loading briefly failed. One explicit Refresh account recovered the existing Doctor workspace without password entry or sign-out. English restoration and a subsequent restart succeeded.
+
+The canonical identity loader uses the existing own-user Firestore read and parser; failures are handled by the existing auth-state generation guard. An identity error retains the Firebase UID, clears protected identity state, and permits an explicit refresh. It neither signs out the account nor creates another account. Existing filtered app logs contained no identity-related lines or structured error code for the event. The generic UI failure does not distinguish a transport failure from other rejected/invalid identity reads, so a precise network/DNS/backend root cause is **not established**.
+
+No speculative retry, caching, authorization or startup change is made. A focused simulated transient-read test verifies identityError → explicit refresh → ready for the same UID, with no signedOut state. Follow up during the deferred connectivity phase with timestamped SDK error codes, connectivity conditions and cold-start observations; do not treat a simulated test as reproduction of the hosted incident.
+
+## Verification and remaining acceptance
+
+Verification used Node **22.23.3** and the existing disposable regression workspace with unchanged locked dependencies:
+
+- **9 Jest suites, 118 distinct tests PASSED**, zero failed/skipped/TODO tests in the run: doctorLocalization, doctorWorkspace, consultationDetails, prescriptionUI, authState, localization, localizationUI, consultationHistory and consultationHistoryScreen.
+- TypeScript initially caught an accidentally duplicated existing translation entry. The duplicate was removed and the original entry reused; final mobile `tsc --noEmit` **PASSED**. The two catalogue-affected Jest suites were rerun: **15/15 PASSED**, already included in the 118 distinct total.
+- Translation audit: **996 catalogue keys**, **62 TSX files**, no unlocalized static JSX reported. Dynamic descriptors and device layout still need manual review; the audit alone does not establish full translation coverage.
+- Git whitespace checks **PASSED**. No backend or Rules suites were rerun because this task changes no backend contracts, authorization rules or dependencies.
+
+Kenyan Kiswahili wording still benefits from owner/qualified review. Full medical-language, TalkBack, large-font and narrow-screen acceptance is not established by local rendering tests. A replacement standalone APK and repeat Doctor device checks require separate build/install approval. Active-appointment device testing remains deferred.
+
+No Firebase Rules, Functions, dependencies, hosted records, consent, native configuration or installed app state were changed. Existing unrelated APK notes and consultation-service test edits remain outside this task. No deployment, rebuild, install, stage, commit or push is performed.
+
+## Intended local files
+
+Source (9): `mobile/src/i18n/messages.ts`, `mobile/src/i18n/translate.ts`, `mobile/src/navigation/DoctorNavigator.tsx`, `mobile/src/screens/doctor/DoctorWorkspace.tsx`, `mobile/src/screens/doctor/DoctorConsultations.tsx`, `mobile/src/screens/doctor/ConsultationDetailsScreen.tsx`, `mobile/src/screens/doctor/IssuePrescriptionScreen.tsx`, `mobile/src/screens/shared/AppointmentsScreen.tsx`, `mobile/src/screens/shared/PrescriptionWorkspace.tsx`.
+
+Tests (5): `mobile/__tests__/doctorLocalization.test.js` (new), `mobile/__tests__/doctorWorkspace.test.js`, `mobile/__tests__/consultationDetails.test.js`, `mobile/__tests__/prescriptionUI.test.js`, `mobile/__tests__/authState.test.js`.
+
+Evidence: this document (new). These 15 intended files remain uncommitted. Unrelated `docs/CHECKPOINT_1_ANDROID_APK.md` and `mobile/__tests__/consultationService.test.js` are preserved and excluded.
+
+## Native back-button accessibility investigation (18 November 2026)
+
+Device reacceptance is **6 PASS / 1 FAIL**, not complete. Visible Doctor Kiswahili labels, completed history, limited patient summary, issued-prescription viewing and both restart/persistence checks passed. The remaining failure is the native history-header back button's accessibility description, `Navigate up`. Evidence: `C:\Users\eyoel\CallADoc-checkpoints\doctor-kiswahili-remediation-ES05sg\device-reacceptance-20261118-rBwGr8\device-acceptance-result.json` and `sw-history-top.json`.
+
+Source trace: `DoctorNavigator` uses `@react-navigation/native-stack` 6.11.0 and `react-native-screens` 4.26.2. In `ScreenStackHeaderConfig.kt`, the screen installs an Android support toolbar, calls `setDisplayHomeAsUpEnabled` and preserves its native navigation click listener. Android AppCompat supplies the default resource `abc_action_bar_up_description` (`Navigate up`, confirmed in the locally cached AppCompat AAR). The application's English/Kiswahili preference updates its JavaScript catalogue and subscribers, not Android's resource locale.
+
+The installed native-stack option contract has no Android native back-button accessibility-label setting. `headerBackTitle` is explicitly iOS-only; the Android `ScreenStackHeaderConfigViewManager` implements `setBackTitle` as a no-op. The screens native component contract likewise exposes no dedicated native back-description prop. A generic header accessibility label is not a supported way to target the toolbar navigation child.
+
+**No application/dependency/native correction was applied.** Under the approved stop condition, do not substitute a custom `headerLeft`, patch dependency internals, override a global Android string or change application-wide native locales speculatively. Those approaches require separately reviewed scope and cannot be claimed to preserve the existing native rendering, touch target and semantics without device verification. A possible next investigation is a supported native per-app locale integration or a reviewed upstream native-stack API; neither is implemented or established as compatible here.
+
+Only this evidence document changed during this investigation. No new runtime regression test, TypeScript run or translation audit was warranted because application code, catalogue, dependencies and native configuration are unchanged; earlier 118-test and TypeScript results remain historical evidence, not a newly executed result. Focused source/option-contract inspection and documentation whitespace verification were performed. Navigation behavior, titles, touch targets and visual rendering are unchanged by this documentation-only update.
+
+A future implemented correction will require a replacement standalone APK and actual Android accessibility-label reacceptance. Current acceptance remains incomplete. Doctor session, hosted records, consent revision 5, rollback APKs and unrelated edits were not touched. Active-appointment testing remains deferred.
+
+## Authorized native-locale synchronization implementation
+
+The subsequent authorized implementation uses a local Android Expo Module, `mobile/modules/calladoc-locale`, discovered through Expo's existing default `./modules` autolinking search path. It uses the already-installed Expo Modules Kotlin API (`ModuleDefinition`, `AsyncFunction`, `Queues.MAIN`) and public AndroidX `AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(...))`. The bridge accepts only `en` and `sw`, requires an available AppCompatActivity, and compares `getApplicationLocales()` before changing configuration. React Native 0.86.3's ReactActivity extends AppCompatActivity. AppCompat 1.7.1 matches the dependency already required by react-native-screens; no package or lockfile upgrade is made.
+
+The resource investigation confirmed that AppCompat already ships `abc_action_bar_up_description` as English `Navigate up` and Kiswahili `Sogeza juu`. No resource override, toolbar replacement, dependency patch, navigation change or manual Activity recreation is introduced.
+
+`locale.ts` accepts an optional native synchronizer at preference initialization. It waits for the AsyncStorage read, retains the existing late-read revision guard, then requests the resolved language without awaiting native work on the authentication startup path. Explicit selections publish JavaScript translations immediately, persist first, and synchronize afterward. Native requests are serialized, skip stale selections and successful duplicates, and never feed native locale back into the JavaScript preference. Storage read failures do not trigger a native request; write failures do not apply an unpersisted new native locale.
+
+`nativeLocale.ts` uses Expo's `requireOptionalNativeModule`; non-Android platforms do nothing. An absent module in an older APK or a native rejection is caught at the language lifecycle boundary and logged without credentials. It does not crash startup, reject a successfully persisted language selection or block authentication. A failed request is not marked synchronized; another explicit selection or initialization can retry. There is no automatic polling, Activity recreation loop or background language retry. An unavailable module leaves the native accessibility label unresolved while JavaScript translation remains usable.
+
+JavaScript AsyncStorage remains the authoritative preference across accounts. No second Android preference store or AppCompat auto-storage metadata is added. Android 13+ framework locale persistence may also retain the setting; startup reconciles it to the saved CallADoc choice. On older Android versions, startup reapplies that choice if AppCompat has not retained it in the current process. This may cause one configuration change after storage resolution.
+
+The original Android manifest does not handle `locale`/`layoutDirection` changes itself, so the supported AppCompat path may recreate the Activity. This is intentional rather than suppressing configuration handling without runtime evidence. Native toolbar reconstruction should resolve the existing Kiswahili resource, but this is an expected result, not a device-verified result. React navigation state or unsaved screen-local drafts may reset during recreation; stored authentication is expected to survive but must be tested. Do not test switching during an active consultation. If the Activity is temporarily unavailable, synchronization fails safely and can be retried by explicit selection after the workspace is ready.
+
+No Expo config plugin or original native-tree edit is needed: the local module carries its Gradle configuration, empty library manifest and Expo registration. Disposable builds must include the entire `mobile/modules/calladoc-locale` directory, including the new untracked files, before Expo/Gradle autolinking. The existing module-gradle plugin provides Kotlin/Expo integration. This does not add system-settings language selection or change locale configuration globally. Both local and academic-demo packages discover the same module while retaining their separate identities and preference stores.
+
+Changed files for this addition: `mobile/src/i18n/locale.ts`, `mobile/src/i18n/react.tsx`, new `mobile/src/i18n/nativeLocale.ts`, new `mobile/__tests__/nativeLocale.test.js`, this evidence document, and five local-module files: `package.json`, `expo-module.config.json`, `android/build.gradle`, `android/src/main/AndroidManifest.xml`, `android/src/main/java/expo/modules/calladoclocale/CallADocLocaleModule.kt`.
+
+Native validation is limited to installed API/source inspection and read-only Expo autolinking checks. No Kotlin compilation, Gradle task, prebuild, APK build or device interaction is authorized or performed in this task. Compatibility at compilation/runtime is therefore still pending.
+
+Focused verification used Node 22.23.3 in `C:\Users\eyoel\AppData\Local\Temp\calladoc-native-locale-1kGmFp`, with existing dependencies and no private environments: five Jest suites, **59 distinct tests passed**, zero remaining failures/skips/TODOs (nativeLocale 12, plus localization, localizationUI, doctorLocalization and authState). The initial isolated UI run lacked `assets/google-g.png` because the copy omitted assets; copying existing source assets fixed the harness and its six tests passed without application changes. The final added non-blocking-startup case was verified by rerunning only nativeLocale (12/12). Mobile TypeScript passed. The existing translation audit passed: 996 keys, 62 TSX files, no unlocalized static JSX. Expo autolinker `search` and `resolve --platform android --json` both identified the local package, Android Gradle project and `expo.modules.calladoclocale.CallADocLocaleModule` class. This establishes registration metadata discovery, not compiled native compatibility. Whitespace and preservation checks are recorded separately from runtime tests.
+
+Required replacement-APK acceptance: confirm both locale values and rejection of unsupported inputs; inspect the native back button's accessibility description (`Sogeza juu` in Kiswahili, `Navigate up` in English); verify unchanged icon, touch target, screen titles, back navigation and accessibility role; verify switching on an open native-header screen, cold restart persistence, Doctor session and navigation recovery, and no repeated recreation. Recheck the existing nine record hashes, five message hashes and granted consent revision 5 during that separately approved device phase. Older supported Android versions need their own locale/recreation check; the Pixel 7 result alone cannot establish API 24-32 runtime coverage.
+
+## Application-owned entry and release source boundaries
+
+The rejected native-locale candidate (`02bf1be0106791520ba177e24bbab6bb807e4e34686b4f0d327d11169c788d4d`) bundled application code from the dependency workspace. Both release maps contained 109 application sources: 107 matched, but `locale.ts` and `react.tsx` were old versions from `calladoc-phase3a-cYg7rZ/checks/mobile`; `nativeLocale.ts` was absent. The compiled native module was present, but its JS wiring was absent. This was a real source-integrity failure, not line-ending normalization or an overly strict validator. The APK remains rejected and uninstalled.
+
+`mobile/index.js` now imports `registerRootComponent` from Expo and the application-owned `./App`, and `mobile/package.json` selects `index.js`. The existing App component, providers, registered native component name (`main`) and navigation are unchanged. Expo SDK 57's installed `resolveEntryPoint` supports this package main, and the existing Gradle entry resolver already uses it. No native-tree edit or dependency patch is required. A dependency junction can now provide Expo itself without selecting that dependency directory's neighboring App.
+
+`mobile/scripts/checkAndroidSource.cjs` provides read-only preflight and post-bundle verification. It checks every inventory file, hashes and realpaths, requires the local entry and critical locale files, checks the dependency junction against the explicitly verified dependency directory, and rejects application resolutions outside the approved snapshot. Dependencies under that directory remain allowed. Post-bundle checks reject foreign first-party source paths and mismatched source content and require `index.js`, `App.tsx` and all three locale files. Only the exact three SDK 57 generated polyfill IDs are recognized as virtual sources; they are not arbitrary filesystem exemptions.
+
+`mobile/metro.config.cjs` retains Expo's default Metro configuration and chains its supported `resolver.resolveRequest` hook through the source guard. Hosted production bundling fails closed unless the build process supplies both `CALLADOC_SOURCE_MANIFEST` and `CALLADOC_VERIFIED_DEPENDENCIES`. These are process-only paths, not Firebase settings or private environment-file changes. Ordinary local Metro runs retain Expo's default resolver when these flags are absent. The guard performs no environment restoration, source copying, native regeneration or deployment.
+
+Future approved disposable-build preparation must copy the complete intended snapshot, including the new entry, Metro configuration and guard script, before recording hashes. Then set the two process-only guard paths and run:
+
+```text
+node mobile/scripts/checkAndroidSource.cjs <source-snapshot-manifest.json> <verified-node_modules-directory>
+```
+
+After a separately approved build, repeat with the final source-map path as the third argument and retain the existing signing/package/Firebase/bundle checks. Never accept a source map merely because stripping its directory prefix produces a familiar filename. The source guard complements, rather than replaces, dependency lock/version validation and the other release safeguards.
+
+Focused verification used Node 22.23.3, installed Expo 57.0.33 and React Native 0.86.3 with all installed top-level dependency versions matching the unchanged lockfile. Nine Node tests passed for entry selection with junctioned dependencies, realpath/hash boundaries, missing files, stale/foreign maps, required new wiring, legitimate dependencies, actual Metro relative resolution and fail-closed hosted configuration. Three affected Jest suites passed, 19 distinct tests (appEntry 1, nativeLocale 12, localizationUI 6). TypeScript passed with the complete App source. Initial fixture preparation omitted App.tsx; entry-test resolution failed until the unchanged file was copied to the separate test fixture. The old test fixture also lacked its dependency junction; it was not restored. No application assertion was weakened.
+
+The actual guarded Expo Metro configuration loaded successfully in a separate current-source fixture at `C:\Users\eyoel\AppData\Local\Temp\calladoc-entry-verification-nACF2b`. Expo resolved its `mobile/index.js`; Metro resolved App.tsx, locale.ts, react.tsx and nativeLocale.ts from that same fixture with external junctioned dependencies. These checks loaded configuration and resolved modules only: no Metro server, bundle generation, Gradle build or APK operation occurred.
+
+The old `cadpc-JXEE2Q` build workspace is **not ready**: 75 of its 168 manifest files and its node_modules junction are missing; the remaining inventoried files match their recorded hashes. Missing examples include AUTH_CONTRACT.md, assets and babel.config.js. It also contains an unselected `checkpoint-entry.js`, while its package main still selects Expo's dependency-owned entry. The cause of the missing files is not established. Nothing there was restored or rewritten in this task. A future build requires separately approved complete workspace preparation and a fresh exact-source manifest; restoring only the junction is insufficient.
+
+Changed files for this entry checkpoint: mobile/package.json, mobile/index.js, mobile/metro.config.cjs, mobile/scripts/checkAndroidSource.cjs, mobile/__tests__/appEntry.test.js, scripts/__tests__/androidSource.test.cjs and this document. No lockfile, original native tree, installed app, hosted resource or unrelated edit is intentionally changed. **The build pipeline is not declared corrected until a subsequent approved APK passes full source-map and artifact verification.** Native locale lifecycle/device acceptance remains pending.
+
+## Locale-switch workspace restoration — local implementation, 18 November 2026
+
+The subsequent installed native-locale build passed both native back descriptions (English “Navigate up”, Kiswahili “Sogeza juu”). Device acceptance remains **6/7 PASS**: switching from Doctor Profile recreates the Activity once and resets the local DoctorWorkspace tab to Home. This entry implements a local correction; it does not supersede that device result or claim a new APK has been accepted.
+
+`navigation/localeRestoration.ts` holds a typed, in-memory, one-use Doctor tab bookmark. Only a focused, authenticated, active, approved Doctor workspace can supply it. An explicit language selection invalidates older generations. After the existing language-preference write succeeds, immediately before calling the native bridge, the latest eligible selection captures only the tab, UID, switch generation, timestamp and surface-owner marker. No clinical content, route parameters, drafts, credentials or identity records are copied or written.
+
+The local Expo Module now returns Boolean `changed`: true only when the existing AppCompat locale comparison requires `setApplicationLocales`. A no-op, missing module, failure or older bridge returning no acknowledgement cannot confirm restoration. This is a minimal return-value change; the supported AppCompat API and original native tree are unchanged. Native compilation/runtime behavior of this revision requires a separately approved build/device check.
+
+Only a different DoctorWorkspace mount may consume a confirmed bookmark, after the existing authenticated/active/approved checks succeed and the RootNavigator initial-URL check completes. The originating mount cannot consume it. Temporary initializing/loadingIdentity states wait; sign-out, wrong UID/role, missing/error identity, inactive/unapproved Doctor, explicit navigation, incoming/initial URL or a subsequent tab action discard it. Pending preparation is also cancelled, preventing a late storage/native result from overriding a newer action. Bookmarks expire after 30 seconds (and fail closed on clock rollback). URL inspection failure discards the bookmark. Authentication and backend/Rules authorization remain authoritative and unchanged.
+
+This is not general navigation persistence. An ordinary process restart has no bookmark and defaults to Home. After consumption, another React remount also defaults to Home. Only the workspace tab is restored, not expanded Profile panels, form drafts or a clinical navigation stack. The native bridge may still cause its expected single Activity recreation. If the process is killed or validation takes longer than the bookmark lifetime, Home is the safe fallback.
+
+Installed React Native `ReactDelegate.onHostDestroy()` unloads/stops the surface; `ReactHostImpl.onHostDestroy(activity)` calls `moveToHostDestroy`, which changes lifecycle state and clears the Activity without destroying its React context. A new delegate creates/starts a surface on that retained host. Module-scoped bookmark memory therefore survives this configuration-recreation path, while component-local tab state does not. Automated tests destroy the entire React test root and create another root while retaining the module instance. This demonstrates the JavaScript handoff across a surface remount; it does not substitute for Android runtime acceptance.
+
+Files changed in this task:
+
+- `mobile/src/navigation/localeRestoration.ts` (new).
+- `mobile/src/navigation/RootNavigator.tsx`.
+- `mobile/src/screens/doctor/DoctorWorkspace.tsx`.
+- `mobile/src/i18n/locale.ts` and `mobile/src/i18n/nativeLocale.ts`.
+- `mobile/modules/calladoc-locale/android/src/main/java/expo/modules/calladoclocale/CallADocLocaleModule.kt`.
+- `mobile/__tests__/localeRestoration.test.js` and `mobile/__tests__/localeRestorationNavigation.test.js` (new).
+- `mobile/__tests__/doctorWorkspace.test.js` and `mobile/__tests__/nativeLocale.test.js`.
+- This evidence document.
+
+Final focused verification used Node 22.23.3: **90/90 Jest tests passed across seven suites**, with no skipped tests (DoctorWorkspace 28, localeRestoration 21, localeRestorationNavigation 8, nativeLocale 19, localization/localizationUI/appEntry 14 combined). The final affected navigation run passed 57/57; previously successful unchanged suites were not repeated. TypeScript `--noEmit --incremental false` passed. The existing translation audit passed 996 catalogue keys across 62 TSX files with zero unlocalized static JSX. All 20 existing Android-source/Metro entry/source-map guard Node tests passed. Initial test runs exposed an overbroad composite-node selector and missing navigation theme mock in the new fixtures, plus two five-second timeouts; fixtures were corrected and the affected run used a 30-second test timeout without weakening assertions. No full regression suite or Gradle operation was run.
+
+No device/Firebase operations, durable bookmark writes, staging or commits occurred. The unrelated `docs/CHECKPOINT_1_ANDROID_APK.md` and `mobile/__tests__/consultationService.test.js` retained SHA-256 `617688552188d556fb928ac8e3bc41a1197f6cd94508427552530fe289d63ede` and `1420190ed0b6fb2138981b823f3b038eb47425ffef2571c65ab14d144f89f1f1`, respectively. Clinical-data hashes were not re-read in this local-only task; no hosted data, consent, Android session, installed APK or rollback artifact was accessed or changed.
+
+Release/device acceptance remains pending explicit authorization: produce a fresh exact-source manifest including the new helper, repeat all established source-map/signing/package/Firebase checks, then verify Profile stays selected English→Kiswahili and Kiswahili→English, actual native descriptions remain correct, one controlled recreation occurs, authentication survives, and the nine record hashes/five message hashes/granted consent revision 5 remain unchanged. Ordinary cold starts must still open Home. Active-appointment testing remains deferred.

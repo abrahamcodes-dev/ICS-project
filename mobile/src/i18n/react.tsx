@@ -1,6 +1,7 @@
 import React, {useEffect, useState, useSyncExternalStore} from 'react';
 import {Pressable, Text, View} from 'react-native';
 import {getLanguage, initializeLanguage, setLanguage, subscribeLanguage} from './locale';
+import {syncNativeLanguage} from './nativeLocale';
 
 export function useLocale() { return useSyncExternalStore(subscribeLanguage, getLanguage, getLanguage); }
 export function LanguageProvider({children}: {children: React.ReactNode}) {
@@ -8,7 +9,7 @@ export function LanguageProvider({children}: {children: React.ReactNode}) {
   useEffect(() => {
     let active = true;
     // Lazy import keeps pure translation/formatting usable without native storage.
-    void import('@react-native-async-storage/async-storage').then(module => initializeLanguage(module.default))
+    void import('@react-native-async-storage/async-storage').then(module => initializeLanguage(module.default, syncNativeLanguage))
       .catch(() => {}).finally(() => { if (active) setReady(true); });
     return () => { active = false; };
   }, []);
