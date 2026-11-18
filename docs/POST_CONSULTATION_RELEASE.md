@@ -1,6 +1,6 @@
 # Controlled post-consultation release — 17 November 2026
 
-Final checkpoint: **Patient and Doctor completed-history device acceptance PASSED; hosted authorization 28/28 PASSED. All nine tracked record hashes and five message hashes unchanged; granted consent revision 5 preserved.** Doctor Kiswahili device checks, fresh direct-SDK negative checks and active-appointment device testing are **PENDING, not failed**. Earlier stages below are historical; the navigation blocker was resolved by the separately approved mobile-only history update documented in the final section.
+Final checkpoint: **Patient and Doctor completed-history device acceptance PASSED; hosted authorization 28/28 PASSED. All nine tracked record hashes and five message hashes unchanged; granted consent revision 5 preserved.** Fresh direct-SDK negative authorization verification is **PASSED — 18/18 checks**. Doctor Kiswahili device checks and active-appointment device testing are **PENDING, not failed**. Earlier stages below are historical; the navigation blocker was resolved by the separately approved mobile-only history update documented in the final section.
 
 ## Approved consent and access scope
 
@@ -82,7 +82,7 @@ The patient's existing session survived installation and cold restart. The exist
 
 Hosted authorization checks: **28/28 PASSED** (Patient 13/13, Doctor 15/15), using the previously confirmed separate receipts. They are distinct from the new device checks and were not repeated. Final read-only preservation verification at **21:08:56 EAT on 17 November 2026** confirmed all **nine tracked record hashes and five message hashes unchanged**, including **granted consent revision 5**. The appointment, simulated payment, prescription, attachment and accounts were preserved; no new clinical records were created.
 
-**PENDING, not failed:** Doctor Kiswahili device checks; fresh direct-SDK negative authorization checks; active-appointment device testing. Active-path behaviour retains focused local automated coverage, but no new hosted appointment was created. Broad accessibility/layout acceptance and full bilingual acceptance are not claimed. The unused direct-single-message Rules expression-budget TODO remains unchanged; history uses bounded queries.
+**PENDING, not failed:** Doctor Kiswahili device checks; active-appointment device testing. Fresh direct-SDK negative authorization verification is now **PASSED — 18/18 checks**, as recorded in the 18 November update. Active-path behaviour retains focused local automated coverage, but no new hosted appointment was created. Broad accessibility/layout acceptance and full bilingual acceptance are not claimed. The unused direct-single-message Rules expression-budget TODO remains unchanged; history uses bounded queries.
 
 ### Installed artifact and preservation
 
@@ -131,3 +131,20 @@ Evidence/consent-correction group — **4 files**:
 - `docs/PHASE_3C_HOSTED_FUNCTIONAL_PRIVACY.md`.
 
 Existing unrelated edits in `docs/CHECKPOINT_1_ANDROID_APK.md` and `mobile/__tests__/consultationService.test.js` are preserved and excluded from these proposed commits. Private receipts/configuration, APKs and rollback artifacts remain outside Git. Previously committed Rules/security changes are not part of this mobile-only commit inventory.
+
+## Fresh direct-SDK authorization verification — 18 November 2026
+
+**PASSED: Doctor 8/8; Administrator (nonparticipant) 10/10; combined 18/18.** The sanitized receipts were independently checked for the exact expected role/count, Firebase SDK version **12.19.0**, complete PASS results and expected allow/deny error codes. There were **15 negative checks and three positive controls**; the 18/18 total must not be described as 18 negative checks or merged with the earlier 28/28 hosted matrix.
+
+| Existing authenticated identity | Positive controls | Negative checks | Result |
+| --- | --- | --- | --- |
+| Approved Doctor | Own canonical identity; owned completed consultation history (five messages) | Private patient profile, protected medical profile, private consent, other patient's canonical identity, patient-record enumeration, direct private attachment Storage access | **8/8 PASSED** |
+| Administrator, not a consultation participant | Own canonical identity | Nonparticipant history, consultation room and private attachment callable; private patient profile, protected medical profile, private consent, other patient's canonical identity, patient-record enumeration and direct private attachment Storage access | **10/10 PASSED** |
+
+The tests used direct modular Firebase Web SDK server reads, bypassing mobile UI permission hints. Firestore negatives returned `permission-denied`; direct attachment Storage reads returned `storage/unauthorized`; the nonparticipant attachment callable returned `functions/permission-denied`. A valid administrator session did not confer clinical participant access. The operator entered existing passwords in the loopback-only browser helper; passwords and session tokens were not stored by the helper or extracted from Android. No accounts or test records were created, and no clinical/consent writes were performed.
+
+Sanitized receipts are outside Git beside the accepted APK, under `remaining-verification/doctor-sdk-results.json` and `remaining-verification/administrator-sdk-results.json`. Receipt times: **10:16:48 EAT** and **10:18:35 EAT**, respectively, on 18 November. The pinned SDK initialization was verified separately before the operator submitted authentication; initialization alone was never counted as an authorization pass.
+
+The subsequent read-only preservation check at **10:20:51 EAT on 18 November 2026** confirmed all **nine tracked record hashes and five message hashes unchanged**, with **granted consent revision 5 preserved**. Both rollback APK hashes and the two unrelated file byte hashes also matched. Evidence finalisation did not access the Android device, sign out the Doctor, change hosted records or account settings, deploy, build, install, stage, commit or push.
+
+**Still PENDING, not failed:** Doctor Kiswahili device acceptance and active-appointment device testing. Earlier Kiswahili functional observations and reported translation gaps do not establish completed language acceptance. No translation fixes or active-appointment tests are performed by this update. These documentation-only changes require separate local commit approval.
