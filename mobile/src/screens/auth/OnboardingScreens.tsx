@@ -1,6 +1,6 @@
 import {systemMessage} from "../../i18n/translate";
 import {tr} from "../../i18n/translate";
-import {useLocale, LanguageSelector} from "../../i18n/react";
+import {useLocale,LanguageToolbar} from "../../i18n/react";
 import React from 'react';
 import {Image,ScrollView,useWindowDimensions,Pressable, View} from 'react-native';
 import {SafeAreaView,useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -30,17 +30,15 @@ export function WelcomeScreen({navigation}:NativeStackScreenProps<GuestStackPara
  const p=usePalette(),{height,width}=useWindowDimensions(),insets=useSafeAreaInsets();
  const contentWidth=Math.min(width,520),usableHeight=height-insets.top-insets.bottom;
  return <SafeAreaView style={{flex:1,backgroundColor:p.background}}>
+  <LanguageToolbar/>
   <ScrollView bounces={false} contentContainerStyle={{flexGrow:1}}>
-   <View style={{width:'100%',maxWidth:520,alignSelf:'center',minHeight:usableHeight,overflow:'hidden'}}>
-    <View pointerEvents="none" accessible={false} importantForAccessibility="no-hide-descendants" style={{position:'absolute',top:'27%',right:-contentWidth*.3,width:contentWidth*.65,height:contentWidth*1.2,borderRadius:contentWidth*.4,backgroundColor:p.mint,transform:[{rotate:'-18deg'}]}}/>
-    <View pointerEvents="none" accessible={false} style={{position:'absolute',left:-contentWidth*.28,top:'48%',width:contentWidth*.48,height:contentWidth*.6,borderRadius:contentWidth*.3,backgroundColor:p.accent,opacity:.2}}/>
-    <View pointerEvents="none" accessible={false} style={{position:'absolute',right:'24%',top:'30%',width:12,height:12,backgroundColor:p.accent,opacity:.25,transform:[{rotate:'45deg'}]}}/>
-    <View style={{paddingTop:24,paddingHorizontal:24,alignItems:'center',gap:8,zIndex:1}}><LanguageSelector/>
+   <View style={{width:'100%',maxWidth:520,alignSelf:'center',flexGrow:1,overflow:'hidden'}}>
+    <View style={{paddingTop:24,paddingHorizontal:24,alignItems:'center',gap:8,zIndex:1}}>
      <Copy accessibilityLabel={tr("CallADoc")} style={{fontSize:36,lineHeight:44,fontWeight:'700',textAlign:'center',color:p.text}}><Copy style={{fontSize:36,lineHeight:44,fontWeight:'700',color:p.accent}}>{tr("CallA")}</Copy>{tr("Doc")}</Copy>
      <Copy style={{textAlign:'center',maxWidth:260,lineHeight:23}}>{tr("Quality healthcare")}{'\n'}{tr("anytime, anywhere")}</Copy>
     </View>
-    <View style={{flex:1,minHeight:Math.max(260,Math.min(contentWidth*1.05,usableHeight*.51)),marginTop:12,overflow:'hidden'}}>
-     <Image testID="welcome-doctor" source={require('../../../assets/welcome-doctor.png')} resizeMode="contain" accessible={false} style={{position:'absolute',width:'112%',height:'116%',left:'-6%',bottom:'-9%'}}/>
+    <View style={{flex:1,minHeight:Math.max(240,Math.min(contentWidth*.95,usableHeight*.48)),marginTop:12,paddingHorizontal:16,paddingBottom:20,justifyContent:'center'}}>
+     <Image testID="welcome-healthcare" source={require('../../../assets/welcome-healthcare.png')} resizeMode="contain" accessible={false} style={{width:'100%',aspectRatio:1245/1263,maxHeight:500,alignSelf:'center'}}/>
     </View>
     <View style={{backgroundColor:p.surface,borderTopLeftRadius:32,borderTopRightRadius:32,paddingHorizontal:24,paddingTop:24,paddingBottom:20,gap:20,marginTop:-16,zIndex:2}}>
      <Copy tone="muted" style={{textAlign:'center',alignSelf:'center',maxWidth:330,lineHeight:23}}>{tr("Talk to a doctor, get trusted advice, and manage your health all in one place.")}</Copy>
@@ -57,9 +55,9 @@ export function AccountAccessScreen({navigation}:NativeStackScreenProps<GuestSta
  const p=usePalette(),{width,fontScale}=useWindowDimensions();
  const stacked=width<360||fontScale>1.25;
  return <SafeAreaView style={{flex:1,backgroundColor:p.background}}>
+ <LanguageToolbar/>
  <ScrollView contentContainerStyle={{flexGrow:1,paddingHorizontal:24,paddingTop:8,paddingBottom:16}}>
  <View style={{width:'100%',maxWidth:480,alignSelf:'center',gap:14}}>
-  <View pointerEvents="none" accessible={false} style={{position:'absolute',width:260,height:260,borderRadius:130,backgroundColor:p.mint,top:-140,right:-160}}/>
   <Pressable accessibilityRole="button" accessibilityLabel={tr("Back to welcome")} onPress={()=>navigation.navigate('Welcome')} style={({pressed})=>({width:44,height:44,borderRadius:22,backgroundColor:p.mint,alignItems:'center',justifyContent:'center',opacity:pressed?0.7:1})}><Copy accessible={false} style={{fontSize:26}}>{'\u2190'}</Copy></Pressable>
   <View style={{gap:4}}><Copy style={{fontSize:20,lineHeight:26,fontWeight:'700'}}>{tr("Welcome to")}</Copy>
    <Copy accessibilityLabel={tr("CallADoc")} style={{fontSize:44,lineHeight:52,fontWeight:'700'}}><Copy style={{fontSize:44,lineHeight:52,fontWeight:'700',color:p.accent}}>{tr("CallA")}</Copy>{tr("Doc")}</Copy>
@@ -75,7 +73,7 @@ export function AccountAccessScreen({navigation}:NativeStackScreenProps<GuestSta
     <View style={{flex:stacked?undefined:1,width:stacked?'100%':undefined,gap:14,zIndex:1}}><Copy tone="muted" style={{fontSize:14,lineHeight:20}}>{tr("General health information from a rule-based assistant. No account required.")}</Copy>
      <Pressable accessibilityRole="button" accessibilityLabel={tr("Chat now")} onPress={()=>navigation.navigate('Chatbot')} style={({pressed})=>({minHeight:48,paddingHorizontal:14,paddingVertical:12,borderRadius:26,backgroundColor:p.primary,flexDirection:'row',gap:10,alignItems:'center',justifyContent:'center',opacity:pressed?.75:1})}><Copy style={{color:p.onPrimary,fontWeight:'600'}}>{tr("Chat now")}</Copy><Copy accessible={false} style={{color:p.onPrimary}}>{'\u2192'}</Copy></Pressable>
     </View>
-    <View pointerEvents="none" accessible={false} style={{width:stacked?180:140,height:170,justifyContent:'center'}}><View style={{position:'absolute',width:150,height:150,borderRadius:75,backgroundColor:p.accent,opacity:.08}}/><Image testID="health-assistant-robot" source={require('../../../assets/health-assistant-robot.png')} accessible={false} resizeMode="contain" style={{width:'100%',height:'100%'}}/></View>
+    <View pointerEvents="none" accessible={false} style={{width:stacked?180:140,height:170,justifyContent:'center'}}><Image testID="health-assistant-robot" source={require('../../../assets/health-assistant-robot.png')} accessible={false} resizeMode="contain" style={{width:'100%',height:'100%'}}/></View>
    </View>
    <Copy variant="caption" tone="muted">{tr("General information only. Not a diagnosis or emergency service.")}</Copy>
   </View>
@@ -86,18 +84,18 @@ export function AccountAccessScreen({navigation}:NativeStackScreenProps<GuestSta
 export function RoleSelectionScreen({navigation}:NativeStackScreenProps<GuestStackParams,'RoleSelection'>) {
   useLocale();
  const p=usePalette(),{width,fontScale}=useWindowDimensions();
- const compact=width<360||fontScale>1.3;
- const roles=[{role:'patient',title:tr("Patient"),description:tr("Book appointments, consult doctors and manage your health."),image:require('../../../assets/role-patient.png')},{role:'doctor',title:tr("Doctor"),description:tr("Manage your availability and consultations after verification and approval."),image:require('../../../assets/welcome-doctor.png')}] as const;
- return <SafeAreaView style={{flex:1,backgroundColor:p.background}}><ScrollView contentContainerStyle={{flexGrow:1,padding:20,paddingTop:12}}>
-  <View pointerEvents="none" accessible={false} style={{position:'absolute',right:-100,top:-120,width:280,height:280,borderRadius:140,backgroundColor:p.mint}}/>
+ const baseIllustrationWidth=Math.round(Math.min(120,Math.max(72,(Math.min(width-40,560)-48)*0.32)));
+ // Grow the actual contain area, not the PNG or card. Reserve text space at larger font scales.
+ const illustrationWidth=Math.round(Math.max(72,(baseIllustrationWidth-16)*1.6/Math.max(1,fontScale)));
+ const roles=[{role:'patient',title:tr("Patient"),description:tr("Book appointments, consult doctors and manage your health."),image:require('../../../assets/calladoc_patient_pink.png'),aspectRatio:1030/771},{role:'doctor',title:tr("Doctor"),description:tr("Manage your availability and consultations after verification and approval."),image:require('../../../assets/calladoc_doctor_pink.png'),aspectRatio:1354/1162}] as const;
+ return <SafeAreaView style={{flex:1,backgroundColor:p.background}}><LanguageToolbar/><ScrollView contentContainerStyle={{flexGrow:1,padding:20,paddingTop:12}}>
   <View style={{width:'100%',maxWidth:560,alignSelf:'center',gap:18}}>
    <Pressable accessibilityRole="button" accessibilityLabel={tr("Back to account access")} onPress={()=>navigation.navigate('AccountAccess')} style={({pressed})=>({width:44,height:44,borderRadius:22,backgroundColor:p.mint,alignItems:'center',justifyContent:'center',opacity:pressed?0.7:1,marginBottom:8})}><Copy accessible={false} style={{fontSize:26,color:p.accent}}>{'\u2190'}</Copy></Pressable>
-   {roles.map(item=><Pressable key={item.role} accessibilityRole="button" accessibilityLabel={item.title+'. '+item.description} onPress={()=>navigation.navigate('Register',{role:item.role})} style={({pressed})=>({flexDirection:'row',alignItems:'center',minHeight:compact?190:174,borderRadius:26,backgroundColor:p.surface,overflow:'hidden',paddingRight:14,gap:10,shadowColor:p.forest,shadowOffset:{width:0,height:3},shadowOpacity:.06,shadowRadius:10,elevation:2,opacity:pressed?.8:1})}>
-    <View pointerEvents="none" style={{width:compact?'30%':'42%',alignSelf:'stretch',minHeight:174,overflow:'hidden'}}>
-     <View style={{position:'absolute',width:'115%',aspectRatio:1,borderRadius:120,backgroundColor:p.mint,bottom:0,left:0}}/>
-     <Image testID={item.role+'-illustration'} source={item.image} accessible={false} resizeMode="contain" style={{position:'absolute',width:item.role==='patient'?'140%':'100%',height:item.role==='patient'?'130%':'114%',left:item.role==='patient'?'-20%':'0%',bottom:item.role==='patient'?'-16%':'-5%'}}/>
+   {roles.map(item=><Pressable key={item.role} accessibilityRole="button" accessibilityLabel={item.title+'. '+item.description} onPress={()=>navigation.navigate('Register',{role:item.role})} style={({pressed})=>({flexDirection:'row',alignItems:'center',minHeight:174,borderRadius:26,backgroundColor:p.surface,overflow:'hidden',paddingRight:14,gap:10,shadowColor:p.forest,shadowOffset:{width:0,height:3},shadowOpacity:.06,shadowRadius:10,elevation:2,opacity:pressed?.8:1})}>
+    <View testID={item.role+'-illustration-container'} pointerEvents="none" style={{width:illustrationWidth,height:150,flexShrink:0,padding:0,justifyContent:'center'}}>
+     <Image testID={item.role+'-illustration'} source={item.image} accessible={false} resizeMode="contain" style={{width:'100%',height:'100%'}}/>
     </View>
-    <View style={{flex:1,paddingVertical:24,gap:8}}><Copy style={{fontSize:23,lineHeight:30,fontWeight:'700'}}>{systemMessage(item.title)}</Copy><Copy tone="muted" style={{fontSize:15,lineHeight:22}}>{systemMessage(item.description)}</Copy></View>
+    <View style={{flex:1,minWidth:0,paddingVertical:18,gap:8}}><Copy style={{fontSize:23,lineHeight:30,fontWeight:'700'}}>{systemMessage(item.title)}</Copy><Copy tone="muted" style={{fontSize:15,lineHeight:22}}>{systemMessage(item.description)}</Copy></View>
     <Copy accessible={false} style={{fontSize:30,color:p.accent}}>{'\u203a'}</Copy>
    </Pressable>)}
   </View>

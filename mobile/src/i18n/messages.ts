@@ -1,5 +1,9 @@
 /** Explicit interface messages only; never apply to authored clinical content. */
 export const en = {
+  "Switch to Kiswahili": "Switch to Kiswahili",
+  "Switch to English": "Switch to English",
+  "Language preference": "Language preference",
+  "Language changed but could not be saved. Try again.": "Language changed but could not be saved. Try again.",
   "Help & support": "Help & support",
   "{count} minute": "{count} minute",
   "{count} minutes": "{count} minutes",
@@ -999,6 +1003,10 @@ export const en = {
 } as const;
 export type MessageKey = keyof typeof en;
 export const sw: Record<MessageKey, string> = {
+  "Switch to Kiswahili": "Badilisha kwenda Kiswahili",
+  "Switch to English": "Badilisha kwenda Kiingereza",
+  "Language preference": "Lugha unayopendelea",
+  "Language changed but could not be saved. Try again.": "Lugha imebadilishwa, lakini haijahifadhiwa. Jaribu tena.",
   "Help & support": "Msaada na usaidizi",
   "{count} minute": "dakika {count}",
   "{count} minutes": "dakika {count}",

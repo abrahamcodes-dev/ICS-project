@@ -1,5 +1,5 @@
 import {tr} from "../../i18n/translate";
-import {useLocale, LanguageSelector} from "../../i18n/react";
+import {useLocale, LanguageToolbar} from "../../i18n/react";
 import React from 'react';
 import {KeyboardAvoidingView, Platform, Pressable, ScrollView, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
@@ -10,15 +10,10 @@ export function LoginLayout({children,busy,onBack,onSignUp,onAssistant,footer}:{
 }) {
   useLocale();
  const p=usePalette();
- return <SafeAreaView style={{flex:1,backgroundColor:p.surface}}>
-  <View pointerEvents="none" accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{position:'absolute',inset:0,overflow:'hidden'}}>
-   <View style={{position:'absolute',width:260,height:260,borderRadius:130,right:-155,top:-110,backgroundColor:p.mint,opacity:.5}}/>
-   <View style={{position:'absolute',width:180,height:240,borderRadius:120,right:-140,top:60,backgroundColor:p.mint,opacity:.35}}/>
-   <View style={{position:'absolute',width:270,height:240,borderRadius:140,left:-180,bottom:-75,backgroundColor:p.mint,opacity:.55}}/>
-   <View style={{position:'absolute',width:500,height:180,borderRadius:250,right:-180,bottom:-125,backgroundColor:p.mint,opacity:.5,transform:[{rotate:'-12deg'}]}}/>
-  </View>
+ return <SafeAreaView style={{flex:1,backgroundColor:p.background}}>
+  <LanguageToolbar/>
   <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':undefined}>
-   <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={{flexGrow:1,padding:spacing.large,paddingTop:spacing.small}}><LanguageSelector/>
+   <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={{flexGrow:1,padding:spacing.large,paddingTop:spacing.small}}>
     <View style={{width:'100%',maxWidth:440,alignSelf:'center',gap:spacing.large}}>
      {onBack&&<Pressable accessibilityRole="button" accessibilityLabel={tr("Back")} accessibilityState={{disabled:busy}} disabled={busy} onPress={onBack} style={{width:48,height:48,justifyContent:'center'}}><Copy accessible={false} style={{fontSize:28}}>{'\u2190'}</Copy></Pressable>}
      <View style={{gap:8,paddingBottom:8}}><Copy title style={{fontSize:30,lineHeight:38}}>{tr("Login to your account")}</Copy><Copy tone="muted">{tr("Your care continues here.")}</Copy></View>

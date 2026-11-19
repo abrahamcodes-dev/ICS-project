@@ -1,7 +1,7 @@
 import {SW_DISCLAIMER, SW_EMERGENCY, SW_ASSISTANT_NOTICE, SW_WELCOME} from '../../services/kiswahiliHealth';
 import {systemMessage} from "../../i18n/translate";
 import {tr} from "../../i18n/translate";
-import {useLocale} from "../../i18n/react";
+import {useLocale,LanguageToolbar} from "../../i18n/react";
 import React, { useEffect, useRef, useState } from 'react';
 import { AppState, Image, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
@@ -60,6 +60,7 @@ export function HealthConversation({ onCare, onBack, patient }: { onCare(): void
   }
   const disabled=!foreground||!input.trim()||input.length>CHATBOT_LIMIT||turns.length>=MAX_TURNS;
   return <SafeAreaView style={{flex:1,backgroundColor:colors.background}}>
+   <LanguageToolbar/>
    <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
     <View style={{paddingHorizontal:20,paddingVertical:12,flexDirection:'row',alignItems:'center',gap:12}}>
      <Pressable accessibilityRole="button" accessibilityLabel={tr("Back")} onPress={onBack} style={({pressed})=>({width:44,height:44,borderRadius:22,backgroundColor:colors.mint,alignItems:'center',justifyContent:'center',opacity:pressed?.7:1})}><Copy accessible={false} style={{fontSize:26,color:colors.accent}}>{'\u2190'}</Copy></Pressable>

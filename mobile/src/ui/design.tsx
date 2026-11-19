@@ -1,5 +1,5 @@
 import {tr} from "../i18n/translate";
-import {useLocale, LanguageSelector} from "../i18n/react";
+import {useLocale, LanguageToolbar} from "../i18n/react";
 import {systemMessage} from '../i18n/translate';
 import React, {useEffect, useRef, useState} from 'react';
 import {AccessibilityInfo, Animated, ActivityIndicator, KeyboardAvoidingView, Platform, Pressable,
@@ -35,11 +35,12 @@ export function Screen({children, variant='onboarding', footer}:
   const body:ViewStyle={width:'100%', maxWidth:variant==='dashboard'?720:480,
     alignSelf:'center', gap:spacing.large};
   return <SafeAreaView style={{flex:1,backgroundColor:c.background}}>
+    {!immersive&&<LanguageToolbar/>}
     <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':undefined}>
       {fixed ? <View style={{flex:1,padding:immersive?0:spacing.medium}}>{children}</View> :
         <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
           contentContainerStyle={{flexGrow:1,padding:spacing.large,justifyContent:variant==='onboarding'?'center':'flex-start'}}>
-          <View style={body}><LanguageSelector/>{children}</View>
+          <View style={body}>{children}</View>
         </ScrollView>}
       {footer && <View style={{padding:spacing.medium,gap:spacing.small,backgroundColor:c.tabBarBackground}}>{footer}</View>}
     </KeyboardAvoidingView>

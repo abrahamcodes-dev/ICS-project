@@ -46,9 +46,9 @@ test('administrator queue localizes and still refuses a patient identity',async(
 });
 test('language selector remains accessible and updates a mounted label without remounting',async()=>{
  function Sample(){require('../src/i18n/react').useLocale();return <><LanguageSelector/><Copy>{tr('Appointments')}</Copy></>;}
- await mount(<Sample/>);const button=tree.root.findAllByProps({accessibilityLabel:'Kiswahili'}).find(n=>typeof n.props.onPress==='function');
+ await mount(<Sample/>);const button=tree.root.findAllByProps({accessibilityLabel:'Switch to Kiswahili'}).find(n=>typeof n.props.onPress==='function');
  await act(async()=>button.props.onPress());expect(JSON.stringify(tree.toJSON())).toContain('Miadi');
- expect(tree.root.findAllByProps({accessibilityLabel:'Kiswahili'}).some(n=>n.props.accessibilityState?.selected===true)).toBe(true);
+ expect(tree.root.findAllByProps({accessibilityLabel:'Badilisha kwenda Kiingereza'}).some(n=>typeof n.props.onPress==='function')).toBe(true);
 });
 test('Kiswahili doctor fee editing keeps KES minor units and revision checks',async()=>{
  await setLanguage('sw');const session={dispose:jest.fn(),fee:jest.fn().mockResolvedValue({amountMinor:0,revision:3}),summary:jest.fn().mockResolvedValue(null),setFee:jest.fn().mockResolvedValue({amountMinor:150000,revision:4}),history:jest.fn().mockResolvedValue({payments:[],nextCursor:null})};

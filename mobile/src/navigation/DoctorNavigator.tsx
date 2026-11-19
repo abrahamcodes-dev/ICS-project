@@ -1,6 +1,6 @@
 import {systemMessage} from '../i18n/translate';
 import {tr} from "../i18n/translate";
-import {useLocale} from "../i18n/react";
+import {useLocale,LanguageSwitchButton} from "../i18n/react";
 import ConsultationDetailsScreen from '../screens/doctor/ConsultationDetailsScreen';
 import React from "react";
 import ConsultationHistoryScreen from "../screens/shared/ConsultationHistoryScreen";
@@ -21,7 +21,7 @@ export default function DoctorNavigator() {
   useLocale();
   const colors=usePalette();
   return (
-    <Stack.Navigator initialRouteName="DoctorWorkspace" screenOptions={({route})=>({title:systemMessage(route.name),headerStyle:{backgroundColor:colors.background},headerTintColor:colors.text,contentStyle:{backgroundColor:colors.background}})}>
+    <Stack.Navigator initialRouteName="DoctorWorkspace" screenOptions={({route})=>({title:systemMessage(route.name),headerRight:()=> <LanguageSwitchButton/>,headerStyle:{backgroundColor:colors.background},headerTintColor:colors.text,contentStyle:{backgroundColor:colors.background}})}>
       <Stack.Screen name="DoctorWorkspace" component={DoctorWorkspace} options={{headerShown:false}} />
       <Stack.Screen name="Appointments" component={DoctorAppointmentsScreen} />
       <Stack.Screen name="SubmitVerification" component={SubmitVerificationScreen} />

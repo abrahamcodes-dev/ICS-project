@@ -237,3 +237,13 @@ test('a recreated authorized workspace waits for the in-flight native acknowledg
  await act(async()=>handoff.finishLocaleRestoration(generation,true));
  expect(selected()).toEqual(['Profile']);
 });
+
+test.each([1,1.3])('all four Doctor tabs share the safe-area width at font scale %s',async fontScale=>{
+ const rn=require('react-native');jest.spyOn(rn,'useWindowDimensions').mockReturnValue({width:412,height:915,scale:2.625,fontScale});
+ await render();const bar=tree.root.findByProps({testID:'doctor-tab-bar'});expect(rn.StyleSheet.flatten(bar.props.style)).toMatchObject({width:'100%',flexDirection:'row'});
+ const tabs=bar.findAll(n=>n.props.accessibilityRole==='tab'&&typeof n.props.style==='function');expect(tabs.map(n=>n.props.accessibilityLabel)).toEqual(['Home','Schedule','Consultations','Profile']);
+ for(const item of tabs)expect(item.props.style({pressed:false})).toMatchObject({flex:1,flexBasis:0,minWidth:0,paddingHorizontal:0,minHeight:64});
+ const text=bar.findAllByType(rn.Text).find(n=>n.props.children==='Consultations');expect(text).toBeDefined();expect(text.props.allowFontScaling).not.toBe(false);expect(text.props.numberOfLines).toBeUndefined();expect(rn.StyleSheet.flatten(text.props.style)).toMatchObject({fontSize:12,alignSelf:'stretch'});
+ const safe=tree.root.findAllByType(require('react-native-safe-area-context').SafeAreaView).find(n=>n.props.edges?.includes('left'));expect(safe.props.edges).toEqual(['bottom','left','right']);
+ await tab('Consultations');expect(tree.root.findAll(n=>n.props.accessibilityRole==='tab'&&n.props.accessibilityLabel==='Consultations'&&typeof n.props.style==='function')[0].props.accessibilityState.selected).toBe(true);
+});

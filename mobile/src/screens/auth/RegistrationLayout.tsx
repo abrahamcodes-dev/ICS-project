@@ -1,5 +1,5 @@
 import {tr} from "../../i18n/translate";
-import {useLocale, LanguageSelector} from "../../i18n/react";
+import {useLocale, LanguageToolbar} from "../../i18n/react";
 import React from 'react';
 import {Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
@@ -11,9 +11,10 @@ export function RegistrationLayout({children,busy,photo,onChoosePhoto,onRemovePh
 }) {
   useLocale();
  const p=usePalette();
- return <SafeAreaView style={{flex:1,backgroundColor:p.surface}}>
+ return <SafeAreaView style={{flex:1,backgroundColor:p.background}}>
+  <LanguageToolbar/>
   <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':undefined}>
-   <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={{flexGrow:1,padding:spacing.large,paddingTop:spacing.small}}><LanguageSelector/>
+   <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={{flexGrow:1,padding:spacing.large,paddingTop:spacing.small}}>
     <View style={{width:'100%',maxWidth:440,alignSelf:'center',gap:spacing.medium}}>
      {onBack&&<Pressable accessibilityRole="button" accessibilityLabel={tr("Back to role selection")} disabled={busy} accessibilityState={{disabled:busy}} onPress={onBack} style={{width:48,height:48,justifyContent:'center'}}><Copy accessible={false} style={{fontSize:28}}>{'\u2190'}</Copy></Pressable>}
      <View style={{gap:6}}><Copy title style={{fontSize:26,lineHeight:34}}>{tr("Create your account")}</Copy><Copy tone="muted">{tr("Your care starts here.")}</Copy></View>

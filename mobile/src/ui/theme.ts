@@ -1,5 +1,4 @@
-import {useColorScheme} from 'react-native';
-import {DarkTheme,DefaultTheme,type Theme as NavigationTheme} from '@react-navigation/native';
+import {DefaultTheme,type Theme as NavigationTheme} from '@react-navigation/native';
 
 const light={
  background:'#FFFFFF',surface:'#F7F9FD',surfaceElevated:'#FFFFFF',surfaceSecondary:'#EEF3FA',
@@ -25,8 +24,11 @@ const dark:ThemeColors={
 // Compatibility aliases keep existing layouts on the same semantic palette.
 function palette(c:ThemeColors,mode:'light'|'dark'){return {...c,mode,text:c.textPrimary,muted:c.textSecondary,mint:c.primarySurface,accent:c.tabActive,secondary:c.tabActive,forest:c.primaryPressed};}
 export const palettes={light:palette(light,'light'),dark:palette(dark,'dark')};
-export function usePalette(){return palettes[useColorScheme()==='dark'?'dark':'light'];}
-export function navigationTheme(scheme:string|null|undefined):NavigationTheme{
- const isDark=scheme==='dark',p=palettes[isDark?'dark':'light'],base=isDark?DarkTheme:DefaultTheme;
- return {...base,dark:isDark,colors:{...base.colors,primary:p.primary,background:p.background,card:p.surfaceElevated,text:p.text,border:p.border,notification:p.tertiary}};
+// Approved white presentation applies regardless of OS appearance. Select the
+// complete light palette so light text/dark-mode accents never land on white.
+// Keep semantic surfaces, media tokens and legacy palette exports intact.
+export function usePalette(){return palettes.light;}
+export function navigationTheme(_scheme:string|null|undefined):NavigationTheme{
+ const p=palettes.light;
+ return {...DefaultTheme,dark:false,colors:{...DefaultTheme.colors,primary:p.primary,background:p.background,card:p.surfaceElevated,text:p.text,border:p.border,notification:p.tertiary}};
 }
